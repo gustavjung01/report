@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tea-survey-report-v1';
+const CACHE_NAME = 'tea-survey-report-v2';
 const APP_ASSETS = [
   './',
   './index.html',
