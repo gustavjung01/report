@@ -10,6 +10,8 @@
   6. Who has access: Anyone.
   7. Copy Web App URL dạng https://script.google.com/macros/s/.../exec.
   8. Dán URL đó vào mục Google Sheet trong PWA.
+
+  Nếu sửa code Apps Script, nhớ Deploy -> Manage deployments -> Edit -> New version -> Deploy.
 */
 
 const REPORT_SHEET_NAME = 'Báo cáo';
@@ -55,14 +57,20 @@ const CUSTOMER_HEADERS = [
   ...PRODUCTS.flatMap((product) => [`${product} - trạng thái`, `${product} - ghi chú`])
 ];
 
-function doGet() {
-  return jsonOutput({ ok: true, message: 'Tea Survey Report Sheet API đang hoạt động.' });
+function doGet(e) {
+  const callback = e && e.parameter && e.parameter.callback;
+  const data = { ok: true, message: 'Tea Survey Report Sheet API đang hoạt động.' };
+  if (callback) {
+    return ContentService
+      .createTextOutput(`${callback}(${JSON.stringify(data)})`)
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonOutput(data);
 }
 
 function doPost(e) {
   try {
-    const raw = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
-    const payload = JSON.parse(raw);
+    const payload = parsePayload(e);
 
     if (!payload.report || !payload.report.id) {
       return jsonOutput({ ok: false, message: 'Thiếu dữ liệu report.id.' });
@@ -78,17 +86,39 @@ function doPost(e) {
     appendReportRow(reportSheet, payload);
     appendCustomerRows(customerSheet, payload);
 
-    return jsonOutput({ ok: true, message: 'Đã ghi báo cáo vào Google Sheet.', reportId: payload.report.id });
+    return jsonOutput({ ok: true, message: 'Đã ghi báo cáo vào Google Sheet.', reportId: payload.report.id, action: payload.action || '' });
   } catch (error) {
     return jsonOutput({ ok: false, message: error.message, stack: error.stack });
   }
+}
+
+function parsePayload(e) {
+  if (e && e.parameter && e.parameter.payload) {
+    return JSON.parse(e.parameter.payload);
+  }
+
+  if (e && e.postData && e.postData.contents) {
+    const raw = e.postData.contents;
+    if (raw.indexOf('payload=') === 0) {
+      const params = raw.split('&').reduce((acc, pair) => {
+        const parts = pair.split('=');
+        acc[decodeURIComponent(parts[0] || '')] = decodeURIComponent((parts[1] || '').replace(/\+/g, ' '));
+        return acc;
+      }, {});
+      return JSON.parse(params.payload || '{}');
+    }
+    return JSON.parse(raw);
+  }
+
+  return {};
 }
 
 function ensureSheet(ss, name, headers) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) sheet = ss.insertSheet(name);
 
-  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(headers.length, sheet.getLastColumn() || headers.length)).getValues()[0];
+  const maxColumns = Math.max(headers.length, sheet.getLastColumn() || headers.length);
+  const currentHeaders = sheet.getRange(1, 1, 1, maxColumns).getValues()[0];
   const shouldWriteHeaders = currentHeaders.slice(0, headers.length).join('') === '' || currentHeaders[0] !== headers[0];
 
   if (shouldWriteHeaders) {
