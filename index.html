@@ -3,146 +3,147 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f766e" />
+    <meta name="theme-color" content="#0b5f59" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Tea Report" />
-    <meta name="description" content="PWA báo cáo khảo sát thị trường ngành trà sữa: test trà, ghi nhận khách hàng, đồng bộ Google Sheet." />
-    <title>Tea Survey Report</title>
+    <meta name="apple-mobile-web-app-title" content="Bépi Report" />
+    <meta name="description" content="PWA báo cáo khảo sát thị trường trà sữa, đồng bộ Google Sheet." />
+    <title>Bépi Field Report</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/bepi-logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon.svg" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div id="app" class="app-shell">
-      <header class="app-header">
-        <div class="brand-mark" aria-hidden="true">
-          <img id="brandLogo" alt="Logo Bépi" hidden />
-          <span id="brandFallback">🍵</span>
+    <div class="app-shell">
+      <header class="app-top">
+        <div class="brand-logo">
+          <img src="icons/bepi-logo.svg" alt="Bépi" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'" />
+          <span>B</span>
         </div>
-        <div class="brand-copy">
-          <p class="eyebrow">Bépi Field Report</p>
+        <div class="brand-text">
+          <p>Bépi Field Report</p>
           <h1>Khảo sát trà sữa</h1>
-          <span id="connectionStatus" class="status-line">Offline-first · Chưa nối Sheet</span>
+          <small id="connectionStatus">Chưa nối Google Sheet</small>
         </div>
-        <button class="icon-btn install-btn" id="installBtn" hidden>Cài app</button>
+        <button id="installBtn" class="small-btn" hidden>Cài đặt</button>
       </header>
 
-      <main class="app-main">
-        <aside class="side-stack">
-          <section class="hero-card">
+      <main class="main-grid">
+        <aside class="left-rail">
+          <section class="summary-card">
             <div>
-              <p class="eyebrow light">Báo cáo nhanh</p>
-              <h2>Đi thị trường, ghi khách, đẩy Sheet.</h2>
-              <p>Thiết kế cho sales dùng điện thoại: ít thao tác, rõ trạng thái, không mất dữ liệu khi mạng yếu.</p>
+              <span class="section-kicker">Tổng quan</span>
+              <h2>Ghi nhanh, rõ khách, lên Sheet.</h2>
             </div>
-            <div class="hero-stats" id="homeStats">
+            <div id="homeStats" class="summary-stats">
               <div><strong>0</strong><span>báo cáo</span></div>
               <div><strong>0</strong><span>khách</span></div>
             </div>
           </section>
 
-          <section class="panel report-panel" id="createSection">
-            <div class="panel-head">
+          <section class="card" id="createSection">
+            <div class="card-head">
               <div>
-                <p class="eyebrow">Tạo báo cáo</p>
-                <h2>Ngày / thị trường</h2>
+                <span class="section-kicker">Báo cáo</span>
+                <h2>Tạo mới</h2>
               </div>
-              <span class="mini-badge">01</span>
+              <b>01</b>
             </div>
 
-            <form id="reportForm" class="form-grid soft-fields report-fields">
-              <label>
-                Ngày báo cáo
+            <form id="reportForm" class="form-stack">
+              <label class="field tone-blue">
+                <span>Ngày báo cáo</span>
                 <input type="date" id="reportDate" required />
               </label>
-              <label>
-                Thị trường / khu vực
+              <label class="field tone-green">
+                <span>Thị trường / khu vực</span>
                 <input type="text" id="reportMarket" placeholder="VD: Chợ Gạo, Cai Lậy..." required />
               </label>
-              <label>
-                Sales phụ trách
+              <label class="field tone-cream">
+                <span>Sales phụ trách</span>
                 <input type="text" id="reportSales" placeholder="VD: A Tân" value="A Tân" />
               </label>
-              <label>
-                Ghi chú nhanh
+              <label class="field tone-lavender">
+                <span>Ghi chú nhanh</span>
                 <input type="text" id="reportNote" placeholder="VD: khách thử trà ONA tuần này" />
               </label>
-              <button type="submit" class="primary-btn full">Tạo báo cáo mới</button>
+              <button type="submit" class="primary-btn">Tạo báo cáo mới</button>
             </form>
 
-            <div class="inline-actions">
-              <button class="ghost-btn" id="seedBtn" type="button">Nạp mẫu</button>
-              <button class="ghost-btn danger" id="clearBtn" type="button">Xóa máy</button>
+            <div class="button-row">
+              <button id="seedBtn" type="button" class="outline-btn">Nạp mẫu</button>
+              <button id="clearBtn" type="button" class="outline-btn danger">Xóa máy</button>
             </div>
           </section>
 
-          <section class="panel sheet-panel" id="sheetSection">
-            <div class="panel-head">
+          <section class="card sheet-card" id="sheetSection">
+            <div class="card-head">
               <div>
-                <p class="eyebrow">Google Sheet</p>
-                <h2>Đồng bộ báo cáo tiếng Việt</h2>
+                <span class="section-kicker">Google Sheet</span>
+                <h2>Kết nối</h2>
               </div>
-              <span class="mini-badge">02</span>
+              <b>02</b>
             </div>
-            <p class="muted small">Dán link Web App của Google Apps Script. App gửi dữ liệu lên 2 sheet: <b>Báo cáo</b> và <b>Chi tiết khách hàng</b>.</p>
-            <label class="sheet-url-field">
-              Apps Script Web App URL
-              <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+
+            <label class="field tone-green">
+              <span>Web App URL phải kết thúc bằng /exec</span>
+              <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" />
             </label>
-            <div class="sheet-status-card" id="sheetStatus">Chưa cấu hình Sheet</div>
-            <div class="inline-actions two-buttons">
-              <button class="ghost-btn" id="saveSheetBtn" type="button">Lưu link</button>
-              <button class="ghost-btn" id="testSheetBtn" type="button">Gửi test</button>
-              <button class="ghost-btn" id="syncAllReportsBtn" type="button">Đồng bộ</button>
+
+            <div id="sheetStatus" class="sheet-status">Dán link Apps Script, app sẽ tự lưu.</div>
+
+            <div class="sheet-actions">
+              <button id="saveSheetBtn" type="button" class="outline-btn">Lưu</button>
+              <button id="openSheetApiBtn" type="button" class="outline-btn">Mở link</button>
+              <button id="testSheetBtn" type="button" class="primary-btn">Gửi test</button>
+              <button id="syncAllReportsBtn" type="button" class="outline-btn">Đồng bộ hết</button>
             </div>
           </section>
 
-          <section class="panel list-panel" id="reportsSection">
-            <div class="panel-head compact">
+          <section class="card" id="reportsSection">
+            <div class="card-head">
               <div>
-                <p class="eyebrow">Kho báo cáo</p>
-                <h3>Danh sách</h3>
+                <span class="section-kicker">Kho báo cáo</span>
+                <h2>Danh sách</h2>
               </div>
-              <span id="reportCount" class="badge">0</span>
+              <b id="reportCount">0</b>
             </div>
             <div id="reportList" class="report-list"></div>
           </section>
         </aside>
 
         <section class="workspace" id="workspaceSection">
-          <div class="empty-state" id="emptyState">
-            <div class="empty-icon">🍃</div>
+          <div id="emptyState" class="empty-state">
+            <div class="empty-logo">B</div>
             <h2>Chọn hoặc tạo một báo cáo</h2>
-            <p>Sau đó thêm từng khách, đánh giá từng loại trà, ghi chú mẫu cần gửi và đồng bộ về Google Sheet.</p>
+            <p>Thêm khách, ghi test từng loại trà, rồi bấm Đẩy Sheet.</p>
           </div>
 
           <div id="reportDetail" hidden>
-            <section class="detail-hero">
+            <section class="report-hero">
               <div>
-                <p class="eyebrow" id="activeReportDate">--</p>
+                <span id="activeReportDate" class="section-kicker">--</span>
                 <h2 id="activeReportTitle">--</h2>
-                <p id="activeReportMeta" class="muted"></p>
-                <div id="activeSyncStatus" class="sync-pill">Chưa đồng bộ</div>
+                <p id="activeReportMeta"></p>
+                <em id="activeSyncStatus">Chưa đồng bộ</em>
               </div>
-              <div class="hero-actions">
-                <button class="primary-btn" id="syncActiveReportBtn" type="button">Đẩy Sheet</button>
-                <button class="ghost-btn" id="copySummaryBtn" type="button">Copy</button>
-                <button class="ghost-btn" id="exportCsvBtn" type="button">CSV</button>
+              <div class="hero-buttons">
+                <button id="syncActiveReportBtn" type="button" class="primary-btn">Đẩy Sheet</button>
+                <button id="copySummaryBtn" type="button" class="outline-btn">Copy</button>
+                <button id="exportCsvBtn" type="button" class="outline-btn">CSV</button>
               </div>
             </section>
 
-            <div class="stats-grid" id="statsGrid"></div>
+            <div id="statsGrid" class="stats-grid"></div>
 
-            <div class="toolbar glass-toolbar">
-              <div class="search-box">
-                <span>🔎</span>
+            <div class="filter-bar">
+              <div class="search-field">
+                <span>⌕</span>
                 <input type="search" id="searchInput" placeholder="Tìm khách, khu vực, ghi chú..." />
               </div>
-              <select id="productFilter" aria-label="Lọc sản phẩm">
-                <option value="all">Tất cả sản phẩm</option>
-              </select>
-              <select id="actionFilter" aria-label="Lọc thao tác">
+              <select id="productFilter" aria-label="Lọc sản phẩm"></select>
+              <select id="actionFilter" aria-label="Lọc trạng thái">
                 <option value="all">Tất cả trạng thái</option>
                 <option value="ok">OK / thích</option>
                 <option value="interested">Quan tâm</option>
@@ -153,21 +154,21 @@
               </select>
             </div>
 
-            <details class="customer-editor" id="customerEditor" open>
-              <summary id="editorTitle">Thêm khách hàng test</summary>
-              <form id="customerForm">
+            <details id="customerEditor" class="editor-card" open>
+              <summary id="editorTitle">Thêm khách hàng</summary>
+              <form id="customerForm" class="customer-form">
                 <input type="hidden" id="editingCustomerId" />
-                <div class="form-grid two soft-fields customer-fields">
-                  <label>
-                    Tên khách hàng
+                <div class="form-grid two-col">
+                  <label class="field tone-blue">
+                    <span>Tên khách hàng</span>
                     <input type="text" id="customerName" placeholder="VD: ToTo, Hana, Châu..." required />
                   </label>
-                  <label>
-                    Khu vực
+                  <label class="field tone-green">
+                    <span>Khu vực</span>
                     <input type="text" id="customerArea" placeholder="VD: Chợ Gạo" />
                   </label>
-                  <label>
-                    Loại SP test
+                  <label class="field tone-cream">
+                    <span>Loại SP test</span>
                     <select id="testType">
                       <option value="Trà ONA Test">Trà ONA Test</option>
                       <option value="Trà sữa / topping">Trà sữa / topping</option>
@@ -175,57 +176,57 @@
                       <option value="Khác">Khác</option>
                     </select>
                   </label>
-                  <label>
-                    Hẹn báo lại
+                  <label class="field tone-lavender">
+                    <span>Hẹn báo lại</span>
                     <input type="date" id="followDate" />
                   </label>
                 </div>
 
-                <div class="section-title">
-                  <span>Thanh lọc từng sản phẩm</span>
-                  <small>Chạm chọn trạng thái, ghi thêm cảm nhận nếu cần</small>
+                <div class="subhead">
+                  <h3>Test từng sản phẩm</h3>
+                  <p>Chọn trạng thái, ghi chú nếu có.</p>
                 </div>
                 <div id="teaTests" class="tea-tests"></div>
 
-                <div class="section-title">
-                  <span>Test chung thị trường</span>
-                  <small>Giá / khẩu vị / đối thủ / nhu cầu mẫu</small>
+                <div class="subhead">
+                  <h3>Test chung thị trường</h3>
+                  <p>Giá, khẩu vị, đối thủ, nhu cầu mẫu.</p>
                 </div>
                 <div id="marketChips" class="chip-grid"></div>
 
-                <label class="wide-label note-field">
-                  Ghi chú tổng
+                <label class="field tone-cream note-field">
+                  <span>Ghi chú tổng</span>
                   <textarea id="customerNote" rows="3" placeholder="VD: đang bán Novia, cần mẫu lớn, chủ đi vắng, báo A Tân..."></textarea>
                 </label>
 
-                <div class="form-actions sticky-actions">
-                  <button class="primary-btn" type="submit">Lưu khách hàng</button>
-                  <button class="ghost-btn" id="cancelEditBtn" type="button" hidden>Hủy sửa</button>
+                <div class="button-row sticky-save">
+                  <button type="submit" class="primary-btn">Lưu khách hàng</button>
+                  <button id="cancelEditBtn" type="button" class="outline-btn" hidden>Hủy sửa</button>
                 </div>
               </form>
             </details>
 
-            <div class="customer-list-head">
+            <div class="list-title">
               <div>
-                <p class="eyebrow">Chi tiết</p>
-                <h3>Khách trong báo cáo</h3>
+                <span class="section-kicker">Chi tiết</span>
+                <h2>Khách trong báo cáo</h2>
               </div>
-              <span id="customerCount" class="badge">0 khách</span>
+              <b id="customerCount">0 khách</b>
             </div>
             <div id="customerList" class="customer-list"></div>
           </div>
         </section>
       </main>
 
-      <nav class="bottom-nav" aria-label="Điều hướng nhanh">
+      <nav class="bottom-nav">
         <a href="#createSection">Tạo</a>
         <a href="#sheetSection">Sheet</a>
         <a href="#reportsSection">Báo cáo</a>
         <a href="#workspaceSection">Khách</a>
       </nav>
 
-      <button class="fab" id="quickAddBtn" type="button" title="Thêm khách nhanh">＋</button>
-      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <button id="quickAddBtn" type="button" class="fab">＋</button>
+      <div id="toast" class="toast"></div>
     </div>
 
     <script src="app.js" type="module"></script>
