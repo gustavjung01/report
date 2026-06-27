@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="120" fill="#e9fbf3"/>
+  <circle cx="256" cy="190" r="92" fill="#0f766e"/>
+  <path d="M170 215c46-75 103-109 172-103-6 68-43 116-111 143-24 10-45 11-61 4 26-21 55-36 88-45" fill="#24b48f"/>
+  <rect x="118" y="288" width="276" height="112" rx="42" fill="#ffffff"/>
+  <text x="256" y="365" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="800" fill="#0f766e">Bepi</text>
+</svg>
