@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tea Survey Report">
+  <defs>
+    <linearGradient id="bg" x1="72" x2="440" y1="48" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="tea" x1="170" x2="342" y1="206" y2="382" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="378" cy="132" r="56" fill="#ccfbf1" opacity=".32"/>
+  <circle cx="112" cy="392" r="78" fill="#fef3c7" opacity=".2"/>
+  <path fill="#fff" d="M160 171c0-18 15-33 33-33h126c18 0 33 15 33 33v32H160v-32Z"/>
+  <path fill="#f8fafc" d="M148 198h216l-21 203c-3 25-24 45-49 45h-76c-25 0-46-20-49-45l-21-203Z"/>
+  <path fill="url(#tea)" d="M181 268h150l-12 116c-2 13-13 24-27 24h-72c-14 0-25-11-27-24l-12-116Z"/>
+  <path fill="#0f766e" d="M208 108c0-13 11-24 24-24h48c13 0 24 11 24 24v35h-96v-35Z"/>
+  <path fill="#fff" d="M216 230h80c9 0 16 7 16 16s-7 16-16 16h-80c-9 0-16-7-16-16s7-16 16-16Z" opacity=".9"/>
+  <path fill="#fff" d="M222 310h68c8 0 15 7 15 15s-7 15-15 15h-68c-8 0-15-7-15-15s7-15 15-15Z" opacity=".82"/>
+  <path fill="#fff" d="M386 252c0 48-39 87-87 87v-35c29 0 52-23 52-52h35Z" opacity=".95"/>
+</svg>
