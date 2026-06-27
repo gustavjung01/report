@@ -16,9 +16,12 @@
   <body>
     <div id="app" class="app-shell">
       <header class="app-header">
-        <div class="brand-mark" aria-hidden="true">🍵</div>
+        <div class="brand-mark" aria-hidden="true">
+          <img id="brandLogo" alt="Logo Bépi" hidden />
+          <span id="brandFallback">🍵</span>
+        </div>
         <div class="brand-copy">
-          <p class="eyebrow">ONA Field Report</p>
+          <p class="eyebrow">Bépi Field Report</p>
           <h1>Khảo sát trà sữa</h1>
           <span id="connectionStatus" class="status-line">Offline-first · Chưa nối Sheet</span>
         </div>
@@ -48,7 +51,7 @@
               <span class="mini-badge">01</span>
             </div>
 
-            <form id="reportForm" class="form-grid">
+            <form id="reportForm" class="form-grid soft-fields report-fields">
               <label>
                 Ngày báo cáo
                 <input type="date" id="reportDate" required />
@@ -82,15 +85,16 @@
               </div>
               <span class="mini-badge">02</span>
             </div>
-            <p class="muted small">Dán link Web App của Google Apps Script. App sẽ gửi dữ liệu lên 2 sheet: <b>Báo cáo</b> và <b>Chi tiết khách hàng</b>.</p>
-            <label>
+            <p class="muted small">Dán link Web App của Google Apps Script. App gửi dữ liệu lên 2 sheet: <b>Báo cáo</b> và <b>Chi tiết khách hàng</b>.</p>
+            <label class="sheet-url-field">
               Apps Script Web App URL
               <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/.../exec" />
             </label>
             <div class="sheet-status-card" id="sheetStatus">Chưa cấu hình Sheet</div>
             <div class="inline-actions two-buttons">
-              <button class="ghost-btn" id="saveSheetBtn" type="button">Lưu link Sheet</button>
-              <button class="ghost-btn" id="syncAllReportsBtn" type="button">Đồng bộ tất cả</button>
+              <button class="ghost-btn" id="saveSheetBtn" type="button">Lưu link</button>
+              <button class="ghost-btn" id="testSheetBtn" type="button">Gửi test</button>
+              <button class="ghost-btn" id="syncAllReportsBtn" type="button">Đồng bộ</button>
             </div>
           </section>
 
@@ -153,7 +157,7 @@
               <summary id="editorTitle">Thêm khách hàng test</summary>
               <form id="customerForm">
                 <input type="hidden" id="editingCustomerId" />
-                <div class="form-grid two">
+                <div class="form-grid two soft-fields customer-fields">
                   <label>
                     Tên khách hàng
                     <input type="text" id="customerName" placeholder="VD: ToTo, Hana, Châu..." required />
@@ -189,7 +193,7 @@
                 </div>
                 <div id="marketChips" class="chip-grid"></div>
 
-                <label class="wide-label">
+                <label class="wide-label note-field">
                   Ghi chú tổng
                   <textarea id="customerNote" rows="3" placeholder="VD: đang bán Novia, cần mẫu lớn, chủ đi vắng, báo A Tân..."></textarea>
                 </label>
