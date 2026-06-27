@@ -29,8 +29,19 @@ Web app PWA để sales ghi nhận khảo sát thị trường ngành trà sữa
 2. Mở app trên điện thoại và cài ra màn hình chính nếu trình duyệt gợi ý.
 3. Tạo báo cáo mới theo ngày và thị trường.
 4. Thêm từng khách hàng, chọn trạng thái cho từng loại trà.
-5. Dùng **Đẩy Sheet** để gửi báo cáo lên Google Sheet.
-6. Dùng **Copy** hoặc **CSV** khi cần gửi/tải báo cáo thủ công.
+5. Dùng **Gửi test** để kiểm tra Google Sheet trước.
+6. Dùng **Đẩy Sheet** để gửi báo cáo thật lên Google Sheet.
+7. Dùng **Copy** hoặc **CSV** khi cần gửi/tải báo cáo thủ công.
+
+## Logo Bépi
+
+App tự tìm logo theo các tên phổ biến. Cách chắc nhất là đặt logo vào repo theo đường dẫn:
+
+```text
+icons/bepi-logo.png
+```
+
+Các tên khác cũng được thử tự động: `icons/logo.png`, `icons/bepi.png`, `logo.png`, `bepi-logo.png`, `assets/logo.png`.
 
 ## Kết nối Google Sheet
 
@@ -48,8 +59,9 @@ App không dùng trực tiếp Google Sheets API để tránh lộ token/API key
    - Execute as: **Me**
    - Who has access: **Anyone**
 8. Deploy và copy link Web App dạng `https://script.google.com/macros/s/.../exec`.
-9. Mở PWA, dán link vào mục **Google Sheet**, bấm **Lưu link Sheet**.
-10. Mở báo cáo và bấm **Đẩy Sheet**.
+9. Mở PWA, dán link vào mục **Google Sheet**, bấm **Lưu link**.
+10. Bấm **Gửi test** trước. Nếu Sheet xuất hiện dòng `TEST KẾT NỐI SHEET`, kết nối đã đúng.
+11. Mở báo cáo và bấm **Đẩy Sheet**.
 
 Apps Script sẽ tự tạo 2 sheet:
 
@@ -57,6 +69,13 @@ Apps Script sẽ tự tạo 2 sheet:
 - `Chi tiết khách hàng`
 
 Các cột đều dùng tiếng Việt.
+
+### Nếu bấm Đẩy Sheet nhưng Sheet không đổi
+
+- Kiểm tra link phải kết thúc bằng `/exec`, không dùng link `/dev`.
+- Trong Apps Script phải chọn **Execute as: Me** và **Who has access: Anyone**.
+- Nếu vừa sửa code Apps Script, phải vào **Deploy → Manage deployments → Edit → New version → Deploy**. Chỉ bấm Save là chưa cập nhật Web App đang chạy.
+- Bấm **Gửi test** trong PWA để kiểm tra trước khi gửi báo cáo thật.
 
 ## Deploy Vercel
 
@@ -100,4 +119,4 @@ git push deploy main --force-with-lease
 
 ## Ghi chú kỹ thuật
 
-Dữ liệu vẫn được lưu bằng `localStorage` trên trình duyệt của máy đang dùng. Khi mạng yếu, sales vẫn nhập báo cáo được. Khi có mạng, bấm **Đẩy Sheet** để đồng bộ. Vì frontend gửi qua Apps Script bằng chế độ no-cors, app sẽ đánh dấu đã gửi sau khi request rời khỏi trình duyệt; nên khi setup lần đầu cần mở Google Sheet kiểm tra dữ liệu có vào đúng chưa.
+Dữ liệu vẫn được lưu bằng `localStorage` trên trình duyệt của máy đang dùng. Khi mạng yếu, sales vẫn nhập báo cáo được. Khi có mạng, bấm **Đẩy Sheet** để đồng bộ. Frontend gửi qua Apps Script bằng form submit ẩn để tránh lỗi CORS thường gặp trên PWA.
