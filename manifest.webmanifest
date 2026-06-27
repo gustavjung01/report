@@ -1,0 +1,21 @@
+{
+  "name": "Tea Survey Report",
+  "short_name": "Tea Report",
+  "description": "PWA báo cáo khảo sát thị trường ngành trà sữa, test trà và theo dõi khách hàng.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef7f4",
+  "theme_color": "#0f766e",
+  "orientation": "portrait-primary",
+  "lang": "vi-VN",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
