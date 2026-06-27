@@ -37,7 +37,33 @@ const MARKET_OPTIONS = [
   'Báo sau cho A Tân'
 ];
 
+const LOGO_CANDIDATES = [
+  'icons/bepi-logo.png',
+  'icons/bepi-logo.jpg',
+  'icons/bepi-logo.webp',
+  'icons/bepi-logo.svg',
+  'icons/logo-bepi.png',
+  'icons/logo-bepi.jpg',
+  'icons/logo-bepi.svg',
+  'icons/be-pi-logo.png',
+  'icons/be-pi-logo.svg',
+  'icons/logo.png',
+  'icons/logo.jpg',
+  'icons/logo.webp',
+  'icons/bepi.png',
+  'icons/bepi.svg',
+  'assets/logo.png',
+  'assets/bepi-logo.png',
+  'logo.png',
+  'logo.jpg',
+  'logo.webp',
+  'bepi-logo.png',
+  'bepi.png'
+];
+
 const els = {
+  brandLogo: document.querySelector('#brandLogo'),
+  brandFallback: document.querySelector('#brandFallback'),
   installBtn: document.querySelector('#installBtn'),
   connectionStatus: document.querySelector('#connectionStatus'),
   homeStats: document.querySelector('#homeStats'),
@@ -52,6 +78,7 @@ const els = {
   clearBtn: document.querySelector('#clearBtn'),
   sheetUrl: document.querySelector('#sheetUrl'),
   saveSheetBtn: document.querySelector('#saveSheetBtn'),
+  testSheetBtn: document.querySelector('#testSheetBtn'),
   syncAllReportsBtn: document.querySelector('#syncAllReportsBtn'),
   syncActiveReportBtn: document.querySelector('#syncActiveReportBtn'),
   sheetStatus: document.querySelector('#sheetStatus'),
@@ -130,7 +157,7 @@ function toast(message) {
   els.toast.textContent = message;
   els.toast.classList.add('show');
   window.clearTimeout(toast.timer);
-  toast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 2800);
+  toast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 3200);
 }
 
 function save() {
@@ -235,6 +262,29 @@ function statusGroup(statusId) {
   return statusId;
 }
 
+async function resolveLogo() {
+  if (!els.brandLogo || !els.brandFallback) return;
+
+  for (const src of LOGO_CANDIDATES) {
+    const exists = await imageExists(src);
+    if (exists) {
+      els.brandLogo.src = src;
+      els.brandLogo.hidden = false;
+      els.brandFallback.hidden = true;
+      return;
+    }
+  }
+}
+
+function imageExists(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(true);
+    image.onerror = () => resolve(false);
+    image.src = `${src}?v=2`;
+  });
+}
+
 function buildTeaEditor(customer = null) {
   els.teaTests.innerHTML = TEA_PRODUCTS.map((product) => {
     const test = customer?.tests?.[product.name] || { status: 'pending', note: '' };
@@ -286,7 +336,7 @@ function renderConnectionStatus() {
   els.sheetUrl.value = endpoint;
   els.connectionStatus.textContent = endpoint ? 'Offline-first · Đã nối Google Sheet' : 'Offline-first · Chưa nối Sheet';
   els.sheetStatus.innerHTML = endpoint
-    ? `Đã lưu link Sheet. Khi bấm <b>Đẩy Sheet</b>, app gửi báo cáo lên Google Sheet bằng Apps Script.`
+    ? `Đã lưu link Sheet. Bấm <b>Gửi test</b> trước; nếu Sheet có dòng test thì bấm <b>Đẩy Sheet</b> cho báo cáo thật.`
     : 'Chưa cấu hình Sheet. App vẫn lưu offline trên máy, nhưng chưa đẩy được báo cáo lên Google Sheet.';
 }
 
@@ -333,7 +383,7 @@ function renderDetail() {
 
 function getSyncMeta(report) {
   const status = report.sync?.status || 'pending';
-  if (status === 'synced') return { className: 'synced', text: `✓ Đã lên Sheet${report.sync.lastAt ? ` · ${formatDateTime(report.sync.lastAt)}` : ''}` };
+  if (status === 'synced') return { className: 'synced', text: `✓ Đã gửi${report.sync.lastAt ? ` · ${formatDateTime(report.sync.lastAt)}` : ''}` };
   if (status === 'sending') return { className: 'sending', text: '↗ Đang gửi Sheet...' };
   if (status === 'error') return { className: 'error', text: '⚠ Lỗi đồng bộ' };
   return { className: '', text: '○ Chưa đồng bộ' };
@@ -712,9 +762,9 @@ function saveSheetEndpoint() {
   toast(url ? 'Đã lưu link Google Sheet.' : 'Đã xóa link Google Sheet.');
 }
 
-function buildSheetPayload(report) {
+function buildSheetPayload(report, action = 'upsertReport') {
   return {
-    action: 'upsertReport',
+    action,
     source: 'Tea Survey Report PWA',
     submittedAt: new Date().toISOString(),
     report: {
@@ -746,27 +796,83 @@ function buildSheetPayload(report) {
   };
 }
 
-async function syncReport(report) {
-  const endpoint = state.settings.sheetEndpoint;
+function getSheetEndpoint() {
+  const endpoint = state.settings.sheetEndpoint || els.sheetUrl.value.trim();
   if (!endpoint) {
     toast('Chưa có link Google Apps Script. Dán link ở mục Google Sheet trước.');
     document.querySelector('#sheetSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return false;
+    return '';
   }
+  return endpoint;
+}
+
+function postToSheet(endpoint, payload) {
+  return new Promise((resolve, reject) => {
+    const frameName = `sheet_submit_${Date.now()}`;
+    const iframe = document.createElement('iframe');
+    const form = document.createElement('form');
+    const input = document.createElement('input');
+    const actionInput = document.createElement('input');
+    let settled = false;
+
+    iframe.name = frameName;
+    iframe.style.display = 'none';
+    form.style.display = 'none';
+    form.method = 'POST';
+    form.action = endpoint;
+    form.target = frameName;
+    form.acceptCharset = 'UTF-8';
+
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = JSON.stringify(payload);
+
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = payload.action || 'upsertReport';
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        iframe.remove();
+        form.remove();
+      }, 200);
+    };
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(true);
+    };
+
+    const timer = window.setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('Gửi Sheet quá lâu. Kiểm tra link Apps Script hoặc quyền truy cập.'));
+    }, 22000);
+
+    iframe.addEventListener('load', () => {
+      window.clearTimeout(timer);
+      finish();
+    });
+
+    form.append(input, actionInput);
+    document.body.append(iframe, form);
+    form.submit();
+  });
+}
+
+async function syncReport(report) {
+  const endpoint = getSheetEndpoint();
+  if (!endpoint) return false;
 
   report.sync = { status: 'sending', lastAt: new Date().toISOString(), message: 'Đang gửi...' };
   save();
   render();
 
   try {
-    await fetch(endpoint, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8'
-      },
-      body: JSON.stringify(buildSheetPayload(report))
-    });
+    await postToSheet(endpoint, buildSheetPayload(report));
 
     report.sync = {
       status: 'synced',
@@ -781,11 +887,45 @@ async function syncReport(report) {
     report.sync = {
       status: 'error',
       lastAt: new Date().toISOString(),
-      message: 'Không gửi được. Kiểm tra mạng hoặc link Apps Script.'
+      message: error.message || 'Không gửi được. Kiểm tra mạng hoặc link Apps Script.'
     };
     save();
     render();
     return false;
+  }
+}
+
+async function sendTestSheet() {
+  const endpoint = getSheetEndpoint();
+  if (!endpoint || isSyncing) return;
+
+  isSyncing = true;
+  els.testSheetBtn.disabled = true;
+
+  const testReport = normalizeReport({
+    id: `test-${Date.now()}`,
+    date: today(),
+    market: 'TEST KẾT NỐI SHEET',
+    sales: 'Bépi App',
+    note: 'Dòng test từ nút Gửi test trong PWA. Nếu thấy dòng này là kết nối Sheet OK.',
+    createdAt: new Date().toISOString(),
+    customers: [
+      makeCustomer('Khách test', 'Test app', {
+        'Trà Đen': ['ok', 'test ghi Sheet'],
+        'Trà Quả Mộng': ['sample', 'test cần mẫu']
+      }, ['Giá tốt', 'Báo sau cho A Tân'], 'Dòng test, có thể xóa sau khi kiểm tra.')
+    ]
+  });
+
+  try {
+    await postToSheet(endpoint, buildSheetPayload(testReport, 'testReport'));
+    toast('Đã gửi test. Mở Google Sheet kiểm tra 2 sheet Báo cáo / Chi tiết khách hàng.');
+  } catch (error) {
+    console.error(error);
+    toast(error.message || 'Gửi test chưa thành công.');
+  } finally {
+    els.testSheetBtn.disabled = false;
+    isSyncing = false;
   }
 }
 
@@ -801,7 +941,7 @@ async function syncActiveReport() {
   const ok = await syncReport(report);
   els.syncActiveReportBtn.disabled = false;
   isSyncing = false;
-  toast(ok ? 'Đã gửi báo cáo lên Google Sheet.' : 'Gửi Sheet chưa thành công.');
+  toast(ok ? 'Đã gửi báo cáo lên Google Sheet. Mở Sheet kiểm tra dữ liệu.' : 'Gửi Sheet chưa thành công.');
 }
 
 async function syncAllReports() {
@@ -823,7 +963,7 @@ async function syncAllReports() {
 
   els.syncAllReportsBtn.disabled = false;
   isSyncing = false;
-  toast(`Đã gửi ${success}/${list.length} báo cáo lên Sheet.`);
+  toast(`Đã gửi ${success}/${list.length} báo cáo. Mở Sheet kiểm tra dữ liệu.`);
 }
 
 function seedData() {
@@ -888,6 +1028,7 @@ function bindEvents() {
   els.seedBtn.addEventListener('click', seedData);
   els.clearBtn.addEventListener('click', clearAllData);
   els.saveSheetBtn.addEventListener('click', saveSheetEndpoint);
+  els.testSheetBtn.addEventListener('click', sendTestSheet);
   els.syncActiveReportBtn.addEventListener('click', syncActiveReport);
   els.syncAllReportsBtn.addEventListener('click', syncAllReports);
   els.copySummaryBtn.addEventListener('click', copySummary);
@@ -972,6 +1113,7 @@ function boot() {
 
   bindEvents();
   render();
+  resolveLogo();
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
