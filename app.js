@@ -1,22 +1,23 @@
-const STORAGE_KEY = 'tea-survey-reports-v1';
+const STORAGE_KEY = 'tea-survey-reports-v2';
+const LEGACY_STORAGE_KEY = 'tea-survey-reports-v1';
 
 const TEA_PRODUCTS = [
-  'Trà Đen',
-  'Trà Quả Mộng',
-  'Trà Gạo Rang',
-  'Trà Lài',
-  'Trà Olong',
-  'Trà Olong Sen'
+  { id: 'den', name: 'Trà Đen' },
+  { id: 'qua-mong', name: 'Trà Quả Mộng' },
+  { id: 'gao-rang', name: 'Trà Gạo Rang' },
+  { id: 'lai', name: 'Trà Lài' },
+  { id: 'olong', name: 'Trà Olong' },
+  { id: 'olong-sen', name: 'Trà Olong Sen' }
 ];
 
 const STATUS_OPTIONS = [
-  { id: 'pending', label: 'Chưa thử' },
-  { id: 'ok', label: 'OK' },
-  { id: 'interested', label: 'Quan tâm' },
-  { id: 'sample', label: 'Cần mẫu' },
-  { id: 'follow', label: 'Báo Tân' },
-  { id: 'bad', label: 'Chưa tốt' },
-  { id: 'retry', label: 'Thử lại' }
+  { id: 'pending', label: 'Chưa thử', icon: '○' },
+  { id: 'ok', label: 'OK', icon: '✓' },
+  { id: 'interested', label: 'Quan tâm', icon: '◎' },
+  { id: 'sample', label: 'Cần mẫu', icon: '＋' },
+  { id: 'follow', label: 'Báo Tân', icon: '↗' },
+  { id: 'bad', label: 'Chưa tốt', icon: '!' },
+  { id: 'retry', label: 'Thử lại', icon: '↻' }
 ];
 
 const MARKET_OPTIONS = [
@@ -38,6 +39,8 @@ const MARKET_OPTIONS = [
 
 const els = {
   installBtn: document.querySelector('#installBtn'),
+  connectionStatus: document.querySelector('#connectionStatus'),
+  homeStats: document.querySelector('#homeStats'),
   reportForm: document.querySelector('#reportForm'),
   reportDate: document.querySelector('#reportDate'),
   reportMarket: document.querySelector('#reportMarket'),
@@ -47,6 +50,12 @@ const els = {
   reportCount: document.querySelector('#reportCount'),
   seedBtn: document.querySelector('#seedBtn'),
   clearBtn: document.querySelector('#clearBtn'),
+  sheetUrl: document.querySelector('#sheetUrl'),
+  saveSheetBtn: document.querySelector('#saveSheetBtn'),
+  syncAllReportsBtn: document.querySelector('#syncAllReportsBtn'),
+  syncActiveReportBtn: document.querySelector('#syncActiveReportBtn'),
+  sheetStatus: document.querySelector('#sheetStatus'),
+  activeSyncStatus: document.querySelector('#activeSyncStatus'),
   emptyState: document.querySelector('#emptyState'),
   reportDetail: document.querySelector('#reportDetail'),
   activeReportDate: document.querySelector('#activeReportDate'),
@@ -56,6 +65,7 @@ const els = {
   searchInput: document.querySelector('#searchInput'),
   productFilter: document.querySelector('#productFilter'),
   actionFilter: document.querySelector('#actionFilter'),
+  customerEditor: document.querySelector('#customerEditor'),
   customerForm: document.querySelector('#customerForm'),
   editingCustomerId: document.querySelector('#editingCustomerId'),
   customerName: document.querySelector('#customerName'),
@@ -71,15 +81,20 @@ const els = {
   exportCsvBtn: document.querySelector('#exportCsvBtn'),
   cancelEditBtn: document.querySelector('#cancelEditBtn'),
   editorTitle: document.querySelector('#editorTitle'),
+  quickAddBtn: document.querySelector('#quickAddBtn'),
   toast: document.querySelector('#toast')
 };
 
 let state = {
   reports: [],
-  activeReportId: null
+  activeReportId: null,
+  settings: {
+    sheetEndpoint: ''
+  }
 };
 
 let deferredInstallPrompt = null;
+let isSyncing = false;
 
 function uid(prefix = 'id') {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -100,11 +115,22 @@ function formatDate(dateString) {
   }).format(date);
 }
 
+function formatDateTime(value) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
+}
+
 function toast(message) {
   els.toast.textContent = message;
   els.toast.classList.add('show');
   window.clearTimeout(toast.timer);
-  toast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 2600);
+  toast.timer = window.setTimeout(() => els.toast.classList.remove('show'), 2800);
 }
 
 function save() {
@@ -113,13 +139,17 @@ function save() {
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw);
     state = {
-      reports: Array.isArray(parsed.reports) ? parsed.reports : [],
-      activeReportId: parsed.activeReportId || null
+      reports: Array.isArray(parsed.reports) ? parsed.reports.map(normalizeReport) : [],
+      activeReportId: parsed.activeReportId || null,
+      settings: {
+        sheetEndpoint: parsed.settings?.sheetEndpoint || ''
+      }
     };
+    save();
   } catch (error) {
     console.error(error);
     toast('Không đọc được dữ liệu cũ, app sẽ tạo dữ liệu mới.');
@@ -128,6 +158,20 @@ function load() {
 
 function getActiveReport() {
   return state.reports.find((report) => report.id === state.activeReportId) || null;
+}
+
+function normalizeReport(report) {
+  return {
+    id: report.id || uid('report'),
+    date: report.date || today(),
+    market: report.market || '',
+    sales: report.sales || 'A Tân',
+    note: report.note || '',
+    createdAt: report.createdAt || new Date().toISOString(),
+    updatedAt: report.updatedAt || report.createdAt || new Date().toISOString(),
+    sync: report.sync || { status: 'pending', lastAt: '', message: '' },
+    customers: Array.isArray(report.customers) ? report.customers.map(normalizeCustomer) : []
+  };
 }
 
 function normalizeCustomer(customer) {
@@ -140,8 +184,8 @@ function normalizeCustomer(customer) {
     note: customer.note || '',
     marketTags: Array.isArray(customer.marketTags) ? customer.marketTags : [],
     tests: TEA_PRODUCTS.reduce((acc, product) => {
-      const current = customer.tests?.[product] || {};
-      acc[product] = {
+      const current = customer.tests?.[product.name] || customer.tests?.[product.id] || {};
+      acc[product.name] = {
         status: current.status || 'pending',
         note: current.note || ''
       };
@@ -150,42 +194,12 @@ function normalizeCustomer(customer) {
   };
 }
 
-function buildTeaEditor(customer = null) {
-  els.teaTests.innerHTML = TEA_PRODUCTS.map((product) => {
-    const status = customer?.tests?.[product]?.status || 'pending';
-    const note = customer?.tests?.[product]?.note || '';
-    const pills = STATUS_OPTIONS.map((option) => `
-      <button
-        class="status-pill ${status === option.id ? 'active' : ''}"
-        type="button"
-        data-product="${product}"
-        data-status="${option.id}"
-      >${option.label}</button>
-    `).join('');
-
-    return `
-      <div class="tea-row" data-tea-row="${product}">
-        <div class="tea-row-title">
-          <strong>${product}</strong>
-          <span class="badge">test</span>
-        </div>
-        <div class="status-pills">${pills}</div>
-        <input type="text" data-note-for="${product}" value="${escapeAttribute(note)}" placeholder="Ghi chú: nhạt, thơm, giống cũ..." />
-      </div>
-    `;
-  }).join('');
-}
-
-function buildMarketChips(selected = []) {
-  els.marketChips.innerHTML = MARKET_OPTIONS.map((item) => `
-    <button class="market-chip ${selected.includes(item) ? 'active' : ''}" type="button" data-market-chip="${item}">${item}</button>
-  `).join('');
-}
-
-function buildProductFilter() {
-  els.productFilter.innerHTML = '<option value="all">Tất cả sản phẩm</option>' + TEA_PRODUCTS.map((product) => (
-    `<option value="${product}">${product}</option>`
-  )).join('');
+function markReportDirty(report) {
+  if (!report) return;
+  report.updatedAt = new Date().toISOString();
+  if (report.sync?.status === 'synced') {
+    report.sync = { status: 'pending', lastAt: report.sync.lastAt || '', message: 'Có chỉnh sửa mới' };
+  }
 }
 
 function escapeHtml(value = '') {
@@ -205,6 +219,10 @@ function statusLabel(statusId) {
   return STATUS_OPTIONS.find((item) => item.id === statusId)?.label || 'Chưa thử';
 }
 
+function statusIcon(statusId) {
+  return STATUS_OPTIONS.find((item) => item.id === statusId)?.icon || '○';
+}
+
 function statusClass(statusId) {
   if (['ok', 'interested', 'sample'].includes(statusId)) return 'good';
   if (['follow', 'retry'].includes(statusId)) return 'warn';
@@ -217,11 +235,66 @@ function statusGroup(statusId) {
   return statusId;
 }
 
+function buildTeaEditor(customer = null) {
+  els.teaTests.innerHTML = TEA_PRODUCTS.map((product) => {
+    const test = customer?.tests?.[product.name] || { status: 'pending', note: '' };
+    const pills = STATUS_OPTIONS.map((option) => `
+      <button
+        class="status-pill ${test.status === option.id ? 'active' : ''}"
+        type="button"
+        data-product-id="${product.id}"
+        data-status="${option.id}"
+      >${option.icon} ${option.label}</button>
+    `).join('');
+
+    return `
+      <div class="tea-row" data-product-id="${product.id}">
+        <div class="tea-row-title">
+          <strong>${product.name}</strong>
+          <span class="badge">test</span>
+        </div>
+        <div class="status-pills">${pills}</div>
+        <input type="text" data-note-product-id="${product.id}" value="${escapeAttribute(test.note)}" placeholder="VD: nhạt, thơm, giống cũ..." />
+      </div>
+    `;
+  }).join('');
+}
+
+function buildMarketChips(selected = []) {
+  els.marketChips.innerHTML = MARKET_OPTIONS.map((item) => `
+    <button class="market-chip ${selected.includes(item) ? 'active' : ''}" type="button" data-market-chip="${escapeAttribute(item)}">${item}</button>
+  `).join('');
+}
+
+function buildProductFilter() {
+  els.productFilter.innerHTML = '<option value="all">Tất cả sản phẩm</option>' + TEA_PRODUCTS.map((product) => (
+    `<option value="${escapeAttribute(product.name)}">${product.name}</option>`
+  )).join('');
+}
+
+function renderHomeStats() {
+  const totalReports = state.reports.length;
+  const totalCustomers = state.reports.reduce((sum, report) => sum + (report.customers?.length || 0), 0);
+  els.homeStats.innerHTML = `
+    <div><strong>${totalReports}</strong><span>báo cáo</span></div>
+    <div><strong>${totalCustomers}</strong><span>khách</span></div>
+  `;
+}
+
+function renderConnectionStatus() {
+  const endpoint = state.settings.sheetEndpoint;
+  els.sheetUrl.value = endpoint;
+  els.connectionStatus.textContent = endpoint ? 'Offline-first · Đã nối Google Sheet' : 'Offline-first · Chưa nối Sheet';
+  els.sheetStatus.innerHTML = endpoint
+    ? `Đã lưu link Sheet. Khi bấm <b>Đẩy Sheet</b>, app gửi báo cáo lên Google Sheet bằng Apps Script.`
+    : 'Chưa cấu hình Sheet. App vẫn lưu offline trên máy, nhưng chưa đẩy được báo cáo lên Google Sheet.';
+}
+
 function renderReports() {
   els.reportCount.textContent = state.reports.length;
 
   if (!state.reports.length) {
-    els.reportList.innerHTML = '<p class="muted">Chưa có báo cáo nào. Tạo báo cáo đầu tiên ở trên.</p>';
+    els.reportList.innerHTML = '<p class="muted small">Chưa có báo cáo nào. Tạo báo cáo đầu tiên ở trên.</p>';
     return;
   }
 
@@ -230,11 +303,13 @@ function renderReports() {
     .sort((a, b) => `${b.date}${b.createdAt}`.localeCompare(`${a.date}${a.createdAt}`))
     .map((report) => {
       const customerCount = report.customers?.length || 0;
+      const sync = getSyncMeta(report);
       return `
         <button class="report-card ${report.id === state.activeReportId ? 'active' : ''}" type="button" data-report-id="${report.id}">
-          <h4>${escapeHtml(report.market)}</h4>
+          <h4>${escapeHtml(report.market || 'Chưa ghi thị trường')}</h4>
           <p>${formatDate(report.date)} · ${customerCount} khách</p>
           <p>Sales: ${escapeHtml(report.sales || 'Chưa ghi')}</p>
+          <span class="report-sync-line ${sync.className}">${sync.text}</span>
         </button>
       `;
     }).join('');
@@ -249,11 +324,25 @@ function renderDetail() {
   if (!report) return;
 
   els.activeReportDate.textContent = formatDate(report.date);
-  els.activeReportTitle.textContent = `Thị trường ${report.market}`;
+  els.activeReportTitle.textContent = `Thị trường ${report.market || 'chưa ghi'}`;
   els.activeReportMeta.textContent = `Sales: ${report.sales || 'Chưa ghi'}${report.note ? ` · ${report.note}` : ''}`;
-
+  renderSyncStatus(report);
   renderStats(report);
   renderCustomers(report);
+}
+
+function getSyncMeta(report) {
+  const status = report.sync?.status || 'pending';
+  if (status === 'synced') return { className: 'synced', text: `✓ Đã lên Sheet${report.sync.lastAt ? ` · ${formatDateTime(report.sync.lastAt)}` : ''}` };
+  if (status === 'sending') return { className: 'sending', text: '↗ Đang gửi Sheet...' };
+  if (status === 'error') return { className: 'error', text: '⚠ Lỗi đồng bộ' };
+  return { className: '', text: '○ Chưa đồng bộ' };
+}
+
+function renderSyncStatus(report) {
+  const sync = getSyncMeta(report);
+  els.activeSyncStatus.className = `sync-pill ${sync.className}`;
+  els.activeSyncStatus.textContent = sync.text;
 }
 
 function renderStats(report) {
@@ -325,18 +414,18 @@ function renderCustomers(report) {
   els.customerCount.textContent = `${customers.length} khách`;
 
   if (!customers.length) {
-    els.customerList.innerHTML = '<p class="muted">Chưa có khách phù hợp bộ lọc.</p>';
+    els.customerList.innerHTML = '<p class="muted small">Chưa có khách phù hợp bộ lọc.</p>';
     return;
   }
 
   els.customerList.innerHTML = customers.map((customer) => {
     const productCells = TEA_PRODUCTS.map((product) => {
-      const test = customer.tests?.[product] || { status: 'pending', note: '' };
+      const test = customer.tests?.[product.name] || { status: 'pending', note: '' };
       return `
         <div class="product-cell">
-          <b>${product}</b>
-          <span class="tag ${statusClass(test.status)}">${statusLabel(test.status)}</span>
-          ${test.note ? `<span>${escapeHtml(test.note)}</span>` : ''}
+          <b>${product.name}</b>
+          <span class="tag ${statusClass(test.status)}">${statusIcon(test.status)} ${statusLabel(test.status)}</span>
+          ${test.note ? `<span class="muted small">${escapeHtml(test.note)}</span>` : ''}
         </div>
       `;
     }).join('');
@@ -362,7 +451,7 @@ function renderCustomers(report) {
         </div>
         <div class="product-grid">${productCells}</div>
         ${marketTags ? `<div class="market-tags">${marketTags}</div>` : ''}
-        ${customer.note ? `<p class="muted" style="margin-top:10px">${escapeHtml(customer.note)}</p>` : ''}
+        ${customer.note ? `<p class="muted small" style="margin-top:10px">${escapeHtml(customer.note)}</p>` : ''}
       </article>
     `;
   }).join('');
@@ -381,9 +470,10 @@ function resetCustomerForm() {
 function collectCustomerForm() {
   const tests = {};
   TEA_PRODUCTS.forEach((product) => {
-    const active = els.teaTests.querySelector(`[data-product="${CSS.escape(product)}"].active`);
-    const note = els.teaTests.querySelector(`[data-note-for="${CSS.escape(product)}"]`)?.value.trim() || '';
-    tests[product] = {
+    const row = els.teaTests.querySelector(`.tea-row[data-product-id="${product.id}"]`);
+    const active = row?.querySelector('.status-pill.active');
+    const note = row?.querySelector(`[data-note-product-id="${product.id}"]`)?.value.trim() || '';
+    tests[product.name] = {
       status: active?.dataset.status || 'pending',
       note
     };
@@ -405,7 +495,7 @@ function collectCustomerForm() {
 
 function createReport(event) {
   event.preventDefault();
-  const report = {
+  const report = normalizeReport({
     id: uid('report'),
     date: els.reportDate.value,
     market: els.reportMarket.value.trim(),
@@ -413,7 +503,7 @@ function createReport(event) {
     note: els.reportNote.value.trim(),
     createdAt: new Date().toISOString(),
     customers: []
-  };
+  });
 
   state.reports.push(report);
   state.activeReportId = report.id;
@@ -448,6 +538,7 @@ function saveCustomer(event) {
     toast('Đã thêm khách hàng vào báo cáo.');
   }
 
+  markReportDirty(report);
   save();
   resetCustomerForm();
   render();
@@ -468,8 +559,8 @@ function editCustomer(customerId) {
   els.cancelEditBtn.hidden = false;
   buildTeaEditor(customer);
   buildMarketChips(customer.marketTags);
-  document.querySelector('.customer-editor').open = true;
-  document.querySelector('.customer-editor').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  els.customerEditor.open = true;
+  els.customerEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function deleteCustomer(customerId) {
@@ -480,25 +571,15 @@ function deleteCustomer(customerId) {
 
   if (!confirm(`Xóa khách "${customer.name}" khỏi báo cáo?`)) return;
   report.customers = report.customers.filter((item) => item.id !== customerId);
+  markReportDirty(report);
   save();
   render();
   toast('Đã xóa khách hàng.');
 }
 
-function deleteActiveReport() {
-  const report = getActiveReport();
-  if (!report) return;
-  if (!confirm(`Xóa toàn bộ báo cáo thị trường "${report.market}"?`)) return;
-  state.reports = state.reports.filter((item) => item.id !== report.id);
-  state.activeReportId = state.reports[0]?.id || null;
-  save();
-  render();
-  toast('Đã xóa báo cáo.');
-}
-
 function buildSummary(report) {
   const lines = [];
-  lines.push(`BÁO CÁO KHẢO SÁT THỊ TRƯỜNG TRÀ SỮA`);
+  lines.push('BÁO CÁO KHẢO SÁT THỊ TRƯỜNG TRÀ SỮA');
   lines.push(`Ngày: ${formatDate(report.date)}`);
   lines.push(`Thị trường: ${report.market}`);
   lines.push(`Sales phụ trách: ${report.sales || 'A Tân'}`);
@@ -515,19 +596,19 @@ function buildSummary(report) {
   TEA_PRODUCTS.forEach((product) => {
     const stats = { ok: 0, interested: 0, sample: 0, follow: 0, bad: 0, retry: 0, pending: 0 };
     customers.forEach((customer) => {
-      const status = customer.tests?.[product]?.status || 'pending';
+      const status = customer.tests?.[product.name]?.status || 'pending';
       stats[status] = (stats[status] || 0) + 1;
     });
-    lines.push(`${product}: OK ${stats.ok || 0}, quan tâm ${stats.interested || 0}, cần mẫu ${stats.sample || 0}, báo Tân ${stats.follow || 0}, chưa tốt ${stats.bad || 0}, thử lại ${stats.retry || 0}, chưa thử ${stats.pending || 0}`);
+    lines.push(`${product.name}: OK ${stats.ok || 0}, quan tâm ${stats.interested || 0}, cần mẫu ${stats.sample || 0}, báo Tân ${stats.follow || 0}, chưa tốt ${stats.bad || 0}, thử lại ${stats.retry || 0}, chưa thử ${stats.pending || 0}`);
   });
   lines.push('');
 
   customers.forEach((customer, index) => {
     lines.push(`${index + 1}. ${customer.name}${customer.area ? ` - ${customer.area}` : ''}`);
     TEA_PRODUCTS.forEach((product) => {
-      const test = customer.tests?.[product] || { status: 'pending', note: '' };
+      const test = customer.tests?.[product.name] || { status: 'pending', note: '' };
       if (test.status !== 'pending' || test.note) {
-        lines.push(`- ${product}: ${statusLabel(test.status)}${test.note ? ` (${test.note})` : ''}`);
+        lines.push(`- ${product.name}: ${statusLabel(test.status)}${test.note ? ` (${test.note})` : ''}`);
       }
     });
     if (customer.marketTags?.length) lines.push(`- Thị trường: ${customer.marketTags.join(', ')}`);
@@ -545,7 +626,7 @@ async function copySummary() {
   const text = buildSummary(report);
   try {
     await navigator.clipboard.writeText(text);
-    toast('Đã copy báo cáo. Có thể dán gửi Zalo/Telegram/Gmail.');
+    toast('Đã copy báo cáo. Dán gửi Zalo/Gmail được.');
   } catch (error) {
     console.error(error);
     const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
@@ -559,16 +640,16 @@ function exportCsv() {
   if (!report) return;
 
   const headers = [
-    'Ngay',
-    'Thi truong',
+    'Ngày',
+    'Thị trường',
     'Sales',
-    'Ten khach hang',
-    'Khu vuc',
-    'Loai SP test',
-    ...TEA_PRODUCTS.flatMap((product) => [`${product} - trang thai`, `${product} - ghi chu`]),
-    'Test chung thi truong',
-    'Hen bao lai',
-    'Ghi chu tong'
+    'Tên khách hàng',
+    'Khu vực',
+    'Loại SP test',
+    ...TEA_PRODUCTS.flatMap((product) => [`${product.name} - trạng thái`, `${product.name} - ghi chú`]),
+    'Test chung thị trường',
+    'Hẹn báo lại',
+    'Ghi chú tổng'
   ];
 
   const rows = (report.customers || []).map((customer) => [
@@ -579,7 +660,7 @@ function exportCsv() {
     customer.area,
     customer.testType,
     ...TEA_PRODUCTS.flatMap((product) => {
-      const test = customer.tests?.[product] || { status: 'pending', note: '' };
+      const test = customer.tests?.[product.name] || { status: 'pending', note: '' };
       return [statusLabel(test.status), test.note];
     }),
     (customer.marketTags || []).join('; '),
@@ -590,7 +671,7 @@ function exportCsv() {
   const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n');
   const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
   downloadBlob(blob, `bao-cao-${slugify(report.market)}-${report.date}.csv`);
-  toast('Đã xuất CSV. Mở bằng Excel được.');
+  toast('Đã xuất CSV tiếng Việt. Mở bằng Excel được.');
 }
 
 function csvCell(value) {
@@ -620,8 +701,133 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
+function saveSheetEndpoint() {
+  const url = els.sheetUrl.value.trim();
+  if (url && !/^https:\/\/script\.google\.com\/macros\/s\//.test(url)) {
+    if (!confirm('Link này không giống Google Apps Script Web App URL. Vẫn lưu?')) return;
+  }
+  state.settings.sheetEndpoint = url;
+  save();
+  renderConnectionStatus();
+  toast(url ? 'Đã lưu link Google Sheet.' : 'Đã xóa link Google Sheet.');
+}
+
+function buildSheetPayload(report) {
+  return {
+    action: 'upsertReport',
+    source: 'Tea Survey Report PWA',
+    submittedAt: new Date().toISOString(),
+    report: {
+      id: report.id,
+      date: report.date,
+      market: report.market,
+      sales: report.sales,
+      note: report.note,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+      summary: {
+        totalCustomers: report.customers.length,
+        needSample: report.customers.filter((customer) => customerNeeds(customer, 'sample')).length,
+        follow: report.customers.filter((customer) => customerNeeds(customer, 'follow')).length,
+        bad: report.customers.filter((customer) => customerNeeds(customer, 'bad')).length
+      }
+    },
+    products: TEA_PRODUCTS.map((product) => product.name),
+    customers: report.customers.map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      area: customer.area,
+      testType: customer.testType,
+      followDate: customer.followDate,
+      marketTags: customer.marketTags,
+      note: customer.note,
+      tests: customer.tests
+    }))
+  };
+}
+
+async function syncReport(report) {
+  const endpoint = state.settings.sheetEndpoint;
+  if (!endpoint) {
+    toast('Chưa có link Google Apps Script. Dán link ở mục Google Sheet trước.');
+    document.querySelector('#sheetSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return false;
+  }
+
+  report.sync = { status: 'sending', lastAt: new Date().toISOString(), message: 'Đang gửi...' };
+  save();
+  render();
+
+  try {
+    await fetch(endpoint, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(buildSheetPayload(report))
+    });
+
+    report.sync = {
+      status: 'synced',
+      lastAt: new Date().toISOString(),
+      message: 'Đã gửi Google Sheet'
+    };
+    save();
+    render();
+    return true;
+  } catch (error) {
+    console.error(error);
+    report.sync = {
+      status: 'error',
+      lastAt: new Date().toISOString(),
+      message: 'Không gửi được. Kiểm tra mạng hoặc link Apps Script.'
+    };
+    save();
+    render();
+    return false;
+  }
+}
+
+async function syncActiveReport() {
+  const report = getActiveReport();
+  if (!report) {
+    toast('Chọn báo cáo trước khi đồng bộ.');
+    return;
+  }
+  if (isSyncing) return;
+  isSyncing = true;
+  els.syncActiveReportBtn.disabled = true;
+  const ok = await syncReport(report);
+  els.syncActiveReportBtn.disabled = false;
+  isSyncing = false;
+  toast(ok ? 'Đã gửi báo cáo lên Google Sheet.' : 'Gửi Sheet chưa thành công.');
+}
+
+async function syncAllReports() {
+  if (!state.reports.length) {
+    toast('Chưa có báo cáo để đồng bộ.');
+    return;
+  }
+  if (isSyncing) return;
+  isSyncing = true;
+  els.syncAllReportsBtn.disabled = true;
+
+  let success = 0;
+  const targets = state.reports.filter((report) => report.sync?.status !== 'synced');
+  const list = targets.length ? targets : state.reports;
+  for (const report of list) {
+    const ok = await syncReport(report);
+    if (ok) success += 1;
+  }
+
+  els.syncAllReportsBtn.disabled = false;
+  isSyncing = false;
+  toast(`Đã gửi ${success}/${list.length} báo cáo lên Sheet.`);
+}
+
 function seedData() {
-  const report = {
+  const report = normalizeReport({
     id: uid('report'),
     date: today(),
     market: 'Chợ Gạo',
@@ -638,7 +844,7 @@ function seedData() {
       makeCustomer('Joly', '', { 'Trà Gạo Rang': ['ok', ''], 'Trà Lài': ['bad', 'không đạt'] }),
       makeCustomer('Hana', '', { 'Trà Quả Mộng': ['sample', 'ok, thêm mẫu'], 'Trà Gạo Rang': ['ok', ''] })
     ]
-  };
+  });
 
   state.reports.unshift(report);
   state.activeReportId = report.id;
@@ -649,8 +855,8 @@ function seedData() {
 
 function makeCustomer(name, area = '', tests = {}, marketTags = [], note = '') {
   const customerTests = TEA_PRODUCTS.reduce((acc, product) => {
-    const [status = 'pending', productNote = ''] = tests[product] || [];
-    acc[product] = { status, note: productNote };
+    const [status = 'pending', productNote = ''] = tests[product.name] || [];
+    acc[product.name] = { status, note: productNote };
     return acc;
   }, {});
 
@@ -669,7 +875,8 @@ function makeCustomer(name, area = '', tests = {}, marketTags = [], note = '') {
 function clearAllData() {
   if (!confirm('Xóa toàn bộ dữ liệu lưu trên máy này?')) return;
   localStorage.removeItem(STORAGE_KEY);
-  state = { reports: [], activeReportId: null };
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
+  state = { reports: [], activeReportId: null, settings: { sheetEndpoint: '' } };
   render();
   resetCustomerForm();
   toast('Đã xóa dữ liệu lưu trên máy.');
@@ -680,12 +887,25 @@ function bindEvents() {
   els.customerForm.addEventListener('submit', saveCustomer);
   els.seedBtn.addEventListener('click', seedData);
   els.clearBtn.addEventListener('click', clearAllData);
+  els.saveSheetBtn.addEventListener('click', saveSheetEndpoint);
+  els.syncActiveReportBtn.addEventListener('click', syncActiveReport);
+  els.syncAllReportsBtn.addEventListener('click', syncAllReports);
   els.copySummaryBtn.addEventListener('click', copySummary);
   els.exportCsvBtn.addEventListener('click', exportCsv);
   els.cancelEditBtn.addEventListener('click', resetCustomerForm);
   els.searchInput.addEventListener('input', () => renderDetail());
   els.productFilter.addEventListener('change', () => renderDetail());
   els.actionFilter.addEventListener('change', () => renderDetail());
+  els.quickAddBtn.addEventListener('click', () => {
+    if (!getActiveReport()) {
+      toast('Tạo hoặc chọn báo cáo trước đã nhé.');
+      document.querySelector('#createSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    els.customerEditor.open = true;
+    els.customerEditor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => els.customerName.focus(), 350);
+  });
 
   els.reportList.addEventListener('click', (event) => {
     const button = event.target.closest('[data-report-id]');
@@ -693,12 +913,13 @@ function bindEvents() {
     state.activeReportId = button.dataset.reportId;
     save();
     render();
+    document.querySelector('#workspaceSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   els.teaTests.addEventListener('click', (event) => {
-    const pill = event.target.closest('[data-product][data-status]');
+    const pill = event.target.closest('[data-product-id][data-status]');
     if (!pill) return;
-    const row = pill.closest('[data-tea-row]');
+    const row = pill.closest('.tea-row');
     row.querySelectorAll('.status-pill').forEach((item) => item.classList.remove('active'));
     pill.classList.add('active');
   });
@@ -732,6 +953,8 @@ function bindEvents() {
 }
 
 function render() {
+  renderHomeStats();
+  renderConnectionStatus();
   renderReports();
   renderDetail();
 }
