@@ -1,447 +1,54 @@
-import {
-  DEFAULT_ONA_PRODUCTS,
-  STORAGE_KEYS_V2,
-  makeOnaTest,
-  makeOnaTestItem,
-  uid,
-  todayIsoDate
-} from './data-model.js';
+import { uid, todayIsoDate } from './data-model.js';
 
-import {
-  isSupabaseV2Ready,
-  loadProducts,
-  syncOnaTest
-} from './supabase-v2.js';
+const FORM_KEY = 'bepi-local-test-forms-v1';
+const ROW_KEY = 'bepi-local-test-rows-v1';
+const PRODUCT_CACHE_KEY = 'bepi-v2-products';
+const DEFAULT_SUPABASE_URL = 'https://noiadkpkvdohljgopgfb.supabase.co';
+const DEFAULT_SUPABASE_KEY = ['sb_publishable_n6LXv', '-fd-ImF3XzeU2mrjg', '_G7tBGy66'].join('');
 
-import {
-  enqueueSync,
-  readSyncQueue,
-  flushSyncQueue,
-  clearCompletedSyncItems,
-  readCachedRows,
-  cacheRows,
-  upsertCachedRow,
-  getSyncStats
-} from './sync-queue.js';
+let products = [], selectedProducts = [], activeFormId = '', activeCustomerId = '';
+let modal, formEl, listEl;
 
-const TEST_STATUS_LABELS = {
-  pending: 'Chưa thử',
-  ok: 'OK',
-  interested: 'Quan tâm',
-  sample: 'Cần mẫu',
-  follow: 'Báo lại',
-  bad: 'Chưa tốt',
-  retry: 'Thử lại'
-};
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const read = (k) => { try { const v = JSON.parse(localStorage.getItem(k) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+const write = (k, v) => localStorage.setItem(k, JSON.stringify(Array.isArray(v) ? v : []));
+const esc = (v = '') => String(v ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
+const norm = (v = '') => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const now = () => new Date().toISOString();
+const label = (p = {}) => [p.sku, p.name].filter(Boolean).join(' - ') || p.name || '';
+const shortDate = (d = '') => { const p = String(d).split('-'); return p.length === 3 ? `${p[2]}-${p[1]}` : todayIsoDate().slice(5).split('-').reverse().join('-'); };
 
-let products = DEFAULT_ONA_PRODUCTS.map((item) => ({ ...item, source: 'fallback', active: true }));
-let testPanel;
-let testForm;
-let testItemsEl;
-let testListEl;
+function toast(msg) { const t = $('#toast'); if (!t) return; t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400); }
+function css(href) { if (document.querySelector(`link[href="${href}"]`)) return; const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); }
+function style() { if ($('#testCleanCss')) return; const s = document.createElement('style'); s.id = 'testCleanCss'; s.textContent = `.test-modal[hidden]{display:none!important}.test-modal{position:fixed;inset:0;z-index:999;display:grid;place-items:center;background:rgba(0,0,0,.42);padding:14px}.test-sheet{width:min(440px,100%);max-height:92vh;overflow:auto;border-radius:22px;background:#f8fcfb}.test-head{padding:16px;background:#00897b;color:white;border-radius:22px 22px 0 0}.test-head-row{display:flex;justify-content:space-between;gap:12px}.test-head h2{margin:4px 0}.test-body,.test-form,.test-card{display:grid;gap:12px}.test-body{padding:14px 14px 90px}.test-card,.test-customer-form,.test-summary{padding:14px;border:1px solid #d8ebe6;border-radius:18px;background:white}.test-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.test-field{display:grid!important;gap:6px}.test-field span{font-size:12px;font-weight:800}.test-field input,.test-field select,.test-field textarea{min-height:42px;border:1px solid #cfe1dc;border-radius:12px;padding:9px 11px;box-sizing:border-box;width:100%}.test-add-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.test-picked{display:flex;flex-wrap:wrap;gap:7px;min-height:34px}.test-pill,.test-chip,.test-counts span{border-radius:999px;background:#eaf8f5;color:#00796b;font-size:12px;font-weight:900;padding:6px 8px}.test-pill{display:inline-flex;align-items:center;gap:7px}.test-pill button{width:22px;height:22px;border-radius:50%;padding:0}.test-footer{position:sticky;bottom:0;display:grid;grid-template-columns:1fr 1.2fr;gap:10px;padding:12px 14px;background:#f8fcfb;border-top:1px solid #d8ebe6}.test-footer button,.test-primary{min-height:44px;border-radius:13px!important;font-weight:900!important}.test-file,.test-customer-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;cursor:pointer}.test-file h3,.test-customer-row h3{margin:0;font-size:15px}.test-file small,.test-customer-row small{color:#60736f}.test-counts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.test-counts .warn{background:#fff0e8;color:#bd4b00}.test-detail-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.test-products{display:grid;gap:8px}.test-product-eval,.test-product-detail{display:grid;gap:8px;padding:10px;border:1px solid #d8ebe6;border-radius:14px;background:white}.test-product-eval h4,.test-product-detail b{margin:0;color:#00796b}.test-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px}.test-checks label{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:800}.test-checks input{width:auto}.test-ok-pop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.38);padding:18px}.test-ok-card{display:grid;gap:10px;width:min(340px,100%);background:white;border-radius:20px;padding:18px}@media(max-width:420px){.test-modal{align-items:end;padding:0}.test-sheet{width:100%;border-radius:22px 22px 0 0}.test-grid,.test-add-row,.test-checks,.test-file,.test-customer-row{grid-template-columns:1fr}.test-detail-top{align-items:stretch;flex-direction:column}}`; document.head.appendChild(s); }
 
-function loadCss(href) {
-  if (document.querySelector(`link[href="${href}"]`)) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  document.head.appendChild(link);
-}
+function supabaseConfig() { const cfg = globalThis.BEPI_CONFIG || {}; return { url: String(cfg.supabaseUrl || DEFAULT_SUPABASE_URL).replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, ''), key: String(cfg.supabaseAnonKey || DEFAULT_SUPABASE_KEY).trim() }; }
+async function loadProducts() { const { url, key } = supabaseConfig(); localStorage.removeItem(PRODUCT_CACHE_KEY); const res = await fetch(`${url}/rest/v1/products?select=id,sku,name,category,brand,unit,wholesale_price,retail_price,active&active=eq.true&order=name.asc`, { cache: 'no-store', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Cache-Control': 'no-store' } }); if (!res.ok) throw new Error(`Không đọc được products Supabase (${res.status})`); const rows = await res.json(); products = (Array.isArray(rows) ? rows : []).filter(p => p && p.name).map(p => ({ id: p.id || uid('prod'), sku: p.sku || '', name: p.name || '', category: p.category || '', brand: p.brand || '', unit: p.unit || '', wholesale_price: p.wholesale_price || 0, retail_price: p.retail_price || 0 })); if (!products.length) throw new Error('Bảng products đang trống.'); return products; }
+function productOptions(q = '') { const x = norm(q); return products.filter(p => !x || norm([p.sku, p.name, p.category, p.brand].join(' ')).includes(x)).slice(0, 50).map(p => `<option value="${esc(p.id)}">${esc(label(p))}</option>`).join(''); }
+function productById(id) { return products.find(p => p.id === id); }
 
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.remove('show'), 2800);
-}
+function ensureModal() { if ($('#testFormPanel')) return; document.body.insertAdjacentHTML('beforeend', `<section class="test-modal" id="testFormPanel" hidden><div class="test-sheet"><div class="test-head"><div class="test-head-row"><div><b>FORM TEST TỔNG</b><h2>Tạo file test</h2><small>Sản phẩm lấy trực tiếp từ Supabase products.</small></div><button type="button" id="closeTestFormBtn">×</button></div></div><form id="onaTestForm" class="test-form"><div class="test-body"><section class="test-card"><h3>Thông tin file</h3><div class="test-grid"><label class="test-field"><span>Ngày</span><input type="date" id="onaTestDate" required></label><label class="test-field"><span>Sales</span><input id="onaTestSales" value="A Tân"></label></div><label class="test-field"><span>Khu vực / tuyến</span><input id="onaTestRoute" required placeholder="VD: Bến Tre"></label><label class="test-field"><span>Tên file</span><input id="onaTestTitle" placeholder="Để trống sẽ tự tạo"></label><label class="test-field"><span>Ghi chú</span><textarea id="onaTestNote"></textarea></label></section><section class="test-card"><h3>Sản phẩm test cố định</h3><label class="test-field"><span>Tìm nhanh</span><input id="productFilter" placeholder="Gõ mã hoặc tên sản phẩm"></label><div class="test-add-row"><label class="test-field"><span>Chọn sản phẩm</span><select id="productSelect"></select></label><button type="button" class="test-primary primary" id="addSelectedProductBtn">＋ Thêm</button></div><div class="test-picked" id="selectedProducts"></div></section></div><div class="test-footer"><button type="button" id="resetTestBtn">Xóa form</button><button type="submit" class="primary">Lưu file tổng</button></div></form></div></section>`); modal = $('#testFormPanel'); formEl = $('#onaTestForm'); }
+function ensureList() { const p = document.querySelector('[data-data-panel="tests"]'); if (!p) return; p.innerHTML = '<div id="onaTestList"></div>'; listEl = $('#onaTestList'); }
+function refreshSelect(q = '') { const s = $('#productSelect'); if (s) s.innerHTML = productOptions(q); }
+function renderPicked() { const box = $('#selectedProducts'); if (!box) return; box.innerHTML = selectedProducts.length ? selectedProducts.map(p => `<span class="test-pill">${esc(label(p))}<button type="button" data-remove-product="${esc(p.id)}">×</button></span>`).join('') : '<small>Chưa chọn sản phẩm test.</small>'; }
+function resetForm() { formEl.reset(); $('#onaTestDate').value = todayIsoDate(); $('#onaTestSales').value = 'A Tân'; selectedProducts = []; refreshSelect(); renderPicked(); }
+async function openForm() { try { await loadProducts(); refreshSelect(); } catch (error) { products = []; refreshSelect(); toast(error.message || 'Không load được sản phẩm.'); } modal.hidden = false; document.body.style.overflow = 'hidden'; renderPicked(); }
+function closeForm() { modal.hidden = true; document.body.style.overflow = ''; }
+function activateData() { document.querySelectorAll('.app-page').forEach(p => p.classList.toggle('is-active', p.id === 'dataSection')); document.querySelectorAll('[data-page-link]').forEach(a => a.classList.toggle('is-active', a.dataset.pageLink === 'dataSection')); document.querySelectorAll('[data-data-view]').forEach(b => b.classList.toggle('is-active', b.dataset.dataView === 'tests')); document.querySelectorAll('[data-data-panel]').forEach(p => p.classList.toggle('is-active', p.dataset.dataPanel === 'tests')); }
+function showSaved(f) { const d = document.createElement('div'); d.className = 'test-ok-pop'; d.innerHTML = `<article class="test-ok-card"><h3>Đã lưu file test</h3><p><b>${esc(f.title)}</b></p><p>Vào tab Test SP, bấm card file để thêm khách.</p><button class="primary" type="button">Đã hiểu</button></article>`; d.addEventListener('click', e => { if (e.target === d || e.target.tagName === 'BUTTON') d.remove(); }); document.body.appendChild(d); }
 
-function escapeHtml(value = '') {
-  return String(value ?? '').replace(/[&<>'"]/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-  }[char]));
-}
-
-function statusOptions(value = 'pending') {
-  return Object.entries(TEST_STATUS_LABELS).map(([key, label]) => (
-    `<option value="${key}" ${key === value ? 'selected' : ''}>${label}</option>`
-  )).join('');
-}
-
-function readTestRows() {
-  return readCachedRows(STORAGE_KEYS_V2.onaTests);
-}
-
-function writeTestRows(rows) {
-  cacheRows(STORAGE_KEYS_V2.onaTests, rows);
-}
-
-function cacheTestRow(test, items) {
-  upsertCachedRow(STORAGE_KEYS_V2.onaTests, { test, items });
-}
-
-function generateTestCode() {
-  const ymd = todayIsoDate().replaceAll('-', '').slice(2);
-  const count = readTestRows().length + 1;
-  return `TS${ymd}${String(count).padStart(3, '0')}`;
-}
-
-async function refreshProducts() {
-  try {
-    if (!isSupabaseV2Ready()) throw new Error('Chưa cấu hình Supabase.');
-    const rows = await loadProducts();
-    if (Array.isArray(rows) && rows.length) products = rows;
-  } catch {
-    const cached = JSON.parse(localStorage.getItem(STORAGE_KEYS_V2.products) || '[]');
-    if (Array.isArray(cached) && cached.length) products = cached;
-  }
-  renderTestProductRows();
-}
-
-function ensureTestPanel() {
-  const anchor = document.getElementById('orderFormPanel') || document.querySelector('.create-grid');
-  if (!anchor || document.getElementById('testFormPanel')) return;
-
-  anchor.insertAdjacentHTML('afterend', `
-    <section class="panel-card test-form-card" id="testFormPanel" hidden>
-      <div class="section-head test-head">
-        <div>
-          <h2>Tạo test sản phẩm</h2>
-          <p>Phiếu test lưu riêng vào <code>ona_tests</code> và <code>ona_test_items</code>.</p>
-        </div>
-        <button type="button" id="closeTestFormBtn">Đóng</button>
-      </div>
-
-      <form id="onaTestForm" class="test-form">
-        <div class="form-grid two">
-          <label><span>Ngày test</span><input type="date" id="onaTestDate" required /></label>
-          <label><span>Sales</span><input type="text" id="onaTestSales" placeholder="A Tân" value="A Tân" /></label>
-        </div>
-
-        <div class="form-grid two">
-          <label><span>Khách hàng</span><input type="text" id="onaTestCustomerName" placeholder="Tên cửa hàng / đại lý" required /></label>
-          <label><span>SĐT</span><input type="tel" id="onaTestCustomerPhone" placeholder="090..." /></label>
-        </div>
-
-        <div class="form-grid two">
-          <label><span>Khu vực</span><input type="text" id="onaTestArea" placeholder="Gò Vấp / Q.10" /></label>
-          <label><span>Loại điểm bán</span><input type="text" id="onaTestShopType" placeholder="Trà sữa / cafe / đại lý" /></label>
-        </div>
-
-        <div class="form-grid two">
-          <label><span>Loại test</span><select id="onaTestType"><option>Trà ONA Test</option><option>Trà sữa / topping</option><option>Sản phẩm mới</option><option>Khác</option></select></label>
-          <label><span>Hẹn lại</span><input type="date" id="onaTestFollowDate" /></label>
-        </div>
-
-        <label class="need-sample-row"><input type="checkbox" id="onaNeedSample" /> Cần gửi mẫu / hỗ trợ mẫu</label>
-
-        <div class="section-head test-products-head">
-          <div>
-            <h2>Test từng sản phẩm</h2>
-            <p>Chọn trạng thái và ghi chú nhanh cho từng sản phẩm.</p>
-          </div>
-        </div>
-
-        <div class="test-summary-strip" id="testSummaryStrip">
-          <div><strong>0</strong><small>OK</small></div>
-          <div><strong>0</strong><small>Quan tâm</small></div>
-          <div><strong>0</strong><small>Cần mẫu</small></div>
-          <div><strong>0</strong><small>Vấn đề</small></div>
-        </div>
-
-        <div id="onaTestItems" class="test-items"></div>
-
-        <label><span>Ghi chú tổng</span><textarea id="onaTestNote" rows="2" placeholder="VD: khách thích Olong Sen, cần mẫu lớn..."></textarea></label>
-
-        <div class="sticky-actions">
-          <button type="button" id="resetTestBtn">Xóa form</button>
-          <button type="submit" class="primary">Lưu phiếu test</button>
-        </div>
-      </form>
-    </section>
-  `);
-
-  testPanel = document.getElementById('testFormPanel');
-  testForm = document.getElementById('onaTestForm');
-  testItemsEl = document.getElementById('onaTestItems');
-}
-
-function ensureTestList() {
-  const panel = document.querySelector('[data-data-panel="tests"]');
-  if (!panel) return;
-  panel.innerHTML = '<div id="onaTestList" class="test-list"></div>';
-  testListEl = document.getElementById('onaTestList');
-}
-
-function renderTestProductRows() {
-  if (!testItemsEl) return;
-  testItemsEl.innerHTML = products.map((product) => `
-    <article class="test-item-row" data-product-id="${escapeHtml(product.id)}">
-      <header><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.category || product.sku || 'Sản phẩm')}</small></header>
-      <div class="test-item-grid">
-        <label><span>Trạng thái</span><select class="test-status-select">${statusOptions()}</select></label>
-        <label><span>Ghi chú</span><input class="test-note" type="text" placeholder="Vị, giá, mẫu, phản hồi..." /></label>
-      </div>
-    </article>
-  `).join('');
-  updateTestSummary();
-}
-
-function resetTestForm() {
-  if (!testForm) return;
-  testForm.reset();
-  document.getElementById('onaTestDate').value = todayIsoDate();
-  document.getElementById('onaTestSales').value = 'A Tân';
-  renderTestProductRows();
-}
-
-function openTestForm() {
-  if (!testPanel) ensureTestPanel();
-  testPanel.hidden = false;
-  if (!testItemsEl?.children.length) resetTestForm();
-  testPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function closeTestForm() {
-  if (testPanel) testPanel.hidden = true;
-}
-
-function updateTestSummary() {
-  const counts = { ok: 0, interested: 0, sample: 0, issue: 0 };
-  document.querySelectorAll('.test-item-row').forEach((row) => {
-    const status = row.querySelector('.test-status-select')?.value || 'pending';
-    if (status === 'ok') counts.ok += 1;
-    if (status === 'interested') counts.interested += 1;
-    if (status === 'sample') counts.sample += 1;
-    if (['bad', 'retry', 'follow'].includes(status)) counts.issue += 1;
-  });
-  const strip = document.getElementById('testSummaryStrip');
-  if (!strip) return;
-  const values = [counts.ok, counts.interested, counts.sample, counts.issue];
-  strip.querySelectorAll('strong').forEach((node, index) => { node.textContent = values[index] || 0; });
-}
-
-function collectTest() {
-  const code = generateTestCode();
-  const test = makeOnaTest({
-    id: uid('ona-test'),
-    test_code: code,
-    test_date: document.getElementById('onaTestDate').value || todayIsoDate(),
-    sales: document.getElementById('onaTestSales').value,
-    customer_name: document.getElementById('onaTestCustomerName').value,
-    customer_phone: document.getElementById('onaTestCustomerPhone').value,
-    area: document.getElementById('onaTestArea').value,
-    shop_type: document.getElementById('onaTestShopType').value,
-    test_type: document.getElementById('onaTestType').value,
-    follow_date: document.getElementById('onaTestFollowDate').value || null,
-    need_sample: document.getElementById('onaNeedSample').checked,
-    overall_status: 'draft',
-    overall_note: document.getElementById('onaTestNote').value,
-    sync_status: 'pending',
-    raw_payload: { test_code: code }
-  });
-
-  const items = Array.from(document.querySelectorAll('.test-item-row')).map((row) => {
-    const product = products.find((item) => item.id === row.dataset.productId) || {};
-    const status = row.querySelector('.test-status-select')?.value || 'pending';
-    const note = row.querySelector('.test-note')?.value || '';
-    return makeOnaTestItem({
-      id: uid('ona-test-item'),
-      test_id: test.id,
-      product_id: product.id,
-      product_name: product.name,
-      status,
-      note
-    });
-  }).filter((item) => item.status !== 'pending' || item.note);
-
-  if (!test.customer_name) throw new Error('Thiếu tên khách hàng.');
-  if (!items.length) throw new Error('Chọn ít nhất 1 sản phẩm có trạng thái hoặc ghi chú.');
-  return { test, items };
-}
-
-async function saveTest(event) {
-  event.preventDefault();
-  const submit = testForm.querySelector('button[type="submit"]');
-  submit.disabled = true;
-  submit.textContent = 'Đang lưu...';
-  try {
-    const { test, items } = collectTest();
-    let savedTest = { ...test };
-    try {
-      if (!isSupabaseV2Ready()) throw new Error('Chưa cấu hình Supabase.');
-      await syncOnaTest(test, items);
-      savedTest.sync_status = 'synced';
-      savedTest.synced_at = new Date().toISOString();
-      showToast('Đã lưu phiếu test lên Supabase.');
-    } catch (syncError) {
-      savedTest.sync_status = 'error';
-      savedTest.raw_payload = { ...(savedTest.raw_payload || {}), sync_error: syncError.message };
-      enqueueSync('ona_test', { test: savedTest, items });
-      showToast('Đã lưu máy, chờ đồng bộ DB.');
-    }
-    cacheTestRow(savedTest, items);
-    renderTests();
-    renderRecentMixed();
-    updateModuleStats();
-    resetTestForm();
-    closeTestForm();
-    document.querySelector('[data-page-link="dataSection"]')?.click();
-    document.querySelector('[data-data-view="tests"]')?.click();
-  } catch (error) {
-    showToast(error.message || 'Không lưu được phiếu test.');
-  } finally {
-    submit.disabled = false;
-    submit.textContent = 'Lưu phiếu test';
-  }
-}
-
-function countTestItems(items = []) {
-  return items.reduce((acc, item) => {
-    acc.total += 1;
-    acc[item.status] = (acc[item.status] || 0) + 1;
-    return acc;
-  }, { total: 0 });
-}
-
-function syncDot(status) {
-  if (status === 'synced') return '<em class="sync-dot ok">Đã lưu DB</em>';
-  if (status === 'error') return '<em class="sync-dot danger">Lỗi DB</em>';
-  return '<em class="sync-dot warn">Chờ đồng bộ</em>';
-}
-
-function renderTests() {
-  if (!testListEl) return;
-  const rows = readTestRows().slice().sort((a, b) => String(b.test?.created_at || '').localeCompare(String(a.test?.created_at || '')));
-  if (!rows.length) {
-    testListEl.innerHTML = '<article class="record-card placeholder-card"><div><h3>Chưa có phiếu test</h3><p>Bấm Tạo → Test sản phẩm để tạo phiếu đầu tiên.</p><small>Dữ liệu sẽ lưu vào ona_tests và ona_test_items.</small></div></article>';
-    return;
-  }
-  testListEl.innerHTML = rows.map(({ test, items }) => {
-    const counts = countTestItems(items);
-    const code = test.raw_payload?.test_code || test.id;
-    return `
-      <article class="record-card">
-        <div>
-          <h3>${escapeHtml(code)}</h3>
-          <p>Khách: ${escapeHtml(test.customer_name || '-')} ${test.area ? `- ${escapeHtml(test.area)}` : ''}</p>
-          <p>${counts.total} sản phẩm · OK ${counts.ok || 0} · Cần mẫu ${counts.sample || 0} · Vấn đề ${(counts.bad || 0) + (counts.retry || 0)}</p>
-          <small>${escapeHtml(test.test_date || '')} · ${escapeHtml(test.sales || '')}</small>
-        </div>
-        <aside>
-          <span class="status ${test.need_sample ? 'danger-soft' : 'ok'}">${test.need_sample ? 'Cần mẫu' : 'Đã test'}</span>
-          <button type="button" data-open-test="${escapeHtml(test.id)}">Mở</button>
-          ${syncDot(test.sync_status)}
-        </aside>
-      </article>`;
-  }).join('');
-}
-
-function renderRecentMixed() {
-  const recent = document.getElementById('recentList');
-  if (!recent) return;
-  const orders = readCachedRows(STORAGE_KEYS_V2.orders).map((row) => ({
-    type: 'order', icon: '🛒', title: `Đơn hàng ${row.order?.order_code || row.order?.id || ''}`,
-    sub: `${row.order?.order_date || ''} · ${row.order?.grand_total ? Math.round(row.order.grand_total).toLocaleString('vi-VN') + 'đ' : ''}`,
-    status: row.order?.sync_status, at: row.order?.created_at || ''
-  }));
-  const tests = readTestRows().map((row) => ({
-    type: 'test', icon: '🍵', title: `Test SP ${row.test?.raw_payload?.test_code || row.test?.id || ''}`,
-    sub: `${row.test?.test_date || ''} · ${row.test?.customer_name || ''}`,
-    status: row.test?.sync_status, at: row.test?.created_at || ''
-  }));
-  const rows = [...orders, ...tests].sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 3);
-  if (!rows.length) {
-    recent.innerHTML = '<article class="mini-row"><span class="mini-icon">＋</span><div><strong>Chưa có dữ liệu</strong><small>Tạo đơn hoặc phiếu test đầu tiên.</small></div><em class="sync-dot warn">Local</em></article>';
-    return;
-  }
-  recent.innerHTML = rows.map((row) => `<article class="mini-row"><span class="mini-icon">${row.icon}</span><div><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml(row.sub)}</small></div>${syncDot(row.status)}</article>`).join('');
-}
-
-function updateModuleStats() {
-  const aiNumbers = document.querySelectorAll('.metric-row strong');
-  if (aiNumbers[0]) aiNumbers[0].textContent = String(readCachedRows(STORAGE_KEYS_V2.orders).length);
-  if (aiNumbers[1]) aiNumbers[1].textContent = String(readTestRows().length);
-  const stats = getSyncStats();
-  const total = readCachedRows(STORAGE_KEYS_V2.orders).length + readTestRows().length;
-  const local = document.getElementById('localRecordCount');
-  const pending = document.getElementById('pendingSyncCount');
-  const error = document.getElementById('errorSyncCount');
-  if (local) local.textContent = String(total);
-  if (pending) pending.textContent = String((stats.pending || 0) + (stats.syncing || 0));
-  if (error) error.textContent = String(stats.error || 0);
-}
-
-function openTestDetail(testId) {
-  const found = readTestRows().find((row) => row.test?.id === testId);
-  if (!found) return;
-  const lines = found.items.map((item) => `${item.product_name}: ${TEST_STATUS_LABELS[item.status] || item.status}`).join(', ');
-  showToast(lines || 'Phiếu test chưa có dòng chi tiết.');
-}
-
-async function retryTestQueue() {
-  try {
-    await flushSyncQueue({ stopOnError: false });
-    const queue = readSyncQueue();
-    const done = queue.filter((item) => item.status === 'done' && item.type === 'ona_test');
-    if (done.length) {
-      const rows = readTestRows();
-      done.forEach((item) => {
-        const id = item.payload?.test?.id;
-        const found = rows.find((row) => row.test?.id === id);
-        if (found) {
-          found.test.sync_status = 'synced';
-          found.test.synced_at = new Date().toISOString();
-        }
-      });
-      writeTestRows(rows);
-      clearCompletedSyncItems();
-    }
-    renderTests();
-    renderRecentMixed();
-    updateModuleStats();
-  } catch (error) {
-    showToast(error.message || 'Đồng bộ phiếu test thất bại.');
-  }
-}
-
-function bindTestModule() {
-  document.querySelector('[data-create-type="test"]')?.addEventListener('click', (event) => {
-    event.preventDefault();
-    openTestForm();
-  });
-  document.getElementById('closeTestFormBtn')?.addEventListener('click', closeTestForm);
-  document.getElementById('resetTestBtn')?.addEventListener('click', resetTestForm);
-  testForm?.addEventListener('submit', saveTest);
-  testItemsEl?.addEventListener('change', (event) => {
-    if (event.target.classList.contains('test-status-select')) {
-      event.target.className = `test-status-select status-${event.target.value}`;
-      updateTestSummary();
-    }
-  });
-  testListEl?.addEventListener('click', (event) => {
-    const open = event.target.closest('[data-open-test]');
-    if (open) openTestDetail(open.dataset.openTest);
-  });
-  document.getElementById('syncQueueBtn')?.addEventListener('click', retryTestQueue);
-}
-
-async function initTestModule() {
-  loadCss('order-module.css');
-  loadCss('test-module.css');
-  ensureTestPanel();
-  ensureTestList();
-  await refreshProducts();
-  resetTestForm();
-  bindTestModule();
-  renderTests();
-  renderRecentMixed();
-  updateModuleStats();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTestModule, { once: true });
-} else {
-  initTestModule();
-}
+function saveForm(e) { e.preventDefault(); const route = $('#onaTestRoute').value.trim(); const date = $('#onaTestDate').value || todayIsoDate(); if (!route) return toast('Thiếu khu vực / tuyến.'); if (!selectedProducts.length) return toast('Chọn ít nhất 1 sản phẩm test.'); const form = { id: uid('test-form'), route, title: $('#onaTestTitle').value.trim() || `${route}-${shortDate(date)}`, test_date: date, sales: $('#onaTestSales').value.trim(), products: [...selectedProducts], note: $('#onaTestNote').value.trim(), created_at: now(), sync_status: 'local' }; const rows = read(FORM_KEY); rows.unshift(form); write(FORM_KEY, rows); activeFormId = ''; activeCustomerId = ''; resetForm(); closeForm(); activateData(); renderTests(); setTimeout(() => showSaved(form), 100); }
+function resultsOf(id) { return read(ROW_KEY).filter(r => r.form_id === id); }
+function counts(row) { const a = Array.isArray(row.product_results) ? row.product_results : []; return { total: a.length, ok: a.filter(x => x.result === 'ok').length, sample: a.filter(x => x.need_sample || x.result === 'sample').length, follow: a.filter(x => x.result === 'follow').length, bad: a.filter(x => x.result === 'bad').length }; }
+function formsList() { const forms = read(FORM_KEY).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))); if (!forms.length) return '<h3>Test SP</h3><article class="record-card"><p>Chưa có file test.</p></article>'; return `<h3>Test SP</h3>${forms.map(f => `<article class="record-card test-file" data-open-test-detail="${esc(f.id)}"><div><h3>${esc(f.title)}</h3><small>${esc(f.test_date)} · ${esc(f.sales || '-')} · ${resultsOf(f.id).length} khách</small><div class="test-counts"><span>${f.products.length} SP test</span></div></div><b>Mở ›</b></article>`).join('')}`; }
+function evalBlock(p, i) { return `<article class="test-product-eval" data-product-id="${esc(p.id)}" data-product-name="${esc(label(p))}"><h4>${i + 1}. ${esc(label(p))}</h4><div class="test-checks"><label><input type="checkbox" class="eval-tried">Đã thử</label><label><input type="checkbox" class="eval-liked">Khách thích</label><label><input type="checkbox" class="eval-need-sample">Cần mẫu</label><label><input type="checkbox" class="eval-price-ok">Giá OK</label></div><label class="test-field"><span>Kết quả</span><select class="eval-result"><option value="interested">Quan tâm</option><option value="ok">OK</option><option value="sample">Cần mẫu</option><option value="follow">Hẹn lại</option><option value="bad">Chưa phù hợp</option></select></label><label class="test-field"><span>Ý kiến khác</span><textarea class="eval-other"></textarea></label><label class="test-field"><span>Việc tiếp theo</span><input class="eval-next"></label></article>`; }
+function customerForm(f) { return `<form id="testCustomerForm" class="test-customer-form" data-form-id="${esc(f.id)}"><h3>Thêm khách</h3><div class="test-grid"><label class="test-field"><span>Khách hàng</span><input id="testCustomerName" required></label><label class="test-field"><span>SĐT</span><input id="testCustomerPhone"></label></div><div class="test-grid"><label class="test-field"><span>Khu vực</span><input id="testCustomerArea" value="${esc(f.route || '')}"></label><label class="test-field"><span>Loại điểm bán</span><input id="testShopType"></label></div><h3>Kết quả từng sản phẩm</h3><div class="test-products">${f.products.map(evalBlock).join('')}</div><label class="test-field"><span>Ghi chú chung</span><textarea id="testGeneralNote"></textarea></label><button class="primary" type="submit">Lưu khách test</button></form>`; }
+function customerRows(rows) { if (!rows.length) return '<article class="empty-sync-card">Chưa có khách test trong file này.</article>'; return rows.map(r => { const c = counts(r); return `<article class="test-customer-row" data-open-customer-result="${esc(r.id)}"><div><h3>${esc(r.customer_name)}</h3><small>${esc(r.area || '')}${r.customer_phone ? ` · ${esc(r.customer_phone)}` : ''}</small><div class="test-counts"><span>${c.total} SP</span><span>${c.ok} OK</span><span class="warn">${c.sample} mẫu</span><span>${c.follow} hẹn</span><span>${c.bad} chưa hợp</span></div></div><b>Chi tiết ›</b></article>`; }).join(''); }
+function fileDetail(f) { const rows = resultsOf(f.id).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))); return `<div class="test-detail-top"><button type="button" id="backToTestList">‹ Danh sách file</button><div><h3>${esc(f.title)}</h3><small>${esc(f.test_date)} · ${esc(f.route || '')} · ${f.products.length} SP</small></div></div>${customerForm(f)}<h3>Khách đã test</h3>${customerRows(rows)}`; }
+function customerDetail(f, r) { const rows = Array.isArray(r.product_results) ? r.product_results : []; return `<div class="test-detail-top"><button type="button" id="backToFileDetail">‹ Quay lại file</button><div><h3>${esc(r.customer_name)}</h3><small>${esc(r.area || '')}${r.customer_phone ? ` · ${esc(r.customer_phone)}` : ''}</small></div></div><section class="test-summary"><p>${esc(r.general_note || '')}</p></section><div class="test-products">${rows.map((p, i) => `<article class="test-product-detail"><b>${i + 1}. ${esc(p.product_name)}</b><span>${esc(p.result_label || p.result || '')}</span><small>${[p.tried ? 'Đã thử' : '', p.liked ? 'Thích' : '', p.need_sample ? 'Cần mẫu' : '', p.price_ok ? 'Giá OK' : ''].filter(Boolean).join(' · ')}</small><p>${esc(p.other_feedback || '')}</p><small>${esc(p.next_action || '')}</small></article>`).join('')}</div>`; }
+function renderTests() { if (!listEl) ensureList(); if (!listEl) return; const f = activeFormId ? read(FORM_KEY).find(x => x.id === activeFormId) : null; if (!f) { listEl.innerHTML = formsList(); return; } const r = activeCustomerId ? resultsOf(f.id).find(x => x.id === activeCustomerId) : null; listEl.innerHTML = r ? customerDetail(f, r) : fileDetail(f); }
+function saveCustomer(e) { e.preventDefault(); const f = read(FORM_KEY).find(x => x.id === e.target.dataset.formId); if (!f) return toast('Không tìm thấy file test.'); const name = $('#testCustomerName').value.trim(); if (!name) return toast('Thiếu tên khách test.'); const labels = { interested: 'Quan tâm', ok: 'OK', sample: 'Cần mẫu', follow: 'Hẹn lại', bad: 'Chưa phù hợp' }; const product_results = $$('.test-product-eval', e.target).map(card => { const result = $('.eval-result', card).value; return { product_id: card.dataset.productId, product_name: card.dataset.productName, tried: $('.eval-tried', card).checked, liked: $('.eval-liked', card).checked, need_sample: $('.eval-need-sample', card).checked, price_ok: $('.eval-price-ok', card).checked, result, result_label: labels[result] || result, other_feedback: $('.eval-other', card).value.trim(), next_action: $('.eval-next', card).value.trim() }; }); const rows = read(ROW_KEY); rows.unshift({ id: uid('test-row'), form_id: f.id, customer_name: name, customer_phone: $('#testCustomerPhone').value.trim(), area: $('#testCustomerArea').value.trim(), shop_type: $('#testShopType').value.trim(), general_note: $('#testGeneralNote').value.trim(), product_results, need_sample: product_results.some(x => x.need_sample), created_at: now(), sync_status: 'local' }); write(ROW_KEY, rows); activeCustomerId = ''; renderTests(); toast('Đã lưu khách test.'); }
+function bind() { document.querySelector('[data-create-type="test"]')?.addEventListener('click', e => { e.preventDefault(); openForm(); }); $('#closeTestFormBtn')?.addEventListener('click', closeForm); modal?.addEventListener('click', e => { if (e.target === modal) closeForm(); }); $('#productFilter')?.addEventListener('input', e => refreshSelect(e.target.value)); $('#addSelectedProductBtn')?.addEventListener('click', () => { const p = productById($('#productSelect')?.value); if (!p) return toast('Chọn sản phẩm trước.'); if (selectedProducts.some(x => x.id === p.id)) return toast('Sản phẩm này đã có.'); selectedProducts.push({ id: p.id, sku: p.sku, name: p.name, category: p.category, brand: p.brand }); renderPicked(); }); $('#selectedProducts')?.addEventListener('click', e => { const b = e.target.closest('[data-remove-product]'); if (!b) return; selectedProducts = selectedProducts.filter(p => p.id !== b.dataset.removeProduct); renderPicked(); }); $('#resetTestBtn')?.addEventListener('click', resetForm); formEl?.addEventListener('submit', saveForm); listEl?.addEventListener('click', e => { const f = e.target.closest('[data-open-test-detail]'); if (f) { activeFormId = f.dataset.openTestDetail; activeCustomerId = ''; activateData(); renderTests(); return; } const c = e.target.closest('[data-open-customer-result]'); if (c) { activeCustomerId = c.dataset.openCustomerResult; renderTests(); return; } if (e.target.closest('#backToFileDetail')) { activeCustomerId = ''; renderTests(); return; } if (e.target.closest('#backToTestList')) { activeFormId = ''; activeCustomerId = ''; activateData(); renderTests(); } }); listEl?.addEventListener('submit', e => { if (e.target?.id === 'testCustomerForm') saveCustomer(e); }); document.querySelector('[data-data-view="tests"]')?.addEventListener('click', () => setTimeout(renderTests, 0)); }
+async function init() { css('order-module.css'); css('test-module.css'); style(); localStorage.removeItem(PRODUCT_CACHE_KEY); ensureModal(); ensureList(); resetForm(); bind(); renderTests(); try { await loadProducts(); refreshSelect(); } catch {} }
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true }); else init();
