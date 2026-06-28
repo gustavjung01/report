@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bepi-field-report-v30';
+const CACHE_NAME = 'bepi-field-report-v31';
 const APP_ASSETS = [
   './',
   './index.html',
