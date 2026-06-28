@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bepi-field-report-v27';
+const CACHE_NAME = 'bepi-field-report-v28';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -7,10 +7,14 @@ const APP_ASSETS = [
   './test-module.css',
   './market-module.css',
   './data-sync-module.css',
+  './ai-summary-module.css',
+  './file-out.css',
   './app-shell-v2.js',
   './test-module.js',
   './market-module.js',
   './data-sync-module.js',
+  './ai-summary-module.js',
+  './file-out-module.js',
   './data-model.js',
   './supabase-v2.js',
   './sync-queue.js',
@@ -22,50 +26,23 @@ const APP_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_ASSETS)).then(() => self.skipWaiting()));
 });
-
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-});
-
+self.addEventListener('message', (event) => { if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting(); });
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
-  try {
-    const response = await fetch(request);
-    if (response && response.ok) cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    return cache.match('./index.html');
-  }
+  try { const response = await fetch(request); if (response && response.ok) cache.put(request, response.clone()); return response; }
+  catch (error) { const cached = await cache.match(request); if (cached) return cached; return cache.match('./index.html'); }
 }
-
 async function cacheFirstThenRefresh(request) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
-  const fetched = fetch(request)
-    .then((response) => {
-      if (response && response.ok) cache.put(request, response.clone());
-      return response;
-    })
-    .catch(() => null);
+  const fetched = fetch(request).then((response) => { if (response && response.ok) cache.put(request, response.clone()); return response; }).catch(() => null);
   return cached || fetched || cache.match('./index.html');
 }
-
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
