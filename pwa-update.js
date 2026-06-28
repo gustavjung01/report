@@ -1,0 +1,97 @@
+const PWA_VERSION_KEY = 'bepi-pwa-last-version';
+const PWA_RELOAD_KEY = 'bepi-pwa-reloaded-once';
+const CHECK_INTERVAL_MS = 20 * 60 * 1000;
+let swRegistration = null;
+let updateTimer = null;
+
+function showUpdateToast(text) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(showUpdateToast.t);
+  showUpdateToast.t = setTimeout(() => toast.classList.remove('show'), 4200);
+}
+
+function askWorkerToActivate(worker) {
+  if (!worker) return;
+  try {
+    worker.postMessage({ type: 'SKIP_WAITING' });
+  } catch (error) {
+    console.warn('Cannot activate new service worker', error);
+  }
+}
+
+function watchInstallingWorker(worker) {
+  if (!worker) return;
+  worker.addEventListener('statechange', () => {
+    if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+      showUpdateToast('Có bản mới, app đang cập nhật...');
+      askWorkerToActivate(worker);
+    }
+  });
+}
+
+async function checkForUpdate() {
+  if (!swRegistration) return;
+  try {
+    await swRegistration.update();
+  } catch (error) {
+    console.warn('PWA update check failed', error);
+  }
+}
+
+async function checkVersionFile() {
+  try {
+    const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const version = String(data.version || '').trim();
+    if (!version) return;
+    const old = localStorage.getItem(PWA_VERSION_KEY);
+    localStorage.setItem(PWA_VERSION_KEY, version);
+    if (old && old !== version) {
+      showUpdateToast('Có bản mới, app đang tải lại...');
+      setTimeout(() => location.reload(), 900);
+    }
+  } catch (error) {
+    console.warn('Version check failed', error);
+  }
+}
+
+async function startPwaUpdate() {
+  if (!('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (sessionStorage.getItem(PWA_RELOAD_KEY) === '1') return;
+    sessionStorage.setItem(PWA_RELOAD_KEY, '1');
+    showUpdateToast('Đã cập nhật app, đang mở bản mới...');
+    setTimeout(() => location.reload(), 700);
+  });
+
+  try {
+    swRegistration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+    watchInstallingWorker(swRegistration.installing);
+    if (swRegistration.waiting) askWorkerToActivate(swRegistration.waiting);
+    swRegistration.addEventListener('updatefound', () => watchInstallingWorker(swRegistration.installing));
+
+    await checkForUpdate();
+    await checkVersionFile();
+    clearInterval(updateTimer);
+    updateTimer = setInterval(() => {
+      checkForUpdate();
+      checkVersionFile();
+    }, CHECK_INTERVAL_MS);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        checkForUpdate();
+        checkVersionFile();
+      }
+    });
+  } catch (error) {
+    console.warn('Service worker registration failed', error);
+  }
+}
+
+window.addEventListener('load', startPwaUpdate);
