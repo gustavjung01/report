@@ -15,7 +15,7 @@ import {
   makeExportRow
 } from './data-model.js';
 
-const DEFAULT_SUPABASE_URL = 'https://aumcufisjmlmwywoogug.supabase.co';
+const DEFAULT_SUPABASE_URL = 'https://noiadkpkvdohljgopgfb.supabase.co';
 const EXPORT_BUCKET = 'report-exports';
 
 let config = {
@@ -38,7 +38,7 @@ function normalizeSupabaseUrl(value = '') {
   const match = raw.match(/dashboard\/project\/([a-z0-9]+)/i);
   if (match) return `https://${match[1]}.supabase.co`;
   if (!raw) return DEFAULT_SUPABASE_URL;
-  return raw.replace(/\/+$/, '');
+  return raw.replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
 }
 
 export function readSupabaseSettings() {
@@ -81,188 +81,137 @@ function sbHeaders(extra = {}) {
     apikey: key,
     Authorization: `Bearer ${key}`,
     'Content-Type': 'application/json',
+    Prefer: 'return=representation',
     ...extra
   };
 }
 
-function tableUrl(table, query = '') {
-  const suffix = query ? `?${query.replace(/^\?/, '')}` : '';
-  return `${config.supabaseUrl}/rest/v1/${table}${suffix}`;
-}
-
-async function parseMaybeJson(response) {
-  const text = await response.text();
-  if (!text) return null;
-  try { return JSON.parse(text); }
-  catch { return text; }
-}
-
-async function sbFetch(url, options = {}) {
-  if (!isSupabaseV2Ready()) throw new Error('Thiếu Supabase URL/key.');
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...sbHeaders(),
-      ...(options.headers || {})
-    }
-  });
-
-  if (!response.ok) {
-    const detail = await parseMaybeJson(response);
-    const message = typeof detail === 'string' ? detail : detail?.message || detail?.hint || JSON.stringify(detail);
-    throw new Error(message || `Supabase lỗi ${response.status}`);
+async function sbFetch(path, options = {}) {
+  configureSupabaseV2();
+  assertSafePublicKey();
+  if (!isSupabaseV2Ready()) throw new Error('Chưa cấu hình Supabase URL/key hợp lệ.');
+  const url = `${config.supabaseUrl}/rest/v1/${path.replace(/^\/+/, '')}`;
+  const res = await fetch(url, { ...options, headers: sbHeaders(options.headers || {}) });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    const message = data?.message || data?.error || `Supabase lỗi ${res.status}`;
+    throw new Error(message);
   }
-
-  return response;
+  return data;
 }
 
-export async function sbSelect(table, query = 'select=*') {
-  const response = await sbFetch(tableUrl(table, query), { method: 'GET' });
-  return parseMaybeJson(response) || [];
+export async function sbSelect(table, query = '') {
+  const suffix = query ? `?${query.replace(/^\?/, '')}` : '';
+  return sbFetch(`${table}${suffix}`, { method: 'GET', headers: { Prefer: '' } });
 }
 
 export async function sbInsert(table, rows) {
   const payload = Array.isArray(rows) ? rows : [rows];
-  if (!payload.length) return [];
-  const response = await sbFetch(tableUrl(table), {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(payload.map(compactRow))
-  });
-  return parseMaybeJson(response) || [];
+  return sbFetch(table, { method: 'POST', body: JSON.stringify(payload) });
 }
 
-export async function sbUpsert(table, rows, conflict = 'id') {
+export async function sbUpsert(table, rows, onConflict = 'id') {
   const payload = Array.isArray(rows) ? rows : [rows];
-  if (!payload.length) return [];
-  const response = await sbFetch(tableUrl(table, `on_conflict=${encodeURIComponent(conflict)}`), {
+  return sbFetch(`${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-    body: JSON.stringify(payload.map(compactRow))
+    body: JSON.stringify(payload)
   });
-  return parseMaybeJson(response) || [];
 }
 
-export async function sbDelete(table, query) {
-  await sbFetch(tableUrl(table, query), { method: 'DELETE' });
-  return true;
+export async function sbUpdate(table, id, patch) {
+  return sbFetch(`${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(compactRow({ ...patch, updated_at: new Date().toISOString() }))
+  });
 }
 
-export async function syncCustomerMaster(input) {
-  const customer = assertRequired(makeCustomerMaster(input), ['id', 'name'], 'Khách hàng');
-  const [saved] = await sbUpsert(TABLES_V2.customers, [customer]);
-  return saved || customer;
-}
-
-export async function syncOrder(orderInput, itemInputs = []) {
-  const order = assertRequired(makeOrder(orderInput), ['id', 'order_date'], 'Đơn hàng');
-  const items = itemInputs.map((item) => assertRequired(makeOrderItem({ ...item, order_id: order.id }), ['id', 'order_id', 'product_name'], 'Dòng đơn hàng'));
-
-  if (order.customer_name) {
-    await syncCustomerMaster({
-      id: order.customer_id || `cus-${order.id}`,
-      name: order.customer_name,
-      phone: order.customer_phone,
-      area: order.area,
-      address: order.delivery_address,
-      raw_payload: order.raw_payload
-    });
-    order.customer_id = order.customer_id || `cus-${order.id}`;
+export async function loadProducts() {
+  try {
+    const rows = await sbSelect(TABLES_V2.products, 'select=*&active=eq.true&order=name.asc');
+    localStorage.setItem(STORAGE_KEYS_V2.products, JSON.stringify(rows));
+    return rows;
+  } catch (error) {
+    const cached = readJson(STORAGE_KEYS_V2.products, []);
+    if (cached.length) return cached;
+    throw error;
   }
-
-  const [savedOrder] = await sbUpsert(TABLES_V2.orders, [order]);
-  await sbDelete(TABLES_V2.orderItems, `order_id=eq.${encodeURIComponent(order.id)}`);
-  if (items.length) await sbInsert(TABLES_V2.orderItems, items);
-  return { order: savedOrder || order, items };
 }
 
-export async function syncOnaTest(testInput, itemInputs = []) {
-  const test = assertRequired(makeOnaTest(testInput), ['id', 'test_date'], 'Phiếu test');
-  const items = itemInputs.map((item) => assertRequired(makeOnaTestItem({ ...item, test_id: test.id }), ['id', 'test_id', 'product_name'], 'Dòng test'));
-
-  if (test.customer_name) {
-    await syncCustomerMaster({
-      id: test.customer_id || `cus-${test.id}`,
-      name: test.customer_name,
-      phone: test.customer_phone,
-      area: test.area,
-      shop_type: test.shop_type,
-      raw_payload: test.raw_payload
-    });
-    test.customer_id = test.customer_id || `cus-${test.id}`;
-  }
-
-  const [savedTest] = await sbUpsert(TABLES_V2.onaTests, [test]);
-  await sbDelete(TABLES_V2.onaTestItems, `test_id=eq.${encodeURIComponent(test.id)}`);
-  if (items.length) await sbInsert(TABLES_V2.onaTestItems, items);
-  return { test: savedTest || test, items };
+export async function upsertCustomerFromPayload(payload = {}) {
+  const name = payload.customer_name || payload.customer || payload.name;
+  assertRequired({ name }, ['name'], 'khách hàng');
+  const id = payload.customer_id || `cust-${String(name).trim().toLowerCase().replace(/\s+/g, '-')}-${payload.phone || payload.customer_phone || ''}`.replace(/[^a-z0-9-]/g, '');
+  const row = makeCustomerMaster({
+    id,
+    name,
+    phone: payload.customer_phone || payload.phone || null,
+    area: payload.area || payload.market_area || null,
+    source: payload.source || 'pwa',
+    raw_payload: payload
+  });
+  const [saved] = await sbUpsert(TABLES_V2.customers, [row]);
+  return saved || row;
 }
 
-export async function syncMarketReport(reportInput, productInputs = [], competitorInputs = []) {
-  const report = assertRequired(makeMarketReport(reportInput), ['id', 'report_date'], 'Báo cáo thị trường');
-  const products = productInputs.map((item) => assertRequired(makeMarketReportProduct({ ...item, market_report_id: report.id }), ['id', 'market_report_id', 'product_name'], 'Sản phẩm trong báo cáo'));
-  const competitors = competitorInputs.map((item) => assertRequired(makeMarketReportCompetitor({ ...item, market_report_id: report.id }), ['id', 'market_report_id', 'competitor_name'], 'Đối thủ trong báo cáo'));
-
-  const [savedReport] = await sbUpsert(TABLES_V2.marketReports, [report]);
-  await sbDelete(TABLES_V2.marketReportProducts, `market_report_id=eq.${encodeURIComponent(report.id)}`);
-  await sbDelete(TABLES_V2.marketReportCompetitors, `market_report_id=eq.${encodeURIComponent(report.id)}`);
-  if (products.length) await sbInsert(TABLES_V2.marketReportProducts, products);
-  if (competitors.length) await sbInsert(TABLES_V2.marketReportCompetitors, competitors);
-  return { report: savedReport || report, products, competitors };
+export async function syncOrder(orderPayload, itemPayloads = []) {
+  assertRequired(orderPayload, ['id', 'customer_name', 'order_date'], 'đơn hàng');
+  const customer = await upsertCustomerFromPayload(orderPayload);
+  const order = makeOrder({ ...orderPayload, customer_id: customer.id, sync_status: 'synced', synced_at: new Date().toISOString() });
+  const items = itemPayloads.map((item, index) => makeOrderItem({ ...item, order_id: order.id, line_no: item.line_no || index + 1 }));
+  await sbUpsert(TABLES_V2.orders, [order]);
+  if (items.length) await sbUpsert(TABLES_V2.orderItems, items);
+  return { order, items, customer };
 }
 
-export async function syncAiSummary(input) {
-  const summary = assertRequired(makeAiSummary(input), ['id'], 'AI summary');
-  const [saved] = await sbUpsert(TABLES_V2.aiSummaries, [summary]);
-  return saved || summary;
+export async function syncOnaTest(testPayload, itemPayloads = []) {
+  assertRequired(testPayload, ['id', 'customer_name', 'test_date'], 'phiếu test');
+  const customer = await upsertCustomerFromPayload(testPayload);
+  const test = makeOnaTest({ ...testPayload, customer_id: customer.id, sync_status: 'synced', synced_at: new Date().toISOString() });
+  const items = itemPayloads.map((item) => makeOnaTestItem({ ...item, test_id: test.id }));
+  await sbUpsert(TABLES_V2.onaTests, [test]);
+  if (items.length) await sbUpsert(TABLES_V2.onaTestItems, items);
+  return { test, items, customer };
 }
 
-export async function syncExport(input) {
-  const row = assertRequired(makeExportRow(input), ['id', 'source_type', 'source_id', 'export_type'], 'Export');
+export async function syncMarketReport(reportPayload, productPayloads = [], competitorPayloads = []) {
+  assertRequired(reportPayload, ['id', 'report_date'], 'báo cáo thị trường');
+  const report = makeMarketReport({ ...reportPayload, sync_status: 'synced', synced_at: new Date().toISOString() });
+  const products = productPayloads.map((item) => makeMarketReportProduct({ ...item, market_report_id: report.id }));
+  const competitors = competitorPayloads.map((item) => makeMarketReportCompetitor({ ...item, market_report_id: report.id }));
+  await sbUpsert(TABLES_V2.marketReports, [report]);
+  if (products.length) await sbUpsert(TABLES_V2.marketReportProducts, products);
+  if (competitors.length) await sbUpsert(TABLES_V2.marketReportCompetitors, competitors);
+  return { report, products, competitors };
+}
+
+export async function saveAiSummary(summaryPayload = {}) {
+  const row = makeAiSummary({ ...summaryPayload, sync_status: 'synced', synced_at: new Date().toISOString() });
+  const [saved] = await sbUpsert(TABLES_V2.aiSummaries, [row]);
+  return saved || row;
+}
+
+export async function saveExportRow(exportPayload = {}) {
+  const row = makeExportRow({ ...exportPayload, sync_status: 'synced', synced_at: new Date().toISOString() });
   const [saved] = await sbUpsert(TABLES_V2.exports, [row]);
   return saved || row;
 }
 
-export async function loadProducts({ activeOnly = true } = {}) {
-  const query = activeOnly ? 'select=*&active=eq.true&order=name.asc' : 'select=*&order=name.asc';
-  return sbSelect(TABLES_V2.products, query);
-}
-
-export async function loadOrders(query = 'select=*&order=order_date.desc,created_at.desc') {
-  return sbSelect(TABLES_V2.orders, query);
-}
-
-export async function loadOnaTests(query = 'select=*&order=test_date.desc,created_at.desc') {
-  return sbSelect(TABLES_V2.onaTests, query);
-}
-
-export async function loadMarketReports(query = 'select=*&order=report_date.desc,created_at.desc') {
-  return sbSelect(TABLES_V2.marketReports, query);
-}
-
-export async function loadAiSummaries(query = 'select=*&order=created_at.desc') {
-  return sbSelect(TABLES_V2.aiSummaries, query);
-}
-
-export async function uploadExportBlob(blob, path, contentType = 'application/octet-stream') {
-  const key = assertSafePublicKey();
-  const cleanPath = String(path || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
-  if (!cleanPath) throw new Error('Thiếu đường dẫn file export.');
-
-  const uploadUrl = `${config.supabaseUrl}/storage/v1/object/${EXPORT_BUCKET}/${cleanPath}`;
-  const response = await fetch(uploadUrl, {
+export async function uploadExportFile(path, blob, contentType = 'text/plain') {
+  configureSupabaseV2();
+  assertSafePublicKey();
+  const url = `${config.supabaseUrl}/storage/v1/object/${EXPORT_BUCKET}/${encodeURIComponent(path)}`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'x-upsert': 'true',
-      'Content-Type': contentType
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${config.supabaseAnonKey}`,
+      'Content-Type': contentType,
+      'x-upsert': 'true'
     },
     body: blob
   });
-
-  if (!response.ok) throw new Error(await response.text());
-  return `${config.supabaseUrl}/storage/v1/object/public/${EXPORT_BUCKET}/${cleanPath}`;
+  if (!res.ok) throw new Error(`Không upload được file export (${res.status}).`);
+  return `${config.supabaseUrl}/storage/v1/object/public/${EXPORT_BUCKET}/${encodeURIComponent(path)}`;
 }
-
-configureSupabaseV2();
