@@ -2,6 +2,18 @@ const REPORT_STATE_KEY = 'bepi-field-report-v5';
 const AGENT_CONFIG_KEY = 'bepi-ai-agent-config-v1';
 const ANALYSIS_KEY = 'bepi-ai-analysis-v1';
 
+const DEFAULT_AGENT_CONFIG = {
+  agents: [
+    {
+      id: 'bepi-report-analyst',
+      name: 'Bépi Report Analyst',
+      displayName: 'Bépi Report Analyst',
+      purpose: 'Phân tích báo cáo thô từ Bépi Field Report, tổng hợp thị trường, sản phẩm, khách cần chăm sóc và cơ hội lên đơn.',
+      output: 'analysis-json-only'
+    }
+  ]
+};
+
 function readJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -17,15 +29,23 @@ function writeJson(key, value) {
 
 function smallToast(text) {
   const toast = document.getElementById('toast');
-  if (!toast) return;
+  if (!toast) return alert(text);
   toast.textContent = text;
   toast.classList.add('show');
   clearTimeout(smallToast.t);
-  smallToast.t = setTimeout(() => toast.classList.remove('show'), 3200);
+  smallToast.t = setTimeout(() => toast.classList.remove('show'), 3600);
+}
+
+function readState() {
+  return readJson(REPORT_STATE_KEY, { reports: [], activeReportId: '', settings: {} });
+}
+
+function writeState(state) {
+  writeJson(REPORT_STATE_KEY, state);
 }
 
 function readReports() {
-  const state = readJson(REPORT_STATE_KEY, { reports: [] });
+  const state = readState();
   return Array.isArray(state.reports) ? state.reports : [];
 }
 
@@ -35,8 +55,17 @@ function reportDate(v) {
   catch { return v; }
 }
 
+function escHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function updateAdminPreview() {
-  const state = readJson(REPORT_STATE_KEY, { settings: {} });
+  const state = readState();
   const settings = state.settings || {};
   const supabaseOk = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(settings.supabaseUrl || '') && Boolean(settings.supabaseAnonKey);
   const supabasePreview = document.getElementById('supabasePreviewStatus');
@@ -54,14 +83,42 @@ function parseAgentList(config) {
   if (!config || typeof config !== 'object') return [];
   const raw = Array.isArray(config.agents) ? config.agents
     : Array.isArray(config.agentConfigs) ? config.agentConfigs
+    : Array.isArray(config.flows) ? config.flows
     : config.agent ? [config.agent]
-    : [config];
+    : config.name || config.displayName || config.id ? [config]
+    : [];
 
   return raw.map((agent, index) => {
-    const id = String(agent.id || agent.name || agent.displayName || agent.agentId || `agent-${index + 1}`);
+    const id = String(agent.id || agent.name || agent.displayName || agent.agentId || agent.resourceName || `agent-${index + 1}`);
     const name = String(agent.displayName || agent.name || agent.title || id);
     return { id, name, raw: agent };
   }).filter((agent) => agent.id && agent.name);
+}
+
+function extractJsonCandidate(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
+  if (raw.startsWith('{') || raw.startsWith('[')) return raw;
+
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  const firstObj = raw.indexOf('{');
+  const lastObj = raw.lastIndexOf('}');
+  if (firstObj >= 0 && lastObj > firstObj) return raw.slice(firstObj, lastObj + 1);
+
+  const firstArr = raw.indexOf('[');
+  const lastArr = raw.lastIndexOf(']');
+  if (firstArr >= 0 && lastArr > firstArr) return raw.slice(firstArr, lastArr + 1);
+
+  return raw;
+}
+
+function parseAgentText(text) {
+  const candidate = extractJsonCandidate(text);
+  const config = JSON.parse(candidate);
+  const normalized = Array.isArray(config) ? { agents: config } : config;
+  return { config: normalized, json: JSON.stringify(normalized, null, 2), agents: parseAgentList(normalized) };
 }
 
 function setAgentStatus(text, ok = false) {
@@ -74,31 +131,29 @@ function setAgentStatus(text, ok = false) {
 function fillAgentSelect(list, selectedId = '') {
   const select = document.getElementById('agentSelect');
   if (!select) return;
-  select.innerHTML = '<option value="">Chọn agent</option>' + list.map((agent) => `<option value="${agent.id}">${agent.name}</option>`).join('');
+  select.innerHTML = '<option value="">Chọn agent</option>' + list.map((agent) => `<option value="${escHtml(agent.id)}">${escHtml(agent.name)}</option>`).join('');
   select.value = selectedId || list[0]?.id || '';
 }
 
 function loadAgentFromTextarea(showToast = true) {
   const textarea = document.getElementById('agentJson');
-  if (!textarea) return [];
-  const raw = textarea.value.trim();
-  if (!raw) {
-    fillAgentSelect([]);
-    setAgentStatus('Chưa có agent JSON.');
+  if (!textarea) {
+    smallToast('Không thấy ô Agent JSON.');
     return [];
   }
 
   try {
-    const config = JSON.parse(raw);
-    const list = parseAgentList(config);
+    const parsed = parseAgentText(textarea.value);
+    const list = parsed.agents.length ? parsed.agents : parseAgentList(DEFAULT_AGENT_CONFIG);
+    textarea.value = parsed.agents.length ? parsed.json : JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
     fillAgentSelect(list);
-    setAgentStatus(`Đã load ${list.length || 1} agent từ JSON.`, true);
-    if (showToast) smallToast('Đã load agent JSON.');
+    setAgentStatus(`Đã load ${list.length} agent. Chọn agent rồi bấm Lưu Agent.`, true);
+    if (showToast) smallToast(`Đã load ${list.length} agent.`);
     return list;
   } catch (error) {
     fillAgentSelect([]);
-    setAgentStatus(`JSON lỗi: ${error.message}`);
-    if (showToast) smallToast('Agent JSON đang lỗi cú pháp.');
+    setAgentStatus(`Không load được JSON: ${error.message}`);
+    if (showToast) smallToast('JSON/code chưa đúng, app đã báo lỗi ở ô trạng thái.');
     return [];
   }
 }
@@ -107,7 +162,7 @@ function saveAgentConfig() {
   const nameInput = document.getElementById('agentName');
   const textarea = document.getElementById('agentJson');
   const select = document.getElementById('agentSelect');
-  if (!textarea || !select) return;
+  if (!textarea || !select) return smallToast('Không thấy form AI Agent.');
 
   const list = loadAgentFromTextarea(false);
   if (!list.length) return smallToast('Chưa có agent hợp lệ để lưu.');
@@ -131,12 +186,19 @@ function loadSavedAgentConfig() {
   const saved = readJson(AGENT_CONFIG_KEY, null);
   const nameInput = document.getElementById('agentName');
   const textarea = document.getElementById('agentJson');
-  if (!saved || !textarea) {
+  if (!textarea) return;
+
+  if (!saved) {
+    if (!textarea.value.trim()) textarea.value = JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
+    const list = loadAgentFromTextarea(false);
+    setAgentStatus(`Có sẵn agent mặc định. Bấm Lưu Agent để dùng.`, true);
+    fillAgentSelect(list);
     updateAdminPreview();
     return;
   }
+
   if (nameInput) nameInput.value = saved.name || '';
-  textarea.value = saved.json || '';
+  textarea.value = saved.json || JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
   const list = loadAgentFromTextarea(false);
   fillAgentSelect(list, saved.selectedAgentId || '');
   if (saved.selectedAgentName) setAgentStatus(`Đã lưu agent: ${saved.selectedAgentName}`, true);
@@ -147,17 +209,56 @@ function clearAgentConfig() {
   const nameInput = document.getElementById('agentName');
   const textarea = document.getElementById('agentJson');
   if (nameInput) nameInput.value = '';
-  if (textarea) textarea.value = '';
-  fillAgentSelect([]);
-  setAgentStatus('Đã xóa cấu hình agent.');
+  if (textarea) textarea.value = JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
+  const list = loadAgentFromTextarea(false);
+  fillAgentSelect(list);
+  setAgentStatus('Đã xóa cấu hình cũ, nạp lại agent mặc định.', true);
   updateAdminPreview();
-  smallToast('Đã xóa AI Agent.');
+  smallToast('Đã reset AI Agent.');
+}
+
+function isOrderRelatedReport(report) {
+  const text = [report.kind, report.market, report.note, report.sales]
+    .concat((report.customers || []).flatMap((c) => [c.name, c.area, c.note, ...(c.marketTags || [])]))
+    .join(' ')
+    .toLowerCase();
+
+  if (/lên đơn|len don|đơn hàng|don hang|order|chốt|chot|đặt hàng|dat hang|lấy hàng|lay hang|giao hàng|giao hang/.test(text)) return true;
+
+  return (report.customers || []).some((customer) => Object.values(customer.tests || {}).some((test) => ['ok', 'interested', 'sample', 'follow'].includes(test.status)));
+}
+
+function orderReason(report) {
+  const customers = report.customers || [];
+  const hotCustomers = customers.filter((customer) => Object.values(customer.tests || {}).some((test) => ['ok', 'interested', 'sample', 'follow'].includes(test.status)));
+  if (/đơn|don|order/i.test(report.kind || '')) return 'Báo cáo loại lên đơn hàng';
+  if (hotCustomers.length) return `${hotCustomers.length} khách có tín hiệu OK/quan tâm/cần mẫu/báo lại`;
+  return 'Có nội dung liên quan đơn hàng trong ghi chú';
+}
+
+function reportCardById(id) {
+  const cards = [...document.querySelectorAll('[data-report-id]')];
+  return cards.find((card) => card.dataset.reportId === id);
+}
+
+function openSourceReport(reportId) {
+  const card = reportCardById(reportId);
+  if (card) {
+    card.click();
+    return;
+  }
+
+  const state = readState();
+  state.activeReportId = reportId;
+  writeState(state);
+  location.hash = '#workspaceSection';
+  location.reload();
 }
 
 function renderReportModuleCounts() {
   const reports = readReports();
   const analyses = readJson(ANALYSIS_KEY, []);
-  const orders = reports.filter((r) => /đơn|don|order/i.test(String(r.kind || '')));
+  const orders = reports.filter(isOrderRelatedReport);
   const rawCount = document.getElementById('rawReportCount');
   const analyzedCount = document.getElementById('analyzedReportCount');
   const orderCount = document.getElementById('orderReportCount');
@@ -166,9 +267,14 @@ function renderReportModuleCounts() {
   if (orderCount) orderCount.textContent = orders.length;
 
   const orderList = document.getElementById('orderReportList');
-  if (orderList && orders.length) {
-    orderList.className = 'order-mini-list';
-    orderList.innerHTML = orders.slice(0, 20).map((r) => `<article class="order-mini-card"><strong>${r.market || 'Đơn hàng'}</strong><small>${reportDate(r.date)} · ${r.customers?.length || 0} khách · ${r.sales || ''}</small></article>`).join('');
+  if (orderList) {
+    if (!orders.length) {
+      orderList.className = 'module-empty';
+      orderList.innerHTML = '<h3>Chưa có đơn hàng</h3><p>Đơn hàng sẽ được lấy từ báo cáo gốc: loại “Lên đơn hàng” hoặc khách có tín hiệu OK/quan tâm/cần mẫu/báo lại.</p>';
+    } else {
+      orderList.className = 'order-mini-list';
+      orderList.innerHTML = orders.slice(0, 30).map((r) => `<button type="button" class="order-mini-card" data-source-report="${escHtml(r.id)}"><strong>${escHtml(r.market || r.kind || 'Báo cáo')}</strong><small>${reportDate(r.date)} · ${r.customers?.length || 0} khách · ${escHtml(orderReason(r))}</small><em>Mở báo cáo gốc</em></button>`).join('');
+    }
   }
 }
 
@@ -226,20 +332,41 @@ function bindReportModules() {
   document.querySelectorAll('[data-report-view]').forEach((button) => {
     button.addEventListener('click', () => switchReportView(button.dataset.reportView || 'raw'));
   });
+  document.getElementById('orderReportList')?.addEventListener('click', (event) => {
+    const card = event.target.closest('[data-source-report]');
+    if (!card) return;
+    openSourceReport(card.dataset.sourceReport);
+  });
   switchReportView('raw');
   window.addEventListener('storage', renderReportModuleCounts);
   setInterval(renderReportModuleCounts, 2500);
 }
 
+function bindAgentButtons() {
+  document.addEventListener('click', (event) => {
+    const load = event.target.closest('#loadAgentBtn');
+    const save = event.target.closest('#saveAgentBtn');
+    const clear = event.target.closest('#clearAgentBtn');
+    if (!load && !save && !clear) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (load) loadAgentFromTextarea(true);
+    if (save) saveAgentConfig();
+    if (clear) clearAgentConfig();
+  }, true);
+  document.getElementById('agentSelect')?.addEventListener('change', () => setAgentStatus('Đã chọn agent, bấm Lưu Agent để lưu.', true));
+}
+
 function bootAdminReportUi() {
   bindDialogs();
   bindReportModules();
+  bindAgentButtons();
   loadSavedAgentConfig();
-  document.getElementById('loadAgentBtn')?.addEventListener('click', () => loadAgentFromTextarea(true));
-  document.getElementById('saveAgentBtn')?.addEventListener('click', saveAgentConfig);
-  document.getElementById('clearAgentBtn')?.addEventListener('click', clearAgentConfig);
-  document.getElementById('agentSelect')?.addEventListener('change', () => setAgentStatus('Đã chọn agent, bấm Lưu Agent để lưu.', true));
   updateAdminPreview();
 }
 
-window.addEventListener('load', bootAdminReportUi);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootAdminReportUi);
+} else {
+  bootAdminReportUi();
+}
