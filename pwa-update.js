@@ -26,7 +26,7 @@ function watchInstallingWorker(worker) {
   if (!worker) return;
   worker.addEventListener('statechange', () => {
     if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-      showUpdateToast('Có bản mới, app đang cập nhật...');
+      showUpdateToast('Co ban moi, app dang cap nhat...');
       askWorkerToActivate(worker);
     }
   });
@@ -51,7 +51,7 @@ async function checkVersionFile() {
     const old = localStorage.getItem(PWA_VERSION_KEY);
     localStorage.setItem(PWA_VERSION_KEY, version);
     if (old && old !== version) {
-      showUpdateToast('Có bản mới, app đang tải lại...');
+      showUpdateToast('Co ban moi, app dang tai lai...');
       setTimeout(() => location.reload(), 900);
     }
   } catch (error) {
@@ -64,7 +64,7 @@ async function startPwaUpdate() {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (sessionStorage.getItem(PWA_RELOAD_KEY) === '1') return;
     sessionStorage.setItem(PWA_RELOAD_KEY, '1');
-    showUpdateToast('Đã cập nhật app, đang mở bản mới...');
+    showUpdateToast('Da cap nhat app, dang mo ban moi...');
     setTimeout(() => location.reload(), 700);
   });
   try {
@@ -90,4 +90,5 @@ window.addEventListener('load', () => {
   import('./market-module.js').catch((error) => console.warn('Cannot load market module', error));
   import('./data-sync-module.js').catch((error) => console.warn('Cannot load data sync module', error));
   import('./ai-summary-module.js').catch((error) => console.warn('Cannot load summary module', error));
+  import('./file-out-module.js').catch((error) => console.warn('Cannot load file output module', error));
 });
