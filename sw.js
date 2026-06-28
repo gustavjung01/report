@@ -1,10 +1,11 @@
-const CACHE_NAME = 'bepi-field-report-v15';
+const CACHE_NAME = 'bepi-field-report-v16';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './mobile-polish.css',
   './popup-ui.css',
+  './fixed-nav.css',
   './app.js',
   './popup-ui.js',
   './manifest.webmanifest',
