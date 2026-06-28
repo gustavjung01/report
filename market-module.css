@@ -1,0 +1,156 @@
+.market-form-card {
+  border-color: rgba(0, 149, 127, 0.24);
+  background: linear-gradient(180deg, #ffffff, #fbfffd);
+}
+
+.market-head p,
+.market-route-head p,
+.market-subhead p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.market-head button,
+.market-subhead button {
+  min-height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--teal);
+  background: #fff;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
+.market-form {
+  display: grid;
+  gap: 12px;
+}
+
+.route-day-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.route-day-grid label {
+  min-height: 42px;
+  border: 1px solid #d7e5e1;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 850;
+  background: #fff;
+  color: var(--ink);
+}
+
+.route-day-grid input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.route-day-grid label:has(input:checked) {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0, 149, 127, 0.18);
+}
+
+.route-customer-box {
+  display: grid;
+  gap: 8px;
+}
+
+.route-customer-box textarea {
+  resize: vertical;
+}
+
+.route-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.route-chip-list span {
+  border-radius: 999px;
+  border: 1px solid #d7e5e1;
+  padding: 6px 9px;
+  background: #f7fbfa;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.market-dynamic-list {
+  display: grid;
+  gap: 10px;
+}
+
+.market-product-row,
+.market-competitor-row {
+  border: 1px solid #d7e5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.market-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.market-row-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-row-footer small {
+  color: var(--muted);
+}
+
+.market-row-footer button {
+  min-height: 32px;
+  border-radius: 8px;
+  border: 1px solid #ffd2cc;
+  background: #fff7f5;
+  color: #bd3328;
+  font-weight: 800;
+}
+
+.market-summary-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.market-summary-grid textarea {
+  resize: vertical;
+}
+
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eafbf7;
+  color: var(--teal-dark);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+@media (max-width: 360px) {
+  .route-day-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .market-row-grid {
+    grid-template-columns: 1fr;
+  }
+}
