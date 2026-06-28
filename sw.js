@@ -1,8 +1,9 @@
-const CACHE_NAME = 'bepi-field-report-v22';
+const CACHE_NAME = 'bepi-field-report-v23';
 const APP_ASSETS = [
   './',
   './index.html',
   './app-shell-v2.css',
+  './order-module.css',
   './app-shell-v2.js',
   './data-model.js',
   './supabase-v2.js',
@@ -31,9 +32,7 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 async function networkFirst(request) {
@@ -63,17 +62,9 @@ async function cacheFirstThenRefresh(request) {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
-
   const isNavigation = event.request.mode === 'navigate';
   const mustBeFresh = url.pathname.endsWith('/sw.js') || url.pathname.endsWith('/version.json') || url.pathname.endsWith('/index.html');
-
-  if (isNavigation || mustBeFresh) {
-    event.respondWith(networkFirst(event.request));
-    return;
-  }
-
-  event.respondWith(cacheFirstThenRefresh(event.request));
+  event.respondWith((isNavigation || mustBeFresh) ? networkFirst(event.request) : cacheFirstThenRefresh(event.request));
 });
