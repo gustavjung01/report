@@ -1,0 +1,142 @@
+.data-sync-toolbar {
+  margin: 10px 0 12px;
+  padding: 12px;
+  border: 1px solid rgba(0, 149, 127, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f0fff9, #ffffff);
+  display: grid;
+  gap: 10px;
+}
+
+.data-sync-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.data-sync-actions button,
+.data-filter-actions button {
+  min-height: 38px;
+  border-radius: 9px;
+  border: 1px solid var(--teal);
+  background: #fff;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
+.data-sync-actions .primary,
+.data-filter-actions .primary {
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: #fff;
+  border: 0;
+}
+
+.data-sync-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.data-sync-meta span {
+  border: 1px solid #d7e5e1;
+  border-radius: 999px;
+  background: #fff;
+  padding: 6px 9px;
+  font-weight: 700;
+}
+
+.data-filter-box {
+  display: grid;
+  gap: 8px;
+}
+
+.data-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.data-filter-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.route-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.route-card {
+  border: 1px solid #d7e5e1;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.route-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.route-card header strong {
+  font-size: 15px;
+}
+
+.route-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.route-customer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.route-customer-tags span {
+  border-radius: 999px;
+  background: #f4fbf9;
+  border: 1px solid #dbeae6;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef7ff;
+  color: #1764c8;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.empty-sync-card {
+  padding: 14px;
+  border: 1px dashed #cbdad6;
+  border-radius: 12px;
+  background: #fbfefd;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+@media (max-width: 360px) {
+  .data-filter-grid,
+  .data-sync-actions,
+  .data-filter-actions {
+    grid-template-columns: 1fr;
+  }
+}
