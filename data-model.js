@@ -203,6 +203,8 @@ export function makeMarketReport(input = {}) {
     sales: cleanText(input.sales),
     market_area: cleanText(input.market_area || input.area),
     route_name: cleanText(input.route_name),
+    selected_customer_id: cleanText(input.selected_customer_id),
+    selected_customer_name: cleanText(input.selected_customer_name),
     market_type: cleanText(input.market_type),
     total_shops: Math.max(0, Math.trunc(toNumber(input.total_shops))),
     competitor_summary: cleanText(input.competitor_summary),
