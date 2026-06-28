@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="mobile-polish.css" />
     <link rel="stylesheet" href="popup-ui.css" />
     <link rel="stylesheet" href="fixed-nav.css" />
+    <link rel="stylesheet" href="admin-report.css" />
   </head>
   <body class="page-createSection">
     <div class="mobile-app">
@@ -84,16 +85,76 @@
           </section>
         </section>
 
-        <section class="app-page page-reports" id="reportsSection" aria-label="Danh sách báo cáo">
-          <section class="mobile-card card-reports">
-            <div class="mobile-card-head">
+        <section class="app-page page-reports" id="reportsSection" aria-label="Báo cáo">
+          <section class="report-hub-card mobile-card card-reports">
+            <div class="mobile-card-head compact-head">
               <div>
                 <span>Kho báo cáo</span>
-                <h2>Danh sách</h2>
+                <h2>Trung tâm báo cáo</h2>
+                <small class="settings-hint">Bấm card để xem đúng nhóm.</small>
               </div>
               <em id="reportCount">0</em>
             </div>
+
+            <div class="report-module-grid" role="tablist" aria-label="Nhóm báo cáo">
+              <button type="button" class="module-card is-active" data-report-view="raw">
+                <span>Thô</span>
+                <strong>Báo cáo thô</strong>
+                <small>Dữ liệu nhập từ thị trường</small>
+                <em id="rawReportCount">0</em>
+              </button>
+              <button type="button" class="module-card" data-report-view="analyzed">
+                <span>AI</span>
+                <strong>Đã phân tích</strong>
+                <small>Tổng hợp chi tiết sau AI</small>
+                <em id="analyzedReportCount">0</em>
+              </button>
+              <button type="button" class="module-card" data-report-view="orders">
+                <span>Đơn</span>
+                <strong>Đơn hàng</strong>
+                <small>Báo cáo lên đơn / cần xử lý</small>
+                <em id="orderReportCount">0</em>
+              </button>
+            </div>
+          </section>
+
+          <section class="report-panel mobile-card" id="reportRawPanel">
+            <div class="section-line-title slim-title">
+              <div>
+                <span>Raw</span>
+                <h2>Báo cáo thô</h2>
+              </div>
+              <em>DB</em>
+            </div>
             <div id="reportList" class="report-list"></div>
+          </section>
+
+          <section class="report-panel mobile-card" id="reportAnalyzedPanel" hidden>
+            <div class="section-line-title slim-title">
+              <div>
+                <span>AI</span>
+                <h2>Báo cáo đã phân tích</h2>
+              </div>
+              <em>DOC/XLSX</em>
+            </div>
+            <div id="analyzedReportList" class="module-empty">
+              <h3>Chưa có báo cáo AI</h3>
+              <p>Sau này agent chỉ phân tích/tổng hợp; file DOC/XLSX sẽ xuất theo module app.</p>
+            </div>
+          </section>
+
+          <section class="report-panel mobile-card" id="reportOrdersPanel" hidden>
+            <div class="section-line-title slim-title">
+              <div>
+                <span>Order</span>
+                <h2>Đơn hàng</h2>
+              </div>
+              <em>Sales</em>
+            </div>
+            <div id="orderReportList" class="module-empty">
+              <h3>Chưa có đơn hàng</h3>
+              <p>Các báo cáo loại “Lên đơn hàng” sẽ được gom ở đây.</p>
+            </div>
           </section>
         </section>
 
@@ -207,28 +268,53 @@
         </section>
 
         <section class="app-page page-admin" id="adminSection" aria-label="Admin">
-          <section class="mobile-card admin-card">
-            <div class="mobile-card-head">
+          <section class="mobile-card admin-card compact-admin-head">
+            <div class="mobile-card-head compact-head">
               <div>
                 <span>Admin</span>
-                <h2>Cài đặt Supabase</h2>
-                <small class="settings-hint">DB là nguồn dữ liệu chính của app.</small>
+                <h2>Cài đặt</h2>
+                <small class="settings-hint">Bấm từng card để chỉnh.</small>
               </div>
               <em>04</em>
             </div>
-            <p class="admin-note">Báo cáo lưu vào Supabase DB. File TXT/CSV tải về điện thoại và có thể upload vào Storage.</p>
           </section>
 
-          <section class="mobile-card db-card" id="supabaseSection">
-            <div class="mobile-card-head">
-              <div>
-                <span>Supabase</span>
-                <h2>Kết nối DB</h2>
-                <small class="settings-hint">Chỉ dùng Project URL và publishable/anon key.</small>
-              </div>
-              <em>DB</em>
-            </div>
+          <section class="admin-preview-grid" aria-label="Cài đặt nhanh">
+            <button type="button" class="admin-preview-card db" data-open-dialog="supabaseDialog">
+              <span>Supabase</span>
+              <strong>Database</strong>
+              <small id="supabasePreviewStatus">DB chính của app</small>
+              <em>Chỉnh</em>
+            </button>
 
+            <button type="button" class="admin-preview-card ai" data-open-dialog="agentDialog">
+              <span>AI Agent</span>
+              <strong>Google Agent Builder</strong>
+              <small id="agentPreviewStatus">Chưa nạp agent JSON</small>
+              <em>Chỉnh</em>
+            </button>
+
+            <button type="button" class="admin-preview-card local" data-open-dialog="localDialog">
+              <span>Local</span>
+              <strong>Dữ liệu máy</strong>
+              <small>Nạp mẫu / xóa dữ liệu máy</small>
+              <em>Mở</em>
+            </button>
+          </section>
+        </section>
+      </main>
+
+      <dialog class="settings-dialog" id="supabaseDialog">
+        <form method="dialog" class="dialog-shell">
+          <div class="dialog-head">
+            <div>
+              <span>Supabase</span>
+              <h2>Kết nối DB</h2>
+            </div>
+            <button type="button" class="dialog-close" data-close-dialog>Đóng</button>
+          </div>
+
+          <section class="dialog-body" id="supabaseSection">
             <label class="mini-field db-url-field">
               <span>Supabase Project URL</span>
               <input type="url" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" autocomplete="off" />
@@ -244,24 +330,64 @@
               <button id="syncAllSupabaseBtn" type="button">Đẩy hết DB</button>
             </div>
           </section>
+        </form>
+      </dialog>
 
-          <section class="mobile-card admin-data-card">
-            <div class="mobile-card-head">
-              <div>
-                <span>Dữ liệu máy</span>
-                <h2>Quản trị local</h2>
-                <small class="settings-hint">Nạp mẫu hoặc xóa dữ liệu lưu trên thiết bị.</small>
-              </div>
-              <em>A2</em>
+      <dialog class="settings-dialog" id="agentDialog">
+        <form method="dialog" class="dialog-shell agent-dialog-shell">
+          <div class="dialog-head">
+            <div>
+              <span>AI Agent</span>
+              <h2>Google Agent Builder</h2>
             </div>
+            <button type="button" class="dialog-close" data-close-dialog>Đóng</button>
+          </div>
 
-            <div class="split-actions">
+          <section class="dialog-body">
+            <p class="admin-note">Agent chỉ phân tích/tổng hợp chi tiết. Phần xuất DOC/XLSX sẽ do module app xử lý để giữ format ổn định.</p>
+            <label class="mini-field">
+              <span>Tên cấu hình</span>
+              <input type="text" id="agentName" placeholder="VD: Agent phân tích thị trường" autocomplete="off" />
+            </label>
+            <label class="mini-field">
+              <span>Agent JSON</span>
+              <textarea id="agentJson" rows="10" placeholder='Dán JSON từ Google Agent Builder, ví dụ: {"agents":[{"id":"market","name":"Phân tích thị trường"}]}'></textarea>
+            </label>
+            <label class="mini-field">
+              <span>Chọn agent đã load</span>
+              <select id="agentSelect">
+                <option value="">Chưa load agent</option>
+              </select>
+            </label>
+            <div id="agentStatus" class="sheet-status warn">Chưa có agent JSON.</div>
+            <div class="sheet-buttons db-buttons">
+              <button id="loadAgentBtn" type="button">Load JSON</button>
+              <button id="saveAgentBtn" type="button" class="main-action">Lưu Agent</button>
+              <button id="clearAgentBtn" type="button">Xóa</button>
+            </div>
+          </section>
+        </form>
+      </dialog>
+
+      <dialog class="settings-dialog" id="localDialog">
+        <form method="dialog" class="dialog-shell">
+          <div class="dialog-head">
+            <div>
+              <span>Local</span>
+              <h2>Dữ liệu trên máy</h2>
+            </div>
+            <button type="button" class="dialog-close" data-close-dialog>Đóng</button>
+          </div>
+
+          <section class="dialog-body">
+            <p class="admin-note">Phần này chỉ ảnh hưởng dữ liệu đang lưu trên thiết bị hiện tại.</p>
+            <div class="split-actions local-actions">
               <button id="seedBtn" type="button">Nạp mẫu</button>
               <button id="clearBtn" type="button" class="danger">Xóa máy</button>
             </div>
           </section>
-        </section>
-      </main>
+        </form>
+      </dialog>
 
       <nav class="mobile-tabs" aria-label="Điều hướng">
         <a href="#createSection" data-page-link="createSection">Tạo</a>
@@ -276,6 +402,7 @@
 
     <script src="app.js" type="module"></script>
     <script src="popup-ui.js"></script>
+    <script src="admin-report-ui.js"></script>
     <script src="pwa-update.js"></script>
   </body>
 </html>
