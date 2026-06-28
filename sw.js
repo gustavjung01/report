@@ -1,5 +1,5 @@
-const CACHE_NAME='bep-si-report-clean-root-v41';
-const ASSETS=['./','./index.html','./test-first-app.js','./src/ui-polish.js','./src/polish.css','./data-model.js','./local-db.js','./supabase-v2.js','./manifest.webmanifest','./icons/icon.svg','./icons/bepi-logo.svg'];
+const CACHE_NAME='bep-si-report-local-only-v42';
+const ASSETS=['./','./index.html','./test-first-app.js','./src/ui-polish.js','./src/polish.css','./data-model.js','./local-db.js','./manifest.webmanifest','./icons/icon.svg','./icons/bepi-logo.svg','./favicon.ico'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('message',e=>{if(e.data&&e.data.type==='SKIP_WAITING')self.skipWaiting()});
