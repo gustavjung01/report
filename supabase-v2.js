@@ -93,7 +93,7 @@ async function sbFetch(path, options = {}) {
   assertSafePublicKey();
   if (!isSupabaseV2Ready()) throw new Error('Chưa cấu hình Supabase URL/key hợp lệ.');
   const url = `${config.supabaseUrl}/rest/v1/${path.replace(/^\/+/, '')}`;
-  const res = await fetch(url, { ...options, headers: sbHeaders(options.headers || {}) });
+  const res = await fetch(url, { ...options, cache: 'no-store', headers: sbHeaders({ 'Cache-Control': 'no-store', ...(options.headers || {}) }) });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
@@ -130,15 +130,9 @@ export async function sbUpdate(table, id, patch) {
 }
 
 export async function loadProducts() {
-  try {
-    const rows = await sbSelect(TABLES_V2.products, 'select=*&active=eq.true&order=name.asc');
-    localStorage.setItem(STORAGE_KEYS_V2.products, JSON.stringify(rows));
-    return rows;
-  } catch (error) {
-    const cached = readJson(STORAGE_KEYS_V2.products, []);
-    if (cached.length) return cached;
-    throw error;
-  }
+  localStorage.removeItem(STORAGE_KEYS_V2.products);
+  const rows = await sbSelect(TABLES_V2.products, 'select=id,sku,name,category,brand,unit,wholesale_price,retail_price,active&active=eq.true&order=name.asc');
+  return Array.isArray(rows) ? rows : [];
 }
 
 export async function upsertCustomerFromPayload(payload = {}) {
