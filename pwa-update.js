@@ -97,4 +97,5 @@ async function startPwaUpdate() {
 window.addEventListener('load', startPwaUpdate);
 window.addEventListener('load', () => {
   import('./test-module.js').catch((error) => console.warn('Cannot load test module', error));
+  import('./market-module.js').catch((error) => console.warn('Cannot load market module', error));
 });
