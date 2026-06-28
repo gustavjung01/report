@@ -3,6 +3,11 @@ const TEST_FORM_KEY = 'bepi-local-test-forms-v1';
 const TEST_ROW_KEY = 'bepi-local-test-rows-v1';
 const MARKET_FORM_KEY = 'bepi-local-market-forms-v1';
 const MARKET_ROW_KEY = 'bepi-local-market-rows-v1';
+const PUBLIC_CONFIG = globalThis.BEPI_CONFIG || {};
+const DEFAULT_SUPABASE_URL = PUBLIC_CONFIG.supabaseUrl || 'https://noiadkpkvdohljgopgfb.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = PUBLIC_CONFIG.supabaseAnonKey || 'sb_publishable_n6LXv-fd-ImF3XzeU2mrjg_G7tBGy66';
+const DEFAULT_AGENT_NAME = PUBLIC_CONFIG.agentName || 'Bếp Sỉ Report Analyst';
+const DEFAULT_AGENT_JSON = PUBLIC_CONFIG.agentJson || '{"agents":[{"id":"bep-si-report-analyst","name":"Bếp Sỉ Report Analyst"}]}';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -42,9 +47,17 @@ function writeSettings(next) {
 
 function readSettings() {
   const data = readJson(SETTINGS_KEY, { settings: {} });
-  if (!data || typeof data !== 'object') return { settings: {} };
-  data.settings = data.settings || {};
-  return data;
+  const settings = data && typeof data === 'object' ? data.settings || {} : {};
+  return {
+    ...(data && typeof data === 'object' ? data : {}),
+    settings: {
+      supabaseUrl: DEFAULT_SUPABASE_URL,
+      supabaseAnonKey: DEFAULT_SUPABASE_ANON_KEY,
+      agentName: DEFAULT_AGENT_NAME,
+      agentJson: DEFAULT_AGENT_JSON,
+      ...settings
+    }
+  };
 }
 
 function normalizeSupabaseUrl(value = '') {
@@ -56,7 +69,7 @@ function canonicalSupabaseDialogHtml() {
     <header><h2>Supabase</h2><button type="button" data-close-dialog>Đóng</button></header>
     <label><span>Supabase Project URL</span><input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" /></label>
     <label><span>Supabase publishable / anon key</span><input id="supabaseAnonKey" type="password" placeholder="sb_publishable_... hoặc anon public key" /></label>
-    <p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu.</p>
+    <p class="muted-note" id="supabaseStatus">Đã có cấu hình mặc định. Bấm Test DB hoặc Lưu DB nếu muốn ghi vào máy.</p>
     <div class="dialog-actions"><button type="button" id="testSupabaseBtn">Test DB</button><button class="primary" type="button" id="saveSupabaseBtn">Lưu DB</button></div>
   </form>`;
 }
@@ -81,17 +94,38 @@ function ensureDialog(id, html) {
   return dialog;
 }
 
+function ensureActionButton(dialog, id, text, primary = false) {
+  if (!dialog || document.getElementById(id)) return;
+  let actions = $('.dialog-actions', dialog);
+  if (!actions) {
+    actions = document.createElement('div');
+    actions.className = 'dialog-actions';
+    const body = $('.dialog-body', dialog) || dialog;
+    body.appendChild(actions);
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = id;
+  button.textContent = text;
+  if (primary) button.className = 'primary';
+  actions.appendChild(button);
+}
+
 function ensureSupabaseDialog() {
   const dialog = ensureDialog('supabaseDialog', canonicalSupabaseDialogHtml());
-  const missing = !$('#supabaseUrl', dialog) || !$('#supabaseAnonKey', dialog) || !$('#supabaseStatus', dialog) || !$('#testSupabaseBtn', dialog) || !$('#saveSupabaseBtn', dialog);
-  if (missing) dialog.innerHTML = canonicalSupabaseDialogHtml();
+  const missingCore = !$('#supabaseUrl', dialog) || !$('#supabaseAnonKey', dialog) || !$('#supabaseStatus', dialog);
+  if (missingCore) dialog.innerHTML = canonicalSupabaseDialogHtml();
+  ensureActionButton(dialog, 'testSupabaseBtn', 'Test DB', false);
+  ensureActionButton(dialog, 'saveSupabaseBtn', 'Lưu DB', true);
   return dialog;
 }
 
 function ensureAgentDialog() {
   const dialog = ensureDialog('agentDialog', canonicalAgentDialogHtml());
-  const missing = !$('#agentName', dialog) || !$('#agentJson', dialog) || !$('#agentStatus', dialog) || !$('#loadAgentJsonBtn', dialog) || !$('#saveAgentBtn', dialog);
-  if (missing) dialog.innerHTML = canonicalAgentDialogHtml();
+  const missingCore = !$('#agentName', dialog) || !$('#agentJson', dialog) || !$('#agentStatus', dialog);
+  if (missingCore) dialog.innerHTML = canonicalAgentDialogHtml();
+  ensureActionButton(dialog, 'loadAgentJsonBtn', 'Load JSON', false);
+  ensureActionButton(dialog, 'saveAgentBtn', 'Lưu Agent', true);
   return dialog;
 }
 
@@ -106,8 +140,9 @@ function injectAdminPopupCss() {
   style.id = 'adminPopupActionsCss';
   style.textContent = `
     .admin-db-inline{display:none!important}
-    .app-dialog .dialog-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;align-items:center!important}
-    .app-dialog .dialog-actions button{display:block!important;width:100%!important;min-height:44px!important;border-radius:14px!important;font-weight:900!important}
+    .app-dialog .dialog-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;align-items:center!important;width:100%!important}
+    .app-dialog .dialog-actions button{display:flex!important;width:100%!important;min-height:44px!important;border-radius:14px!important;font-weight:900!important;align-items:center!important;justify-content:center!important}
+    .app-dialog .dialog-actions .primary,#saveSupabaseBtn,#saveAgentBtn{background:linear-gradient(135deg,#00957f,#007866)!important;color:#fff!important;border:0!important}
     .app-dialog .dialog-body{padding-bottom:18px!important}
     .app-dialog .dialog-body label{display:grid!important;gap:7px!important}
     .app-dialog .dialog-body label span{font-size:12px!important;font-weight:900!important;color:#24433d!important}
@@ -116,7 +151,7 @@ function injectAdminPopupCss() {
     .form-export-actions b{white-space:nowrap}
     .form-export-btn{min-height:36px;border-radius:999px!important;padding:0 12px!important;font-size:12px!important;font-weight:900!important;background:#eaf8f5!important;color:#00796b!important;border:1px solid #bce2db!important}
     .test-detail-top .form-export-actions,.market-detail-top .form-export-actions{justify-content:flex-start}
-    @media(max-width:420px){.app-dialog .dialog-actions{grid-template-columns:1fr!important}.form-export-actions{justify-content:flex-start}}
+    @media(max-width:420px){.app-dialog .dialog-actions{grid-template-columns:1fr 1fr!important}.form-export-actions{justify-content:flex-start}}
   `;
   document.head.appendChild(style);
 }
@@ -124,19 +159,19 @@ function injectAdminPopupCss() {
 function setDbUi() {
   ensureSupabaseDialog();
   const data = readSettings();
-  const url = normalizeSupabaseUrl(data.settings?.supabaseUrl || '');
-  const key = String(data.settings?.supabaseAnonKey || '').trim();
+  const url = normalizeSupabaseUrl(data.settings?.supabaseUrl || DEFAULT_SUPABASE_URL);
+  const key = String(data.settings?.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY).trim();
   const ready = /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url) && Boolean(key) && !/sb_secret_|service_role/i.test(key);
 
   const urlInput = $('#supabaseUrl');
   const keyInput = $('#supabaseAnonKey');
-  if (urlInput && !urlInput.value) urlInput.value = url;
-  if (keyInput && !keyInput.value) keyInput.value = key;
+  if (urlInput) urlInput.value = url;
+  if (keyInput) keyInput.value = key;
 
   const preview = $('#supabasePreviewStatus');
   const state = $('#adminDbState');
   const pill = $('#dbStatusPill');
-  if (preview) preview.innerHTML = ready ? `URL Project:<br>${escapeHtml(url)}<br>Anon Key: đã lưu` : 'URL Project: -<br>Anon Key: -';
+  if (preview) preview.innerHTML = ready ? `URL Project:<br>${escapeHtml(url)}<br>Anon Key: đã có` : 'URL Project: -<br>Anon Key: -';
   if (state) state.textContent = ready ? 'Đã nối ›' : 'Chưa nối ›';
   if (pill) {
     pill.classList.toggle('off', !ready);
@@ -148,8 +183,8 @@ function setDbUi() {
 
 function saveSupabaseFromPopup() {
   ensureSupabaseDialog();
-  const url = normalizeSupabaseUrl($('#supabaseUrl')?.value || '');
-  const key = String($('#supabaseAnonKey')?.value || '').trim();
+  const url = normalizeSupabaseUrl($('#supabaseUrl')?.value || DEFAULT_SUPABASE_URL);
+  const key = String($('#supabaseAnonKey')?.value || DEFAULT_SUPABASE_ANON_KEY).trim();
   const status = $('#supabaseStatus');
 
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
@@ -197,21 +232,17 @@ async function testSupabaseFromPopup() {
 function setAgentUi() {
   ensureAgentDialog();
   const data = readSettings();
-  const name = String(data.settings?.agentName || '').trim();
-  const raw = String(data.settings?.agentJson || '').trim();
+  const name = String(data.settings?.agentName || DEFAULT_AGENT_NAME).trim();
+  const raw = String(data.settings?.agentJson || DEFAULT_AGENT_JSON).trim();
   const nameInput = $('#agentName');
   const jsonInput = $('#agentJson');
-  if (nameInput && !nameInput.value && name) nameInput.value = name;
-  if (jsonInput && !jsonInput.value && raw) jsonInput.value = raw;
+  if (nameInput) nameInput.value = name;
+  if (jsonInput) jsonInput.value = raw;
 
   const card = document.querySelector('[data-open-dialog="agentDialog"]');
   const small = card?.querySelector('small');
   const state = card?.querySelector('em');
-  if (small) {
-    small.innerHTML = name || raw
-      ? `Agent: ${escapeHtml(name || 'Đã lưu')}<br />JSON: ${raw ? 'đã lưu' : '-'}`
-      : 'Chưa có cấu hình Agent. Bấm để nhập tên Agent và Agent JSON.';
-  }
+  if (small) small.innerHTML = `Agent: ${escapeHtml(name || 'Đã cấu hình')}<br />JSON: ${raw ? 'đã có' : '-'}`;
   if (state) state.textContent = name || raw ? 'Đã cấu hình ›' : 'Chưa cấu hình ›';
 }
 
@@ -232,8 +263,8 @@ function loadAgentJsonFromPopup() {
 function saveAgentFromPopup() {
   ensureAgentDialog();
   const status = $('#agentStatus');
-  const name = ($('#agentName')?.value || '').trim();
-  const raw = ($('#agentJson')?.value || '').trim();
+  const name = ($('#agentName')?.value || DEFAULT_AGENT_NAME).trim();
+  const raw = ($('#agentJson')?.value || DEFAULT_AGENT_JSON).trim();
   try {
     if (raw) JSON.parse(raw);
     const data = readSettings();
@@ -382,13 +413,14 @@ function bindPopupActions() {
   }, true);
 }
 
-function observeFormExports() {
+function observeUiFixes() {
   let scheduled = false;
   const schedule = () => {
     if (scheduled) return;
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
+      ensureAdminDialogs();
       enhanceFormExports();
     });
   };
@@ -403,7 +435,7 @@ function init() {
   setDbUi();
   setAgentUi();
   bindPopupActions();
-  observeFormExports();
+  observeUiFixes();
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
