@@ -16,35 +16,17 @@
   <body>
     <div class="phone-shell" data-active-page="createSection">
       <header class="app-header">
-        <div class="brand-lockup">
-          <div class="brand-logo" aria-hidden="true">B</div>
-          <div>
-            <strong>Bếp Sỉ Báo Cáo</strong>
-            <small class="screen-subtitle" id="headerSubtitle">Tạo dữ liệu mới</small>
-          </div>
-        </div>
+        <div class="brand-lockup"><div class="brand-logo" aria-hidden="true">B</div><div><strong>Bếp Sỉ Báo Cáo</strong><small class="screen-subtitle" id="headerSubtitle">Tạo dữ liệu mới</small></div></div>
         <div class="db-pill" id="dbStatusPill"><span></span><b>Đã nối Supabase</b></div>
       </header>
-
       <main class="app-main">
         <section class="app-page is-active" id="createSection" aria-label="Tạo dữ liệu">
-          <article class="hero-card">
-            <div>
-              <h1>Tạo dữ liệu mới</h1>
-              <p>Chọn đúng nghiệp vụ để nhập nhanh ngoài thị trường.</p>
-            </div>
-            <div class="hero-illustration" aria-hidden="true">
-              <span class="paper-icon">▤</span>
-              <span class="plus-bubble">＋</span>
-            </div>
-          </article>
-
+          <article class="hero-card"><div><h1>Tạo dữ liệu mới</h1><p>Chọn đúng nghiệp vụ để nhập nhanh ngoài thị trường.</p></div><div class="hero-illustration" aria-hidden="true"><span class="paper-icon">▤</span><span class="plus-bubble">＋</span></div></article>
           <div class="create-grid">
             <button class="create-card" type="button" data-create-type="order"><span class="card-art cart-art" aria-hidden="true">🛒</span><span class="card-copy"><strong>Đơn hàng</strong><small>Tạo đơn, sản phẩm, số lượng, giá bán.</small><em>Tạo đơn <i>›</i></em></span></button>
             <button class="create-card" type="button" data-create-type="test"><span class="card-art test-art" aria-hidden="true">🍵</span><span class="card-copy"><strong>Test sản phẩm</strong><small>Ghi phản hồi test ONA / sản phẩm mới.</small><em>Tạo test <i>›</i></em></span></button>
             <button class="create-card" type="button" data-create-type="market"><span class="card-art market-art" aria-hidden="true">📍</span><span class="card-copy"><strong>Báo cáo thị trường</strong><small>Ghi nhận khu vực, đối thủ, giá, nhu cầu.</small><em>Tạo báo cáo <i>›</i></em></span></button>
           </div>
-
           <section class="panel-card order-form-card" id="orderFormPanel" hidden>
             <div class="section-head order-head"><div><h2>Tạo đơn hàng</h2><p>Đơn hàng lưu riêng vào `orders` và `order_items`.</p></div><button type="button" id="closeOrderFormBtn">Đóng</button></div>
             <form id="orderForm" class="order-form">
@@ -61,7 +43,6 @@
           </section>
           <section class="panel-card recent-panel"><div class="section-head"><h2>Gần đây</h2><button type="button" data-page-jump="dataSection">Xem tất cả ›</button></div><div class="recent-list" id="recentList"></div></section>
         </section>
-
         <section class="app-page" id="dataSection" aria-label="Dữ liệu đã tạo">
           <div class="page-title"><h1>Dữ liệu đã tạo</h1></div>
           <div class="filter-pills" role="tablist" aria-label="Bộ lọc thời gian"><button class="is-active" type="button">Hôm nay</button><button type="button">7 ngày</button><button type="button">Tháng này</button><button type="button">Chưa đồng bộ</button></div>
@@ -71,29 +52,19 @@
           <div class="data-panel" data-data-panel="reports"><article class="record-card placeholder-card"><div><h3>Báo cáo</h3><p>Đang tải dữ liệu báo cáo...</p><small>Local-first</small></div></article></div>
           <div class="data-panel" data-data-panel="customers" id="customerList"><article class="record-card placeholder-card"><div><h3>Khách hàng</h3><p>Khách từ dữ liệu đã tạo.</p><small>Local-first</small></div></article></div>
         </section>
-
-        <section class="app-page" id="aiSection" aria-label="AI tổng hợp">
-          <div class="page-title"><h1>AI tổng hợp</h1><p>Chọn dữ liệu đã tạo để AI phân tích và xuất báo cáo.</p></div>
-          <section class="panel-card"><h2>Chọn nguồn dữ liệu</h2><label class="check-row"><input type="checkbox" checked /><span>🛒</span>Đơn hàng</label><label class="check-row"><input type="checkbox" checked /><span>🍵</span>Test sản phẩm</label><label class="check-row"><input type="checkbox" checked /><span>📊</span>Báo cáo thị trường</label></section>
-          <section class="panel-card"><h2>Bộ lọc</h2><div class="form-grid two"><label><span>Khoảng ngày</span><input type="text" value="01/05/2025 - 21/05/2025" /></label><label><span>Sales</span><select><option>Tất cả</option></select></label><label><span>Khu vực</span><select><option>Tất cả</option></select></label><label><span>Khách hàng</span><select><option>Tất cả</option></select></label></div></section>
-          <section class="panel-card analyze-card"><h2>Dữ liệu sẽ phân tích</h2><div class="metric-row"><div><strong id="aiOrderCount">0</strong><small>Đơn hàng</small></div><div><strong>0</strong><small>Phiếu test</small></div><div><strong>0</strong><small>Báo cáo</small></div></div><button class="primary wide" type="button" id="mockAiButton">✦ Tạo báo cáo AI</button></section>
-          <section class="panel-card ai-result"><h2>Kết quả AI mẫu</h2><details open><summary>📌 Tóm tắt điều hành</summary><p>AI sẽ tổng hợp đơn hàng, test sản phẩm và báo cáo thị trường thật.</p></details><details><summary>💰 Cơ hội bán hàng</summary><p>Dữ liệu đã tạo là nguồn đầu vào cho AI.</p></details><div class="export-actions"><button type="button">💾 Lưu báo cáo</button><button type="button">📝 Xuất DOC</button><button type="button">📗 Xuất XLSX</button></div></section>
-        </section>
-
+        <section class="app-page" id="aiSection" aria-label="AI tổng hợp"><div class="page-title"><h1>AI tổng hợp</h1><p>Chọn dữ liệu đã tạo để AI phân tích và xuất báo cáo.</p></div><section class="panel-card"><h2>Chọn nguồn dữ liệu</h2><label class="check-row"><input type="checkbox" checked /><span>🛒</span>Đơn hàng</label><label class="check-row"><input type="checkbox" checked /><span>🍵</span>Test sản phẩm</label><label class="check-row"><input type="checkbox" checked /><span>📊</span>Báo cáo thị trường</label></section><section class="panel-card"><h2>Bộ lọc</h2><div class="form-grid two"><label><span>Khoảng ngày</span><input type="text" value="01/05/2025 - 21/05/2025" /></label><label><span>Sales</span><select><option>Tất cả</option></select></label><label><span>Khu vực</span><select><option>Tất cả</option></select></label><label><span>Khách hàng</span><select><option>Tất cả</option></select></label></div></section><section class="panel-card analyze-card"><h2>Dữ liệu sẽ phân tích</h2><div class="metric-row"><div><strong id="aiOrderCount">0</strong><small>Đơn hàng</small></div><div><strong>0</strong><small>Phiếu test</small></div><div><strong>0</strong><small>Báo cáo</small></div></div><button class="primary wide" type="button" id="mockAiButton">✦ Tạo báo cáo AI</button></section><section class="panel-card ai-result"><h2>Kết quả AI mẫu</h2><details open><summary>📌 Tóm tắt điều hành</summary><p>AI sẽ tổng hợp đơn hàng, test sản phẩm và báo cáo thị trường thật.</p></details><details><summary>💰 Cơ hội bán hàng</summary><p>Dữ liệu đã tạo là nguồn đầu vào cho AI.</p></details><div class="export-actions"><button type="button">💾 Lưu báo cáo</button><button type="button">📝 Xuất DOC</button><button type="button">📗 Xuất XLSX</button></div></section></section>
         <section class="app-page" id="adminSection" aria-label="Admin"><div class="page-title"><h1>Admin</h1></div><section class="admin-grid"><button class="admin-card db" type="button" data-open-dialog="supabaseDialog"><span class="admin-icon">◎</span><div><strong>Supabase</strong><small id="supabasePreviewStatus">URL Project: -<br />Anon Key: -</small></div><em id="adminDbState">Chưa nối ›</em><div class="admin-actions"><span>Test DB</span><span>Lưu DB</span></div></button><button class="admin-card ai" type="button" data-open-dialog="agentDialog"><span class="admin-icon">⌬</span><div><strong>AI Agent</strong><small>Không dán service account JSON hoặc private key vào PWA.</small></div><em>Chưa cấu hình ›</em><div class="admin-actions"><span>Cấu hình AI</span></div></button><button class="admin-card product" type="button" data-open-dialog="productDialog"><span class="admin-icon">▤</span><div><strong>Sản phẩm / Bếp Sỉ</strong><small id="productPreviewStatus">Đang dùng nguồn sản phẩm thủ công. Chưa nối Bếp Sỉ.</small></div><em>Nguồn thủ công ›</em><div class="admin-actions"><span>Quản lý sản phẩm</span></div></button><button class="admin-card local" type="button" data-open-dialog="localDialog"><span class="admin-icon">▯</span><div><strong>Dữ liệu máy</strong><small>Tổng bản ghi local <b id="localRecordCount">0</b><br />Chờ đồng bộ <b id="pendingSyncCount">0</b><br />Lỗi đồng bộ <b id="errorSyncCount">0</b></small></div><em>›</em><div class="admin-actions danger-row"><span>Đồng bộ lại</span><span>Xóa cache máy</span></div></button></section><aside class="warning-card">⚠️ Không sử dụng service_role, sb_secret_, private key, service account JSON trong PWA.</aside></section>
       </main>
-
       <nav class="bottom-nav" aria-label="Điều hướng chính"><a class="is-active" href="#createSection" data-page-link="createSection"><span>＋</span>Tạo</a><a href="#dataSection" data-page-link="dataSection"><span>▤</span>Dữ liệu</a><a href="#aiSection" data-page-link="aiSection"><span>✺</span>AI</a><a href="#adminSection" data-page-link="adminSection"><span>⚙</span>Admin</a></nav>
-
       <dialog class="app-dialog" id="supabaseDialog"><form method="dialog" class="dialog-body"><header><h2>Supabase</h2><button type="button" data-close-dialog>Đóng</button></header><label><span>Supabase Project URL</span><input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" /></label><label><span>Supabase publishable / anon key</span><input id="supabaseAnonKey" type="password" placeholder="sb_publishable_... hoặc anon public key" /></label><p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu.</p><div class="dialog-actions"><button type="button" id="testSupabaseBtn">Test DB</button><button class="primary" type="button" id="saveSupabaseBtn">Lưu DB</button></div></form></dialog>
-      <dialog class="app-dialog" id="agentDialog"><form method="dialog" class="dialog-body"><header><h2>AI Agent</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note warn">Không dán service account JSON hoặc private key vào PWA. AI thật sẽ đi qua backend/Edge Function.</p><label><span>Tên cấu hình</span><input id="agentName" placeholder="Agent phân tích thị trường" /></label><label><span>Agent JSON</span><textarea id="agentJson" rows="7" placeholder='{"agents":[{"id":"bep-si-report-analyst","name":"Bếp Sỉ Report Analyst"}]}'></textarea></label><div class="dialog-actions"><button type="button">Load JSON</button><button class="primary" type="button">Lưu Agent</button></div></form></dialog>
+      <dialog class="app-dialog" id="agentDialog"><form method="dialog" class="dialog-body"><header><h2>AI Agent</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note warn" id="agentStatus">Không dán service account JSON hoặc private key vào PWA. AI thật sẽ đi qua backend/Edge Function.</p><label><span>Tên cấu hình</span><input id="agentName" placeholder="Agent phân tích thị trường" /></label><label><span>Agent JSON</span><textarea id="agentJson" rows="7" placeholder='{"agents":[{"id":"bep-si-report-analyst","name":"Bếp Sỉ Report Analyst"}]}'></textarea></label><div class="dialog-actions"><button type="button" id="loadAgentJsonBtn">Load JSON</button><button class="primary" type="button" id="saveAgentBtn">Lưu Agent</button></div></form></dialog>
       <dialog class="app-dialog" id="productDialog"><form method="dialog" class="dialog-body"><header><h2>Sản phẩm / Bếp Sỉ</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note">Hiện dùng bảng `products` trong Supabase. Nếu chưa có DB, app dùng danh sách ONA fallback.</p><div class="product-seed-list" id="productSeedList"><span>Trà Đen</span><span>Trà Quả Mộng</span><span>Trà Gạo Rang</span><span>Trà Lài</span><span>Trà Olong</span><span>Trà Olong Sen</span></div></form></dialog>
       <dialog class="app-dialog" id="localDialog"><form method="dialog" class="dialog-body"><header><h2>Dữ liệu máy</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note">LocalStorage chỉ làm cache/offline queue. Supabase là nơi lưu chính.</p><div class="dialog-actions"><button type="button" id="syncQueueBtn">Đồng bộ lại</button><button class="danger" type="button" id="clearCacheBtn">Xóa cache máy</button></div></form></dialog>
       <div class="toast" id="toast"></div>
     </div>
     <script src="app-shell-v2.js" type="module"></script>
-    <script src="test-module.js?v=flow-v41" type="module"></script>
-    <script src="report-flow-v1.js?v=flow-v41" type="module"></script>
-    <script src="pwa-update.js?v=flow-v39"></script>
+    <script src="test-module.js?v=flow-v42" type="module"></script>
+    <script src="report-flow-v1.js?v=flow-v42" type="module"></script>
+    <script src="admin-popup-actions.js?v=flow-v42"></script>
   </body>
 </html>
