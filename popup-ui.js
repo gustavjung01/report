@@ -5,6 +5,7 @@ const cancel = document.getElementById('cancelEditBtn');
 const nameInput = document.getElementById('customerName');
 
 const PAGE_IDS = ['createSection', 'reportsSection', 'workspaceSection', 'adminSection'];
+let baseViewportHeight = window.innerHeight;
 
 function readReportState() {
   for (const key of ['bepi-field-report-v5', 'bepi-field-report-v4', 'bepi-field-report-v3']) {
@@ -46,8 +47,7 @@ function setActivePage(id, updateHash = true) {
     history.replaceState(null, '', `#${pageId}`);
   }
 
-  const page = document.getElementById(pageId);
-  if (page) page.scrollTop = 0;
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
 
 function setPopupState() {
@@ -59,13 +59,38 @@ function openEditorPopup() {
   setActivePage('workspaceSection');
   editor.open = true;
   setPopupState();
-  setTimeout(() => nameInput && nameInput.focus(), 180);
+  setTimeout(() => nameInput && focusIntoView(nameInput), 180);
 }
 
 function closeEditorPopup() {
   if (!editor) return;
   editor.open = false;
   setPopupState();
+}
+
+function focusIntoView(el) {
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  setTimeout(() => {
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  }, 60);
+}
+
+function updateViewportLock() {
+  const vv = window.visualViewport;
+  const height = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty('--vvh', `${height}px`);
+
+  if (!document.activeElement || !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+    baseViewportHeight = Math.max(baseViewportHeight, height);
+  }
+
+  const keyboardOpen = height < baseViewportHeight - 120;
+  document.body.classList.toggle('keyboard-open', keyboardOpen);
+
+  if (keyboardOpen && document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+    setTimeout(() => document.activeElement.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' }), 80);
+  }
 }
 
 document.querySelectorAll('[data-page-link]').forEach((link) => {
@@ -113,9 +138,22 @@ document.addEventListener('click', (event) => {
   if (edit) setTimeout(openEditorPopup, 80);
 });
 
+document.addEventListener('focusin', (event) => {
+  if (!event.target.matches('input, textarea, select')) return;
+  setTimeout(() => event.target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' }), 120);
+});
+
+document.addEventListener('focusout', () => {
+  setTimeout(updateViewportLock, 120);
+});
+
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && editor?.open) closeEditorPopup();
 });
+
+window.visualViewport?.addEventListener('resize', updateViewportLock);
+window.visualViewport?.addEventListener('scroll', updateViewportLock);
+window.addEventListener('resize', updateViewportLock);
 
 function directToast(text) {
   const toast = document.getElementById('toast');
@@ -184,4 +222,5 @@ document.getElementById('testSheetBtn')?.addEventListener('click', (event) => {
 }, true);
 
 setActivePage(location.hash || 'createSection', false);
+updateViewportLock();
 setPopupState();
