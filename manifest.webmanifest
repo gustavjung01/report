@@ -1,12 +1,12 @@
 {
-  "name": "Bepi Field Report",
-  "short_name": "Bepi Report",
-  "description": "PWA bao cao khao sat thi truong tra sua.",
+  "name": "Bếp Sỉ Báo Cáo",
+  "short_name": "Bếp Sỉ",
+  "description": "PWA Bếp Sỉ Báo Cáo cho đơn hàng, test sản phẩm, báo cáo thị trường và AI tổng hợp.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f7f5",
-  "theme_color": "#0a6b5f",
+  "background_color": "#f6faf8",
+  "theme_color": "#00957f",
   "orientation": "portrait-primary",
   "lang": "vi-VN",
   "icons": [
