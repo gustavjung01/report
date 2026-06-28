@@ -14,6 +14,17 @@ const DEFAULT_AGENT_CONFIG = {
   ]
 };
 
+const PRODUCT_NAMES = ['Trà Đen', 'Trà Quả Mộng', 'Trà Gạo Rang', 'Trà Lài', 'Trà Olong', 'Trà Olong Sen'];
+const STATUS_LABELS = {
+  pending: 'Chưa thử',
+  ok: 'OK',
+  interested: 'Quan tâm',
+  sample: 'Cần mẫu',
+  follow: 'Báo Tân',
+  bad: 'Chưa tốt',
+  retry: 'Thử lại'
+};
+
 function readJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -47,6 +58,20 @@ function writeState(state) {
 function readReports() {
   const state = readState();
   return Array.isArray(state.reports) ? state.reports : [];
+}
+
+function activeReport() {
+  const state = readState();
+  return (state.reports || []).find((report) => report.id === state.activeReportId) || null;
+}
+
+function readAnalyses() {
+  const rows = readJson(ANALYSIS_KEY, []);
+  return Array.isArray(rows) ? rows : [];
+}
+
+function writeAnalyses(rows) {
+  writeJson(ANALYSIS_KEY, rows);
 }
 
 function reportDate(v) {
@@ -242,6 +267,140 @@ function clearAgentConfig() {
   smallToast('Đã reset AI Agent.');
 }
 
+function statusLabel(status) {
+  return STATUS_LABELS[status] || status || 'Chưa rõ';
+}
+
+function testsByStatus(report, statuses) {
+  const rows = [];
+  (report.customers || []).forEach((customer) => {
+    Object.entries(customer.tests || {}).forEach(([product, test]) => {
+      if (statuses.includes(test?.status)) rows.push({ customer, product, test });
+    });
+  });
+  return rows;
+}
+
+function productsSummary(report) {
+  const map = new Map();
+  PRODUCT_NAMES.forEach((product) => map.set(product, { product, ok: 0, interested: 0, sample: 0, follow: 0, bad: 0, retry: 0, pending: 0 }));
+  (report.customers || []).forEach((customer) => {
+    Object.entries(customer.tests || {}).forEach(([product, test]) => {
+      if (!map.has(product)) map.set(product, { product, ok: 0, interested: 0, sample: 0, follow: 0, bad: 0, retry: 0, pending: 0 });
+      const row = map.get(product);
+      const status = test?.status || 'pending';
+      row[status] = (row[status] || 0) + 1;
+    });
+  });
+  return [...map.values()];
+}
+
+function buildLocalAnalysis(report) {
+  const customers = report.customers || [];
+  const goodRows = testsByStatus(report, ['ok', 'interested']);
+  const sampleRows = testsByStatus(report, ['sample']);
+  const followRows = testsByStatus(report, ['follow']);
+  const badRows = testsByStatus(report, ['bad', 'retry']);
+  const productRows = productsSummary(report);
+  const bestProducts = productRows
+    .map((row) => ({ ...row, score: row.ok * 3 + row.interested * 2 + row.sample + row.follow }))
+    .sort((a, b) => b.score - a.score)
+    .filter((row) => row.score > 0)
+    .slice(0, 3);
+  const weakProducts = productRows
+    .map((row) => ({ ...row, score: row.bad + row.retry }))
+    .sort((a, b) => b.score - a.score)
+    .filter((row) => row.score > 0)
+    .slice(0, 3);
+
+  const customerActions = customers.map((customer) => {
+    const tests = Object.values(customer.tests || {});
+    const hasBad = tests.some((test) => ['bad', 'retry'].includes(test.status));
+    const hasSample = tests.some((test) => test.status === 'sample');
+    const hasFollow = tests.some((test) => test.status === 'follow') || /báo|tan|tân|gọi|goi/i.test(customer.note || '');
+    const hasGood = tests.some((test) => ['ok', 'interested'].includes(test.status));
+    if (hasBad) return { customer: customer.name, priority: 'high', action: 'Xử lý phản hồi chưa tốt / thử lại sản phẩm phù hợp', reason: 'Có sản phẩm bị đánh giá chưa tốt hoặc cần thử lại.' };
+    if (hasSample) return { customer: customer.name, priority: 'high', action: 'Chuẩn bị và gửi mẫu', reason: 'Khách có nhu cầu cần mẫu.' };
+    if (hasFollow) return { customer: customer.name, priority: 'medium', action: 'Báo lại / gọi lại theo lịch', reason: 'Khách cần báo lại hoặc follow-up.' };
+    if (hasGood) return { customer: customer.name, priority: 'medium', action: 'Đẩy chốt đơn thử', reason: 'Khách có tín hiệu OK hoặc quan tâm.' };
+    return { customer: customer.name, priority: 'low', action: 'Tiếp tục theo dõi', reason: 'Chưa có tín hiệu rõ.' };
+  });
+
+  return {
+    summary: `Báo cáo ${report.kind || 'thị trường'} tại ${report.market || 'chưa ghi thị trường'} có ${customers.length} khách. Có ${sampleRows.length} yêu cầu mẫu, ${followRows.length} mục cần báo lại, ${badRows.length} phản hồi cần xử lý và ${goodRows.length} tín hiệu OK/quan tâm.`,
+    market_insights: [
+      customers.length ? `Đã ghi nhận ${customers.length} khách trong khu vực/báo cáo này.` : 'Chưa có khách trong báo cáo.',
+      sampleRows.length ? `Nhu cầu mẫu xuất hiện ${sampleRows.length} lần, nên ưu tiên chuẩn bị mẫu.` : 'Chưa thấy nhu cầu mẫu rõ.',
+      badRows.length ? `Có ${badRows.length} phản hồi chưa tốt/cần thử lại, cần xử lý trước khi đẩy đơn.` : 'Chưa có nhiều phản hồi xấu.'
+    ],
+    product_insights: productRows.map((row) => ({
+      product: row.product,
+      status: row.bad || row.retry ? 'watch' : row.ok || row.interested ? 'good' : row.sample || row.follow ? 'watch' : 'unknown',
+      insight: `${row.ok} OK, ${row.interested} quan tâm, ${row.sample} cần mẫu, ${row.follow} báo lại, ${row.bad + row.retry} cần xử lý.`
+    })),
+    best_products: bestProducts.map((row) => `${row.product}: tín hiệu tốt ${row.score}`),
+    weak_products: weakProducts.map((row) => `${row.product}: ${row.score} phản hồi cần xử lý`),
+    customer_actions: customerActions,
+    sample_requests: sampleRows.map((row) => ({ customer: row.customer.name, products: [row.product], note: row.test.note || row.customer.note || '' })),
+    follow_up_list: followRows.map((row) => ({ customer: row.customer.name, date: row.customer.followDate || '', note: row.test.note || row.customer.note || '' })),
+    order_opportunities: customers.filter((customer) => Object.values(customer.tests || {}).some((test) => ['ok', 'interested', 'sample', 'follow'].includes(test.status))).map((customer) => ({
+      customer: customer.name,
+      products: Object.entries(customer.tests || {}).filter(([, test]) => ['ok', 'interested', 'sample', 'follow'].includes(test.status)).map(([product]) => product),
+      confidence: Object.values(customer.tests || {}).some((test) => test.status === 'ok') ? 'high' : 'medium',
+      reason: 'Có tín hiệu OK/quan tâm/cần mẫu/báo lại trong báo cáo gốc.'
+    })),
+    risks: badRows.length ? badRows.map((row) => `${row.customer.name} - ${row.product}: ${statusLabel(row.test.status)}${row.test.note ? ` (${row.test.note})` : ''}`) : ['Chưa có rủi ro rõ từ dữ liệu hiện tại.'],
+    next_steps: [
+      sampleRows.length ? 'Chuẩn bị danh sách gửi mẫu cho khách cần mẫu.' : 'Tiếp tục thu thập phản hồi mẫu.',
+      followRows.length ? 'Lên lịch gọi/báo lại các khách đang chờ phản hồi.' : 'Chưa có lịch follow-up rõ.',
+      badRows.length ? 'Xử lý phản hồi xấu trước khi chốt đơn.' : 'Có thể ưu tiên khách có tín hiệu OK/quan tâm.'
+    ]
+  };
+}
+
+function runAnalysisForActiveReport() {
+  const report = activeReport();
+  if (!report) return smallToast('Chọn báo cáo trước rồi mới phân tích.');
+  if (!(report.customers || []).length) return smallToast('Báo cáo chưa có khách để phân tích.');
+
+  const agent = readJson(AGENT_CONFIG_KEY, null) || { selectedAgentId: 'bepi-report-analyst', selectedAgentName: 'Bépi Report Analyst' };
+  const analysis = buildLocalAnalysis(report);
+  const row = {
+    id: `analysis-${report.id}`,
+    reportId: report.id,
+    reportTitle: `${report.kind || 'Báo cáo'} · ${report.market || 'Chưa ghi thị trường'}`,
+    reportDate: report.date || '',
+    agentId: agent.selectedAgentId || 'bepi-report-analyst',
+    agentName: agent.selectedAgentName || agent.name || 'Bépi Report Analyst',
+    createdAt: new Date().toISOString(),
+    result: analysis
+  };
+
+  const rows = readAnalyses().filter((item) => item.reportId !== report.id);
+  rows.unshift(row);
+  writeAnalyses(rows);
+  renderReportModuleCounts();
+  switchReportView('analyzed');
+  location.hash = '#reportsSection';
+  smallToast('Đã tạo báo cáo phân tích.');
+}
+
+function renderAnalysisCard(item) {
+  const result = item.result || {};
+  const actions = result.customer_actions || [];
+  const opportunities = result.order_opportunities || [];
+  return `<article class="analysis-card">
+    <div class="analysis-card-head">
+      <div><span>${escHtml(item.agentName || 'AI Agent')}</span><strong>${escHtml(item.reportTitle || 'Báo cáo')}</strong><small>${reportDate(item.reportDate)} · ${actions.length} hành động · ${opportunities.length} cơ hội</small></div>
+      <button type="button" data-source-report="${escHtml(item.reportId)}">Mở gốc</button>
+    </div>
+    <p>${escHtml(result.summary || 'Chưa có tóm tắt.')}</p>
+    <div class="analysis-mini-list">
+      ${(result.next_steps || []).slice(0, 3).map((step) => `<em>${escHtml(step)}</em>`).join('')}
+    </div>
+  </article>`;
+}
+
 function isOrderRelatedReport(report) {
   const text = [report.kind, report.market, report.note, report.sales]
     .concat((report.customers || []).flatMap((c) => [c.name, c.area, c.note, ...(c.marketTags || [])]))
@@ -282,14 +441,25 @@ function openSourceReport(reportId) {
 
 function renderReportModuleCounts() {
   const reports = readReports();
-  const analyses = readJson(ANALYSIS_KEY, []);
+  const analyses = readAnalyses();
   const orders = reports.filter(isOrderRelatedReport);
   const rawCount = document.getElementById('rawReportCount');
   const analyzedCount = document.getElementById('analyzedReportCount');
   const orderCount = document.getElementById('orderReportCount');
   if (rawCount) rawCount.textContent = reports.length;
-  if (analyzedCount) analyzedCount.textContent = Array.isArray(analyses) ? analyses.length : 0;
+  if (analyzedCount) analyzedCount.textContent = analyses.length;
   if (orderCount) orderCount.textContent = orders.length;
+
+  const analyzedList = document.getElementById('analyzedReportList');
+  if (analyzedList) {
+    if (!analyses.length) {
+      analyzedList.className = 'module-empty';
+      analyzedList.innerHTML = '<h3>Chưa có báo cáo AI</h3><p>Mở một báo cáo gốc rồi bấm “AI phân tích”.</p>';
+    } else {
+      analyzedList.className = 'analysis-list';
+      analyzedList.innerHTML = analyses.slice(0, 30).map(renderAnalysisCard).join('');
+    }
+  }
 
   const orderList = document.getElementById('orderReportList');
   if (orderList) {
@@ -357,10 +527,9 @@ function bindReportModules() {
   document.querySelectorAll('[data-report-view]').forEach((button) => {
     button.addEventListener('click', () => switchReportView(button.dataset.reportView || 'raw'));
   });
-  document.getElementById('orderReportList')?.addEventListener('click', (event) => {
-    const card = event.target.closest('[data-source-report]');
-    if (!card) return;
-    openSourceReport(card.dataset.sourceReport);
+  document.addEventListener('click', (event) => {
+    const source = event.target.closest('[data-source-report]');
+    if (source) openSourceReport(source.dataset.sourceReport);
   });
   switchReportView('raw');
   window.addEventListener('storage', renderReportModuleCounts);
@@ -372,12 +541,14 @@ function bindAgentButtons() {
     const load = event.target.closest('#loadAgentBtn');
     const save = event.target.closest('#saveAgentBtn');
     const clear = event.target.closest('#clearAgentBtn');
-    if (!load && !save && !clear) return;
+    const analyze = event.target.closest('#analyzeReportBtn');
+    if (!load && !save && !clear && !analyze) return;
     event.preventDefault();
     event.stopPropagation();
     if (load) loadAgentFromTextarea(true);
     if (save) saveAgentConfig();
     if (clear) clearAgentConfig();
+    if (analyze) runAnalysisForActiveReport();
   }, true);
   document.getElementById('agentSelect')?.addEventListener('change', () => setAgentStatus('Đã chọn agent, bấm Lưu Agent để lưu.', true));
 }
