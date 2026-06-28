@@ -40,253 +40,60 @@
           </article>
 
           <div class="create-grid">
-            <button class="create-card" type="button" data-create-type="order">
-              <span class="card-art cart-art" aria-hidden="true">🛒</span>
-              <span class="card-copy">
-                <strong>Đơn hàng</strong>
-                <small>Tạo đơn, sản phẩm, số lượng, giá bán.</small>
-                <em>Tạo đơn <i>›</i></em>
-              </span>
-            </button>
-
-            <button class="create-card" type="button" data-create-type="test">
-              <span class="card-art test-art" aria-hidden="true">🍵</span>
-              <span class="card-copy">
-                <strong>Test sản phẩm</strong>
-                <small>Ghi phản hồi test ONA / sản phẩm mới.</small>
-                <em>Tạo test <i>›</i></em>
-              </span>
-            </button>
-
-            <button class="create-card" type="button" data-create-type="market">
-              <span class="card-art market-art" aria-hidden="true">📍</span>
-              <span class="card-copy">
-                <strong>Báo cáo thị trường</strong>
-                <small>Ghi nhận khu vực, đối thủ, giá, nhu cầu.</small>
-                <em>Tạo báo cáo <i>›</i></em>
-              </span>
-            </button>
+            <button class="create-card" type="button" data-create-type="order"><span class="card-art cart-art" aria-hidden="true">🛒</span><span class="card-copy"><strong>Đơn hàng</strong><small>Tạo đơn, sản phẩm, số lượng, giá bán.</small><em>Tạo đơn <i>›</i></em></span></button>
+            <button class="create-card" type="button" data-create-type="test"><span class="card-art test-art" aria-hidden="true">🍵</span><span class="card-copy"><strong>Test sản phẩm</strong><small>Ghi phản hồi test ONA / sản phẩm mới.</small><em>Tạo test <i>›</i></em></span></button>
+            <button class="create-card" type="button" data-create-type="market"><span class="card-art market-art" aria-hidden="true">📍</span><span class="card-copy"><strong>Báo cáo thị trường</strong><small>Ghi nhận khu vực, đối thủ, giá, nhu cầu.</small><em>Tạo báo cáo <i>›</i></em></span></button>
           </div>
 
           <section class="panel-card order-form-card" id="orderFormPanel" hidden>
-            <div class="section-head order-head">
-              <div>
-                <h2>Tạo đơn hàng</h2>
-                <p>Đơn hàng lưu riêng vào `orders` và `order_items`.</p>
-              </div>
-              <button type="button" id="closeOrderFormBtn">Đóng</button>
-            </div>
-
+            <div class="section-head order-head"><div><h2>Tạo đơn hàng</h2><p>Đơn hàng lưu riêng vào `orders` và `order_items`.</p></div><button type="button" id="closeOrderFormBtn">Đóng</button></div>
             <form id="orderForm" class="order-form">
-              <div class="form-grid two">
-                <label><span>Ngày đơn</span><input type="date" id="orderDate" required /></label>
-                <label><span>Sales</span><input type="text" id="orderSales" placeholder="A Tân" value="A Tân" /></label>
-              </div>
-
-              <div class="form-grid two">
-                <label><span>Khách hàng</span><input type="text" id="orderCustomerName" placeholder="Tên cửa hàng / đại lý" required /></label>
-                <label><span>SĐT</span><input type="tel" id="orderCustomerPhone" placeholder="090..." /></label>
-              </div>
-
-              <div class="form-grid two">
-                <label><span>Khu vực</span><input type="text" id="orderArea" placeholder="Q.3 / Thủ Đức" /></label>
-                <label><span>Trạng thái</span><select id="orderStatus"><option value="draft">Nháp</option><option value="pending_confirm">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="delivering">Đang giao</option><option value="delivered">Đã giao</option><option value="cancelled">Hủy</option></select></label>
-              </div>
-
+              <div class="form-grid two"><label><span>Ngày đơn</span><input type="date" id="orderDate" required /></label><label><span>Sales</span><input type="text" id="orderSales" placeholder="A Tân" value="A Tân" /></label></div>
+              <div class="form-grid two"><label><span>Khách hàng</span><input type="text" id="orderCustomerName" placeholder="Tên cửa hàng / đại lý" required /></label><label><span>SĐT</span><input type="tel" id="orderCustomerPhone" placeholder="090..." /></label></div>
+              <div class="form-grid two"><label><span>Khu vực</span><input type="text" id="orderArea" placeholder="Q.3 / Thủ Đức" /></label><label><span>Trạng thái</span><select id="orderStatus"><option value="draft">Nháp</option><option value="pending_confirm">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="delivering">Đang giao</option><option value="delivered">Đã giao</option><option value="cancelled">Hủy</option></select></label></div>
               <label><span>Địa chỉ giao</span><input type="text" id="orderDeliveryAddress" placeholder="Địa chỉ giao hàng" /></label>
               <label><span>Ghi chú đơn</span><textarea id="orderNote" rows="2" placeholder="Ghi chú giao hàng, công nợ, giờ nhận..."></textarea></label>
-
-              <div class="section-head order-items-head">
-                <div>
-                  <h2>Sản phẩm</h2>
-                  <p>Load từ bảng `products`, có fallback ONA nếu chưa nối DB.</p>
-                </div>
-                <button type="button" id="addOrderItemBtn">＋ Dòng</button>
-              </div>
-
+              <div class="section-head order-items-head"><div><h2>Sản phẩm</h2><p>Load từ bảng `products`, có fallback ONA nếu chưa nối DB.</p></div><button type="button" id="addOrderItemBtn">＋ Dòng</button></div>
               <div id="orderItems" class="order-items"></div>
-
-              <section class="order-total-card">
-                <div><span>Tạm tính</span><strong id="orderSubtotal">0đ</strong></div>
-                <div><span>Chiết khấu</span><strong id="orderDiscountTotal">0đ</strong></div>
-                <div class="grand"><span>Tổng tiền</span><strong id="orderGrandTotal">0đ</strong></div>
-              </section>
-
-              <div class="sticky-actions">
-                <button type="button" id="resetOrderBtn">Xóa form</button>
-                <button type="submit" class="primary">Lưu đơn hàng</button>
-              </div>
+              <section class="order-total-card"><div><span>Tạm tính</span><strong id="orderSubtotal">0đ</strong></div><div><span>Chiết khấu</span><strong id="orderDiscountTotal">0đ</strong></div><div class="grand"><span>Tổng tiền</span><strong id="orderGrandTotal">0đ</strong></div></section>
+              <div class="sticky-actions"><button type="button" id="resetOrderBtn">Xóa form</button><button type="submit" class="primary">Lưu đơn hàng</button></div>
             </form>
           </section>
-
-          <section class="panel-card recent-panel">
-            <div class="section-head">
-              <h2>Gần đây</h2>
-              <button type="button" data-page-jump="dataSection">Xem tất cả ›</button>
-            </div>
-            <div class="recent-list" id="recentList"></div>
-          </section>
+          <section class="panel-card recent-panel"><div class="section-head"><h2>Gần đây</h2><button type="button" data-page-jump="dataSection">Xem tất cả ›</button></div><div class="recent-list" id="recentList"></div></section>
         </section>
 
         <section class="app-page" id="dataSection" aria-label="Dữ liệu đã tạo">
-          <div class="page-title">
-            <h1>Dữ liệu đã tạo</h1>
-          </div>
-
-          <div class="filter-pills" role="tablist" aria-label="Bộ lọc thời gian">
-            <button class="is-active" type="button">Hôm nay</button>
-            <button type="button">7 ngày</button>
-            <button type="button">Tháng này</button>
-            <button type="button">Chưa đồng bộ</button>
-          </div>
-
-          <div class="data-tabs" role="tablist" aria-label="Nhóm dữ liệu">
-            <button class="is-active" type="button" data-data-view="orders"><span>🛒</span>Đơn hàng</button>
-            <button type="button" data-data-view="tests"><span>🍵</span>Test SP</button>
-            <button type="button" data-data-view="reports"><span>📊</span>Báo cáo</button>
-            <button type="button" data-data-view="customers"><span>👥</span>Khách</button>
-          </div>
-
+          <div class="page-title"><h1>Dữ liệu đã tạo</h1></div>
+          <div class="filter-pills" role="tablist" aria-label="Bộ lọc thời gian"><button class="is-active" type="button">Hôm nay</button><button type="button">7 ngày</button><button type="button">Tháng này</button><button type="button">Chưa đồng bộ</button></div>
+          <div class="data-tabs" role="tablist" aria-label="Nhóm dữ liệu"><button class="is-active" type="button" data-data-view="orders"><span>🛒</span>Đơn hàng</button><button type="button" data-data-view="tests"><span>🍵</span>Test SP</button><button type="button" data-data-view="reports"><span>📊</span>Báo cáo</button><button type="button" data-data-view="customers"><span>👥</span>Khách</button></div>
           <div class="data-panel is-active" data-data-panel="orders" id="orderList"></div>
-
-          <div class="data-panel" data-data-panel="tests">
-            <article class="record-card placeholder-card"><div><h3>Test sản phẩm</h3><p>Phase 4 sẽ nối bảng `ona_tests` và `ona_test_items`.</p><small>Chưa dùng chung với đơn hàng.</small></div></article>
-          </div>
-
-          <div class="data-panel" data-data-panel="reports">
-            <article class="record-card placeholder-card"><div><h3>Báo cáo thị trường</h3><p>Phase 5 sẽ nối bảng `market_reports`.</p><small>Báo cáo không tự biến thành đơn hàng.</small></div></article>
-          </div>
-
-          <div class="data-panel" data-data-panel="customers" id="customerList">
-            <article class="record-card placeholder-card"><div><h3>Khách hàng</h3><p>Khách từ đơn hàng sẽ lưu vào `customers_master`.</p><small>Phase 6 sẽ làm danh sách khách đầy đủ.</small></div></article>
-          </div>
+          <div class="data-panel" data-data-panel="tests"><article class="record-card placeholder-card"><div><h3>Test sản phẩm</h3><p>Đang tải dữ liệu test...</p><small>Local-first</small></div></article></div>
+          <div class="data-panel" data-data-panel="reports"><article class="record-card placeholder-card"><div><h3>Báo cáo</h3><p>Đang tải dữ liệu báo cáo...</p><small>Local-first</small></div></article></div>
+          <div class="data-panel" data-data-panel="customers" id="customerList"><article class="record-card placeholder-card"><div><h3>Khách hàng</h3><p>Khách từ dữ liệu đã tạo.</p><small>Local-first</small></div></article></div>
         </section>
 
         <section class="app-page" id="aiSection" aria-label="AI tổng hợp">
-          <div class="page-title">
-            <h1>AI tổng hợp</h1>
-            <p>Chọn dữ liệu đã tạo để AI phân tích và xuất báo cáo.</p>
-          </div>
-
-          <section class="panel-card">
-            <h2>Chọn nguồn dữ liệu</h2>
-            <label class="check-row"><input type="checkbox" checked /><span>🛒</span>Đơn hàng</label>
-            <label class="check-row"><input type="checkbox" checked /><span>🍵</span>Test sản phẩm</label>
-            <label class="check-row"><input type="checkbox" checked /><span>📊</span>Báo cáo thị trường</label>
-          </section>
-
-          <section class="panel-card">
-            <h2>Bộ lọc</h2>
-            <div class="form-grid two">
-              <label><span>Khoảng ngày</span><input type="text" value="01/05/2025 - 21/05/2025" /></label>
-              <label><span>Sales</span><select><option>Tất cả</option></select></label>
-              <label><span>Khu vực</span><select><option>Tất cả</option></select></label>
-              <label><span>Khách hàng</span><select><option>Tất cả</option></select></label>
-            </div>
-          </section>
-
-          <section class="panel-card analyze-card">
-            <h2>Dữ liệu sẽ phân tích</h2>
-            <div class="metric-row">
-              <div><strong id="aiOrderCount">0</strong><small>Đơn hàng</small></div>
-              <div><strong>0</strong><small>Phiếu test</small></div>
-              <div><strong>0</strong><small>Báo cáo</small></div>
-            </div>
-            <button class="primary wide" type="button" id="mockAiButton">✦ Tạo báo cáo AI</button>
-          </section>
-
-          <section class="panel-card ai-result">
-            <h2>Kết quả AI mẫu</h2>
-            <details open><summary>📌 Tóm tắt điều hành</summary><p>Phase 7 sẽ tổng hợp đơn hàng, test sản phẩm và báo cáo thị trường thật.</p></details>
-            <details><summary>💰 Cơ hội bán hàng</summary><p>Đơn hàng đã tạo ở Phase 3 sẽ là một nguồn dữ liệu đầu vào cho AI.</p></details>
-            <div class="export-actions"><button type="button">💾 Lưu báo cáo</button><button type="button">📝 Xuất DOC</button><button type="button">📗 Xuất XLSX</button></div>
-          </section>
+          <div class="page-title"><h1>AI tổng hợp</h1><p>Chọn dữ liệu đã tạo để AI phân tích và xuất báo cáo.</p></div>
+          <section class="panel-card"><h2>Chọn nguồn dữ liệu</h2><label class="check-row"><input type="checkbox" checked /><span>🛒</span>Đơn hàng</label><label class="check-row"><input type="checkbox" checked /><span>🍵</span>Test sản phẩm</label><label class="check-row"><input type="checkbox" checked /><span>📊</span>Báo cáo thị trường</label></section>
+          <section class="panel-card"><h2>Bộ lọc</h2><div class="form-grid two"><label><span>Khoảng ngày</span><input type="text" value="01/05/2025 - 21/05/2025" /></label><label><span>Sales</span><select><option>Tất cả</option></select></label><label><span>Khu vực</span><select><option>Tất cả</option></select></label><label><span>Khách hàng</span><select><option>Tất cả</option></select></label></div></section>
+          <section class="panel-card analyze-card"><h2>Dữ liệu sẽ phân tích</h2><div class="metric-row"><div><strong id="aiOrderCount">0</strong><small>Đơn hàng</small></div><div><strong>0</strong><small>Phiếu test</small></div><div><strong>0</strong><small>Báo cáo</small></div></div><button class="primary wide" type="button" id="mockAiButton">✦ Tạo báo cáo AI</button></section>
+          <section class="panel-card ai-result"><h2>Kết quả AI mẫu</h2><details open><summary>📌 Tóm tắt điều hành</summary><p>AI sẽ tổng hợp đơn hàng, test sản phẩm và báo cáo thị trường thật.</p></details><details><summary>💰 Cơ hội bán hàng</summary><p>Dữ liệu đã tạo là nguồn đầu vào cho AI.</p></details><div class="export-actions"><button type="button">💾 Lưu báo cáo</button><button type="button">📝 Xuất DOC</button><button type="button">📗 Xuất XLSX</button></div></section>
         </section>
 
-        <section class="app-page" id="adminSection" aria-label="Admin">
-          <div class="page-title"><h1>Admin</h1></div>
-
-          <section class="admin-grid">
-            <button class="admin-card db" type="button" data-open-dialog="supabaseDialog">
-              <span class="admin-icon">◎</span>
-              <div><strong>Supabase</strong><small id="supabasePreviewStatus">URL Project: -<br />Anon Key: -</small></div>
-              <em id="adminDbState">Chưa nối ›</em>
-              <div class="admin-actions"><span>Test DB</span><span>Lưu DB</span></div>
-            </button>
-
-            <button class="admin-card ai" type="button" data-open-dialog="agentDialog">
-              <span class="admin-icon">⌬</span>
-              <div><strong>AI Agent</strong><small>Không dán service account JSON hoặc private key vào PWA.</small></div>
-              <em>Chưa cấu hình ›</em>
-              <div class="admin-actions"><span>Cấu hình AI</span></div>
-            </button>
-
-            <button class="admin-card product" type="button" data-open-dialog="productDialog">
-              <span class="admin-icon">▤</span>
-              <div><strong>Sản phẩm / Bếp Sỉ</strong><small id="productPreviewStatus">Đang dùng nguồn sản phẩm thủ công. Chưa nối Bếp Sỉ.</small></div>
-              <em>Nguồn thủ công ›</em>
-              <div class="admin-actions"><span>Quản lý sản phẩm</span></div>
-            </button>
-
-            <button class="admin-card local" type="button" data-open-dialog="localDialog">
-              <span class="admin-icon">▯</span>
-              <div><strong>Dữ liệu máy</strong><small>Tổng bản ghi local <b id="localRecordCount">0</b><br />Chờ đồng bộ <b id="pendingSyncCount">0</b><br />Lỗi đồng bộ <b id="errorSyncCount">0</b></small></div>
-              <em>›</em>
-              <div class="admin-actions danger-row"><span>Đồng bộ lại</span><span>Xóa cache máy</span></div>
-            </button>
-          </section>
-
-          <aside class="warning-card">⚠️ Không sử dụng service_role, sb_secret_, private key, service account JSON trong PWA.</aside>
-        </section>
+        <section class="app-page" id="adminSection" aria-label="Admin"><div class="page-title"><h1>Admin</h1></div><section class="admin-grid"><button class="admin-card db" type="button" data-open-dialog="supabaseDialog"><span class="admin-icon">◎</span><div><strong>Supabase</strong><small id="supabasePreviewStatus">URL Project: -<br />Anon Key: -</small></div><em id="adminDbState">Chưa nối ›</em><div class="admin-actions"><span>Test DB</span><span>Lưu DB</span></div></button><button class="admin-card ai" type="button" data-open-dialog="agentDialog"><span class="admin-icon">⌬</span><div><strong>AI Agent</strong><small>Không dán service account JSON hoặc private key vào PWA.</small></div><em>Chưa cấu hình ›</em><div class="admin-actions"><span>Cấu hình AI</span></div></button><button class="admin-card product" type="button" data-open-dialog="productDialog"><span class="admin-icon">▤</span><div><strong>Sản phẩm / Bếp Sỉ</strong><small id="productPreviewStatus">Đang dùng nguồn sản phẩm thủ công. Chưa nối Bếp Sỉ.</small></div><em>Nguồn thủ công ›</em><div class="admin-actions"><span>Quản lý sản phẩm</span></div></button><button class="admin-card local" type="button" data-open-dialog="localDialog"><span class="admin-icon">▯</span><div><strong>Dữ liệu máy</strong><small>Tổng bản ghi local <b id="localRecordCount">0</b><br />Chờ đồng bộ <b id="pendingSyncCount">0</b><br />Lỗi đồng bộ <b id="errorSyncCount">0</b></small></div><em>›</em><div class="admin-actions danger-row"><span>Đồng bộ lại</span><span>Xóa cache máy</span></div></button></section><aside class="warning-card">⚠️ Không sử dụng service_role, sb_secret_, private key, service account JSON trong PWA.</aside></section>
       </main>
 
-      <nav class="bottom-nav" aria-label="Điều hướng chính">
-        <a class="is-active" href="#createSection" data-page-link="createSection"><span>＋</span>Tạo</a>
-        <a href="#dataSection" data-page-link="dataSection"><span>▤</span>Dữ liệu</a>
-        <a href="#aiSection" data-page-link="aiSection"><span>✺</span>AI</a>
-        <a href="#adminSection" data-page-link="adminSection"><span>⚙</span>Admin</a>
-      </nav>
+      <nav class="bottom-nav" aria-label="Điều hướng chính"><a class="is-active" href="#createSection" data-page-link="createSection"><span>＋</span>Tạo</a><a href="#dataSection" data-page-link="dataSection"><span>▤</span>Dữ liệu</a><a href="#aiSection" data-page-link="aiSection"><span>✺</span>AI</a><a href="#adminSection" data-page-link="adminSection"><span>⚙</span>Admin</a></nav>
 
-      <dialog class="app-dialog" id="supabaseDialog">
-        <form method="dialog" class="dialog-body">
-          <header><h2>Supabase</h2><button type="button" data-close-dialog>Đóng</button></header>
-          <label><span>Supabase Project URL</span><input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" /></label>
-          <label><span>Supabase publishable / anon key</span><input id="supabaseAnonKey" type="password" placeholder="sb_publishable_... hoặc anon public key" /></label>
-          <p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu. Đơn hàng sẽ sync vào `orders` và `order_items`.</p>
-          <div class="dialog-actions"><button type="button" id="testSupabaseBtn">Test DB</button><button class="primary" type="button" id="saveSupabaseBtn">Lưu DB</button></div>
-        </form>
-      </dialog>
-
-      <dialog class="app-dialog" id="agentDialog">
-        <form method="dialog" class="dialog-body">
-          <header><h2>AI Agent</h2><button type="button" data-close-dialog>Đóng</button></header>
-          <p class="muted-note warn">Không dán service account JSON hoặc private key vào PWA. AI thật sẽ đi qua backend/Edge Function.</p>
-          <label><span>Tên cấu hình</span><input id="agentName" placeholder="Agent phân tích thị trường" /></label>
-          <label><span>Agent JSON</span><textarea id="agentJson" rows="7" placeholder='{"agents":[{"id":"bep-si-report-analyst","name":"Bếp Sỉ Report Analyst"}]}'></textarea></label>
-          <div class="dialog-actions"><button type="button">Load JSON</button><button class="primary" type="button">Lưu Agent</button></div>
-        </form>
-      </dialog>
-
-      <dialog class="app-dialog" id="productDialog">
-        <form method="dialog" class="dialog-body">
-          <header><h2>Sản phẩm / Bếp Sỉ</h2><button type="button" data-close-dialog>Đóng</button></header>
-          <p class="muted-note">Hiện dùng bảng `products` trong Supabase. Nếu chưa có DB, app dùng danh sách ONA fallback.</p>
-          <div class="product-seed-list" id="productSeedList"><span>Trà Đen</span><span>Trà Quả Mộng</span><span>Trà Gạo Rang</span><span>Trà Lài</span><span>Trà Olong</span><span>Trà Olong Sen</span></div>
-        </form>
-      </dialog>
-
-      <dialog class="app-dialog" id="localDialog">
-        <form method="dialog" class="dialog-body">
-          <header><h2>Dữ liệu máy</h2><button type="button" data-close-dialog>Đóng</button></header>
-          <p class="muted-note">LocalStorage chỉ làm cache/offline queue. Supabase là nơi lưu chính.</p>
-          <div class="dialog-actions"><button type="button" id="syncQueueBtn">Đồng bộ lại</button><button class="danger" type="button" id="clearCacheBtn">Xóa cache máy</button></div>
-        </form>
-      </dialog>
-
+      <dialog class="app-dialog" id="supabaseDialog"><form method="dialog" class="dialog-body"><header><h2>Supabase</h2><button type="button" data-close-dialog>Đóng</button></header><label><span>Supabase Project URL</span><input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" /></label><label><span>Supabase publishable / anon key</span><input id="supabaseAnonKey" type="password" placeholder="sb_publishable_... hoặc anon public key" /></label><p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu.</p><div class="dialog-actions"><button type="button" id="testSupabaseBtn">Test DB</button><button class="primary" type="button" id="saveSupabaseBtn">Lưu DB</button></div></form></dialog>
+      <dialog class="app-dialog" id="agentDialog"><form method="dialog" class="dialog-body"><header><h2>AI Agent</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note warn">Không dán service account JSON hoặc private key vào PWA. AI thật sẽ đi qua backend/Edge Function.</p><label><span>Tên cấu hình</span><input id="agentName" placeholder="Agent phân tích thị trường" /></label><label><span>Agent JSON</span><textarea id="agentJson" rows="7" placeholder='{"agents":[{"id":"bep-si-report-analyst","name":"Bếp Sỉ Report Analyst"}]}'></textarea></label><div class="dialog-actions"><button type="button">Load JSON</button><button class="primary" type="button">Lưu Agent</button></div></form></dialog>
+      <dialog class="app-dialog" id="productDialog"><form method="dialog" class="dialog-body"><header><h2>Sản phẩm / Bếp Sỉ</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note">Hiện dùng bảng `products` trong Supabase. Nếu chưa có DB, app dùng danh sách ONA fallback.</p><div class="product-seed-list" id="productSeedList"><span>Trà Đen</span><span>Trà Quả Mộng</span><span>Trà Gạo Rang</span><span>Trà Lài</span><span>Trà Olong</span><span>Trà Olong Sen</span></div></form></dialog>
+      <dialog class="app-dialog" id="localDialog"><form method="dialog" class="dialog-body"><header><h2>Dữ liệu máy</h2><button type="button" data-close-dialog>Đóng</button></header><p class="muted-note">LocalStorage chỉ làm cache/offline queue. Supabase là nơi lưu chính.</p><div class="dialog-actions"><button type="button" id="syncQueueBtn">Đồng bộ lại</button><button class="danger" type="button" id="clearCacheBtn">Xóa cache máy</button></div></form></dialog>
       <div class="toast" id="toast"></div>
     </div>
-
     <script src="app-shell-v2.js" type="module"></script>
+    <script src="test-module.js?v=flow-v41" type="module"></script>
+    <script src="report-flow-v1.js?v=flow-v41" type="module"></script>
     <script src="pwa-update.js?v=flow-v39"></script>
   </body>
 </html>
