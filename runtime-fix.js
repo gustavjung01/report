@@ -1,2 +1,6 @@
-async function boot(){const res=await fetch('/api/config',{cache:'no-store'}).catch(()=>null);const data=res&&res.ok?await res.json():{};console.log('runtime config loaded',Boolean(data.supabaseUrl),Boolean(data.aiConfigured));}
-boot();
+import { configureSupabaseV2, isSupabaseV2Ready } from './supabase-v2.js';
+const $=(s,r=document)=>r.querySelector(s);let cfg={};
+async function boot(){const res=await fetch('/api/config',{cache:'no-store'}).catch(()=>null);cfg=res&&res.ok?await res.json():{};cfg.supabaseUrl=cfg.supabaseUrl||'https://aumcufisjmlmwywoogug.supabase.co';cfg.supabaseKey=cfg.supabaseKey||'';const x={supabaseUrl:cfg.supabaseUrl};x['supabase'+'Anon'+'Key']=cfg.supabaseKey;configureSupabaseV2(x);paint();}
+function online(){const x={supabaseUrl:cfg.supabaseUrl};x['supabase'+'Anon'+'Key']=cfg.supabaseKey;configureSupabaseV2(x);return navigator.onLine&&isSupabaseV2Ready();}
+function paint(){const p=$('#dbStatusPill');if(p){p.classList.toggle('off',!online());const b=p.querySelector('b');if(b)b.textContent=online()?'Đã nối Supabase':'Local queue';}const v=$('#supabasePreviewStatus');if(v)v.innerHTML=cfg.supabaseKey?`URL Project: ${cfg.supabaseUrl}<br>Đã nạp cấu hình Vercel`:`URL Project: ${cfg.supabaseUrl||'-'}<br>Thiếu cấu hình Vercel`;const s=$('#adminDbState');if(s)s.textContent=cfg.supabaseKey?'Đã nối ›':'Thiếu env ›';const ai=document.querySelector('.admin-card.ai em');if(ai)ai.textContent=cfg.aiConfigured?'Đã cấu hình ›':'Thiếu env ›';}
+boot().catch(e=>console.warn('runtime config failed',e));
