@@ -17,11 +17,20 @@ import {
 
 const DEFAULT_SUPABASE_URL = 'https://aumcufisjmlmwywoogug.supabase.co';
 const EXPORT_BUCKET = 'report-exports';
+const NETWORK_ERROR_COOLDOWN_MS = 2 * 60 * 1000;
 
 let config = {
   supabaseUrl: DEFAULT_SUPABASE_URL,
   supabaseAnonKey: ''
 };
+
+let networkFailure = {
+  url: '',
+  until: 0,
+  message: ''
+};
+
+const selectInFlight = new Map();
 
 function readJson(key, fallback) {
   try {
@@ -35,10 +44,37 @@ function readJson(key, fallback) {
 
 function normalizeSupabaseUrl(value = '') {
   const raw = String(value || '').trim();
-  const match = raw.match(/dashboard\/project\/([a-z0-9]+)/i);
-  if (match) return `https://${match[1]}.supabase.co`;
+  const dashboard = raw.match(/dashboard\/project\/([a-z0-9]+)/i);
+  if (dashboard) return `https://${dashboard[1]}.supabase.co`;
   if (!raw) return DEFAULT_SUPABASE_URL;
+  if (/^[a-z0-9]{15,40}$/i.test(raw)) return `https://${raw}.supabase.co`;
+  if (/^[a-z0-9-]+\.supabase\.co/i.test(raw)) return `https://${raw}`.replace(/\/+$/, '');
+  try {
+    const url = new URL(raw);
+    if (url.hostname.endsWith('.supabase.co')) return `${url.protocol}//${url.hostname}`.replace(/\/+$/, '');
+  } catch {}
   return raw.replace(/\/+$/, '');
+}
+
+function networkCooldownActive() {
+  return networkFailure.url === config.supabaseUrl && Date.now() < Number(networkFailure.until || 0);
+}
+
+function networkCooldownMessage() {
+  const seconds = Math.max(1, Math.ceil((Number(networkFailure.until || 0) - Date.now()) / 1000));
+  return `Supabase chưa truy cập được (${networkFailure.message || 'lỗi mạng/DNS'}). App tạm ngưng gọi DB ${seconds}s để tránh spam lỗi.`;
+}
+
+function rememberNetworkFailure(error) {
+  networkFailure = {
+    url: config.supabaseUrl,
+    until: Date.now() + NETWORK_ERROR_COOLDOWN_MS,
+    message: error?.message || String(error || 'Network error')
+  };
+}
+
+function clearNetworkFailure() {
+  if (networkFailure.url === config.supabaseUrl) networkFailure = { url: '', until: 0, message: '' };
 }
 
 export function readSupabaseSettings() {
@@ -51,15 +87,29 @@ export function readSupabaseSettings() {
 
 export function configureSupabaseV2(next = {}) {
   const fromStorage = readSupabaseSettings();
-  config = {
+  const nextConfig = {
     supabaseUrl: normalizeSupabaseUrl(next.supabaseUrl || fromStorage.supabaseUrl || DEFAULT_SUPABASE_URL),
     supabaseAnonKey: String(next.supabaseAnonKey ?? fromStorage.supabaseAnonKey ?? '').trim()
   };
+  if (nextConfig.supabaseUrl !== config.supabaseUrl || nextConfig.supabaseAnonKey !== config.supabaseAnonKey) {
+    selectInFlight.clear();
+    networkFailure = { url: '', until: 0, message: '' };
+  }
+  config = nextConfig;
   return { ...config };
 }
 
 export function getSupabaseV2Config() {
   return { ...config };
+}
+
+export function getSupabaseNetworkState() {
+  return {
+    blocked: networkCooldownActive(),
+    message: networkCooldownActive() ? networkCooldownMessage() : '',
+    url: networkFailure.url,
+    retryAt: networkFailure.until || 0
+  };
 }
 
 export function isSupabaseV2Ready() {
@@ -99,13 +149,22 @@ async function parseMaybeJson(response) {
 
 async function sbFetch(url, options = {}) {
   if (!isSupabaseV2Ready()) throw new Error('Thiếu Supabase URL/key.');
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...sbHeaders(),
-      ...(options.headers || {})
-    }
-  });
+  if (networkCooldownActive()) throw new Error(networkCooldownMessage());
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        ...sbHeaders(),
+        ...(options.headers || {})
+      }
+    });
+    clearNetworkFailure();
+  } catch (error) {
+    rememberNetworkFailure(error);
+    throw new Error(`Không truy cập được Supabase Project URL: ${config.supabaseUrl}. Kiểm tra Project URL, project có bị pause/deleted không, hoặc DNS/mạng máy đang chặn Supabase.`);
+  }
 
   if (!response.ok) {
     const detail = await parseMaybeJson(response);
@@ -117,8 +176,14 @@ async function sbFetch(url, options = {}) {
 }
 
 export async function sbSelect(table, query = 'select=*') {
-  const response = await sbFetch(tableUrl(table, query), { method: 'GET' });
-  return parseMaybeJson(response) || [];
+  const url = tableUrl(table, query);
+  const key = `GET ${url}`;
+  if (selectInFlight.has(key)) return selectInFlight.get(key);
+  const promise = sbFetch(url, { method: 'GET' })
+    .then((response) => parseMaybeJson(response) || [])
+    .finally(() => selectInFlight.delete(key));
+  selectInFlight.set(key, promise);
+  return promise;
 }
 
 export async function sbInsert(table, rows) {
@@ -248,18 +313,26 @@ export async function uploadExportBlob(blob, path, contentType = 'application/oc
   const key = assertSafePublicKey();
   const cleanPath = String(path || '').split('/').filter(Boolean).map(encodeURIComponent).join('/');
   if (!cleanPath) throw new Error('Thiếu đường dẫn file export.');
+  if (networkCooldownActive()) throw new Error(networkCooldownMessage());
 
   const uploadUrl = `${config.supabaseUrl}/storage/v1/object/${EXPORT_BUCKET}/${cleanPath}`;
-  const response = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'x-upsert': 'true',
-      'Content-Type': contentType
-    },
-    body: blob
-  });
+  let response;
+  try {
+    response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'x-upsert': 'true',
+        'Content-Type': contentType
+      },
+      body: blob
+    });
+    clearNetworkFailure();
+  } catch (error) {
+    rememberNetworkFailure(error);
+    throw new Error(`Không truy cập được Supabase Storage: ${config.supabaseUrl}.`);
+  }
 
   if (!response.ok) throw new Error(await response.text());
   return `${config.supabaseUrl}/storage/v1/object/public/${EXPORT_BUCKET}/${cleanPath}`;
