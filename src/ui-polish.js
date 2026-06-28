@@ -1,6 +1,7 @@
 import './test-pull.js';
 import './compact-detail.js';
 import './app-update.js';
+import './test-export.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
