@@ -15,12 +15,14 @@ import {
   makeExportRow
 } from './data-model.js';
 
-const DEFAULT_SUPABASE_URL = 'https://noiadkpkvdohljgopgfb.supabase.co';
+const PUBLIC_CONFIG = globalThis.BEPI_CONFIG || {};
+const DEFAULT_SUPABASE_URL = PUBLIC_CONFIG.supabaseUrl || 'https://noiadkpkvdohljgopgfb.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = PUBLIC_CONFIG.supabaseAnonKey || 'sb_publishable_n6LXv-fd-ImF3XzeU2mrjg_G7tBGy66';
 const EXPORT_BUCKET = 'report-exports';
 
 let config = {
   supabaseUrl: DEFAULT_SUPABASE_URL,
-  supabaseAnonKey: ''
+  supabaseAnonKey: DEFAULT_SUPABASE_ANON_KEY
 };
 
 function readJson(key, fallback) {
@@ -45,7 +47,7 @@ export function readSupabaseSettings() {
   const legacy = readJson(STORAGE_KEYS_V2.settings, { settings: {} });
   return {
     supabaseUrl: normalizeSupabaseUrl(legacy.settings?.supabaseUrl || DEFAULT_SUPABASE_URL),
-    supabaseAnonKey: String(legacy.settings?.supabaseAnonKey || '').trim()
+    supabaseAnonKey: String(legacy.settings?.supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY).trim()
   };
 }
 
@@ -53,7 +55,7 @@ export function configureSupabaseV2(next = {}) {
   const fromStorage = readSupabaseSettings();
   config = {
     supabaseUrl: normalizeSupabaseUrl(next.supabaseUrl || fromStorage.supabaseUrl || DEFAULT_SUPABASE_URL),
-    supabaseAnonKey: String(next.supabaseAnonKey ?? fromStorage.supabaseAnonKey ?? '').trim()
+    supabaseAnonKey: String(next.supabaseAnonKey ?? fromStorage.supabaseAnonKey ?? DEFAULT_SUPABASE_ANON_KEY).trim()
   };
   return { ...config };
 }
@@ -220,6 +222,8 @@ export async function uploadExportFile(path, blob, contentType = 'text/plain') {
     },
     body: blob
   });
-  if (!res.ok) throw new Error(`Không upload được file export (${res.status}).`);
-  return `${config.supabaseUrl}/storage/v1/object/public/${EXPORT_BUCKET}/${encodeURIComponent(path)}`;
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(data?.message || `Storage lỗi ${res.status}`);
+  return data;
 }
