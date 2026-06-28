@@ -25,7 +25,7 @@ function hasActiveReport() {
 function normalizePageId(id) {
   if (!id) return 'createSection';
   const clean = String(id).replace('#', '');
-  if (clean === 'sheetSection') return 'adminSection';
+  if (clean === 'supabaseSection') return 'adminSection';
   return PAGE_IDS.includes(clean) ? clean : 'createSection';
 }
 
@@ -154,72 +154,6 @@ document.addEventListener('keydown', (event) => {
 window.visualViewport?.addEventListener('resize', updateViewportLock);
 window.visualViewport?.addEventListener('scroll', updateViewportLock);
 window.addEventListener('resize', updateViewportLock);
-
-function directToast(text) {
-  const toast = document.getElementById('toast');
-  if (!toast) return alert(text);
-  toast.textContent = text;
-  toast.classList.add('show');
-  clearTimeout(directToast.t);
-  directToast.t = setTimeout(() => toast.classList.remove('show'), 4200);
-}
-
-function getScriptUrl() {
-  const state = readReportState();
-  const url = (document.getElementById('sheetUrl')?.value || state.settings?.sheetEndpoint || '').trim();
-  if (!url) {
-    directToast('Vào Admin và dán Apps Script URL /exec trước.');
-    setActivePage('adminSection');
-    return '';
-  }
-  return url;
-}
-
-function directTestPayload() {
-  const now = new Date().toISOString();
-  return {
-    action: 'testReport',
-    source: 'Bepi direct GET fallback',
-    submittedAt: now,
-    settings: { createDriveFile: true, driveFolderId: '1DTIHNs8NzOATNHTId9G8qRaInHsXxtGO' },
-    report: {
-      id: 'test-' + Date.now(),
-      kind: 'Test',
-      date: now.slice(0, 10),
-      market: 'TEST SHEET DRIVE',
-      sales: 'Bepi App',
-      note: 'Test trực tiếp từ app',
-      createdAt: now,
-      updatedAt: now,
-      summary: { totalCustomers: 1, needSample: 0, follow: 0, bad: 0 }
-    },
-    products: ['Trà Đen', 'Trà Quả Mộng', 'Trà Gạo Rang', 'Trà Lài', 'Trà Olong', 'Trà Olong Sen'],
-    customers: [{
-      id: 'cus-' + Date.now(),
-      name: 'Khách test',
-      area: 'Test app',
-      testType: 'Trà ONA Test',
-      followDate: '',
-      marketTags: ['Giá tốt'],
-      note: 'Dòng test',
-      tests: { 'Trà Đen': { status: 'ok', note: 'test ghi Sheet' } }
-    }]
-  };
-}
-
-function openPayload(payload) {
-  const url = getScriptUrl();
-  if (!url) return;
-  const next = url + '?payload=' + encodeURIComponent(JSON.stringify(payload));
-  window.open(next, '_blank', 'noopener,noreferrer');
-  directToast('Đã mở tab Apps Script. Tab mới sẽ báo OK hoặc lỗi thật.');
-}
-
-document.getElementById('testSheetBtn')?.addEventListener('click', (event) => {
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  openPayload(directTestPayload());
-}, true);
 
 setActivePage(location.hash || 'createSection', false);
 updateViewportLock();
