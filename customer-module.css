@@ -1,0 +1,164 @@
+.customer-create-card .customer-art,
+.customer-art {
+  background: linear-gradient(145deg, #e8fbf7, #d8f4ee);
+  border-color: #8adbcf;
+}
+
+.customer-form-card,
+.customer-manager,
+.customer-history-card {
+  scroll-margin-top: 96px;
+}
+
+.customer-form label span,
+.customer-picker-inline label span {
+  font-weight: 700;
+}
+
+.customer-picker-inline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  margin: 8px 0 12px;
+  border: 1px solid #cfe8e2;
+  border-radius: 18px;
+  background: #f4fffc;
+}
+
+.customer-picker-inline label {
+  margin: 0;
+}
+
+.customer-picker-inline select,
+.customer-manager-actions select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #c8ddd8;
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 12px;
+  font-weight: 700;
+}
+
+.customer-picker-inline button,
+.customer-manager-actions button {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.customer-manager {
+  display: grid;
+  gap: 12px;
+}
+
+.customer-manager-head {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #d7e7e3;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.customer-manager-head h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+}
+
+.customer-manager-head p {
+  margin: 0;
+  color: #5a716c;
+  font-size: 13px;
+}
+
+.customer-manager-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.customer-list {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-record aside {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  align-content: start;
+}
+
+.customer-record aside small {
+  color: #60736f;
+  font-size: 12px;
+  text-align: right;
+}
+
+.customer-tags,
+.route-customer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.customer-tags span,
+.route-customer-tags span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e9f7f4;
+  color: #006f61;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.customer-history-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.customer-history-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.customer-history-grid div {
+  min-height: 64px;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid #d9eae6;
+  border-radius: 14px;
+  background: #f8fffd;
+}
+
+.customer-history-grid strong {
+  font-size: 20px;
+  color: #008974;
+}
+
+.customer-history-grid small {
+  font-size: 11px;
+  color: #60736f;
+}
+
+.customer-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 420px) {
+  .customer-picker-inline,
+  .customer-manager-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-history-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
