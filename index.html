@@ -69,28 +69,63 @@
             </button>
           </div>
 
+          <section class="panel-card order-form-card" id="orderFormPanel" hidden>
+            <div class="section-head order-head">
+              <div>
+                <h2>Tạo đơn hàng</h2>
+                <p>Đơn hàng lưu riêng vào `orders` và `order_items`.</p>
+              </div>
+              <button type="button" id="closeOrderFormBtn">Đóng</button>
+            </div>
+
+            <form id="orderForm" class="order-form">
+              <div class="form-grid two">
+                <label><span>Ngày đơn</span><input type="date" id="orderDate" required /></label>
+                <label><span>Sales</span><input type="text" id="orderSales" placeholder="A Tân" value="A Tân" /></label>
+              </div>
+
+              <div class="form-grid two">
+                <label><span>Khách hàng</span><input type="text" id="orderCustomerName" placeholder="Tên cửa hàng / đại lý" required /></label>
+                <label><span>SĐT</span><input type="tel" id="orderCustomerPhone" placeholder="090..." /></label>
+              </div>
+
+              <div class="form-grid two">
+                <label><span>Khu vực</span><input type="text" id="orderArea" placeholder="Q.3 / Thủ Đức" /></label>
+                <label><span>Trạng thái</span><select id="orderStatus"><option value="draft">Nháp</option><option value="pending_confirm">Chờ xác nhận</option><option value="confirmed">Đã chốt</option><option value="delivering">Đang giao</option><option value="delivered">Đã giao</option><option value="cancelled">Hủy</option></select></label>
+              </div>
+
+              <label><span>Địa chỉ giao</span><input type="text" id="orderDeliveryAddress" placeholder="Địa chỉ giao hàng" /></label>
+              <label><span>Ghi chú đơn</span><textarea id="orderNote" rows="2" placeholder="Ghi chú giao hàng, công nợ, giờ nhận..."></textarea></label>
+
+              <div class="section-head order-items-head">
+                <div>
+                  <h2>Sản phẩm</h2>
+                  <p>Load từ bảng `products`, có fallback ONA nếu chưa nối DB.</p>
+                </div>
+                <button type="button" id="addOrderItemBtn">＋ Dòng</button>
+              </div>
+
+              <div id="orderItems" class="order-items"></div>
+
+              <section class="order-total-card">
+                <div><span>Tạm tính</span><strong id="orderSubtotal">0đ</strong></div>
+                <div><span>Chiết khấu</span><strong id="orderDiscountTotal">0đ</strong></div>
+                <div class="grand"><span>Tổng tiền</span><strong id="orderGrandTotal">0đ</strong></div>
+              </section>
+
+              <div class="sticky-actions">
+                <button type="button" id="resetOrderBtn">Xóa form</button>
+                <button type="submit" class="primary">Lưu đơn hàng</button>
+              </div>
+            </form>
+          </section>
+
           <section class="panel-card recent-panel">
             <div class="section-head">
               <h2>Gần đây</h2>
               <button type="button" data-page-jump="dataSection">Xem tất cả ›</button>
             </div>
-            <div class="recent-list">
-              <article class="mini-row">
-                <span class="mini-icon">🛒</span>
-                <div><strong>Đơn hàng DH000123</strong><small>21/05/2025 14:30</small></div>
-                <em class="sync-dot ok">Đã lưu DB</em>
-              </article>
-              <article class="mini-row">
-                <span class="mini-icon">🍵</span>
-                <div><strong>Test SP TS000045</strong><small>21/05/2025 10:15</small></div>
-                <em class="sync-dot warn">Chưa đồng bộ</em>
-              </article>
-              <article class="mini-row">
-                <span class="mini-icon">📊</span>
-                <div><strong>Báo cáo BC000067</strong><small>20/05/2025 16:45</small></div>
-                <em class="sync-dot danger">Lỗi DB</em>
-              </article>
-            </div>
+            <div class="recent-list" id="recentList"></div>
           </section>
         </section>
 
@@ -113,46 +148,18 @@
             <button type="button" data-data-view="customers"><span>👥</span>Khách</button>
           </div>
 
-          <div class="data-panel is-active" data-data-panel="orders">
-            <article class="record-card">
-              <div><h3>DH000123</h3><p>Khách: Cửa hàng A - Q.3</p><p>Tổng tiền: 12.450.000đ</p><small>21/05/2025 14:30</small></div>
-              <aside><span class="status ok">Đã chốt</span><button type="button">Mở</button><em class="sync-dot ok">Đã lưu DB</em></aside>
-            </article>
-            <article class="record-card">
-              <div><h3>DH000122</h3><p>Khách: Đại lý B - Thủ Đức</p><p>Tổng tiền: 8.750.000đ</p><small>21/05/2025 11:20</small></div>
-              <aside><span class="status muted">Nháp</span><button type="button">Mở</button><em class="sync-dot warn">Chưa đồng bộ</em></aside>
-            </article>
-            <article class="record-card">
-              <div><h3>DH000121</h3><p>Khách: Cửa hàng C - Bình Tân</p><p>Tổng tiền: 5.230.000đ</p><small>20/05/2025 16:10</small></div>
-              <aside><span class="status blue">Đã giao</span><button type="button">Mở</button><em class="sync-dot ok">Đã lưu DB</em></aside>
-            </article>
-          </div>
+          <div class="data-panel is-active" data-data-panel="orders" id="orderList"></div>
 
           <div class="data-panel" data-data-panel="tests">
-            <article class="record-card">
-              <div><h3>TS000045</h3><p>Khách: Trà sữa Mina - Gò Vấp</p><p>6 sản phẩm test · 3 OK · 1 cần mẫu</p><small>21/05/2025 10:15</small></div>
-              <aside><span class="status ok">Có cơ hội</span><button type="button">Mở</button><em class="sync-dot warn">Chưa đồng bộ</em></aside>
-            </article>
-            <article class="record-card">
-              <div><h3>TS000044</h3><p>Khách: Quán Tigon - Q.10</p><p>6 sản phẩm test · 2 thử lại · 1 chưa tốt</p><small>20/05/2025 09:40</small></div>
-              <aside><span class="status danger-soft">Cần xử lý</span><button type="button">Mở</button><em class="sync-dot ok">Đã lưu DB</em></aside>
-            </article>
+            <article class="record-card placeholder-card"><div><h3>Test sản phẩm</h3><p>Phase 4 sẽ nối bảng `ona_tests` và `ona_test_items`.</p><small>Chưa dùng chung với đơn hàng.</small></div></article>
           </div>
 
           <div class="data-panel" data-data-panel="reports">
-            <article class="record-card">
-              <div><h3>BC000067</h3><p>Khu vực: Chợ Gạo · Sales: A Tân</p><p>Đối thủ mạnh giá thấp, nhu cầu trà trái cây tăng.</p><small>20/05/2025 16:45</small></div>
-              <aside><span class="status danger-soft">Rủi ro</span><button type="button">Mở</button><em class="sync-dot danger">Lỗi DB</em></aside>
-            </article>
-            <article class="record-card">
-              <div><h3>BC000066</h3><p>Khu vực: Bình Tân · Sales: A Tân</p><p>Cơ hội mở 5 khách mới, cần mẫu Olong Sen.</p><small>19/05/2025 17:20</small></div>
-              <aside><span class="status ok">Cơ hội</span><button type="button">Mở</button><em class="sync-dot ok">Đã lưu DB</em></aside>
-            </article>
+            <article class="record-card placeholder-card"><div><h3>Báo cáo thị trường</h3><p>Phase 5 sẽ nối bảng `market_reports`.</p><small>Báo cáo không tự biến thành đơn hàng.</small></div></article>
           </div>
 
-          <div class="data-panel" data-data-panel="customers">
-            <article class="record-card customer-record"><div><h3>Cửa hàng A</h3><p>Q.3 · 2 đơn hàng · 3 phiếu test</p><small>Liên quan 1 báo cáo thị trường</small></div><aside><button type="button">Mở</button></aside></article>
-            <article class="record-card customer-record"><div><h3>Đại lý B</h3><p>Thủ Đức · 1 đơn hàng · 1 phiếu test</p><small>Cần gọi lại tuần này</small></div><aside><button type="button">Mở</button></aside></article>
+          <div class="data-panel" data-data-panel="customers" id="customerList">
+            <article class="record-card placeholder-card"><div><h3>Khách hàng</h3><p>Khách từ đơn hàng sẽ lưu vào `customers_master`.</p><small>Phase 6 sẽ làm danh sách khách đầy đủ.</small></div></article>
           </div>
         </section>
 
@@ -182,22 +189,17 @@
           <section class="panel-card analyze-card">
             <h2>Dữ liệu sẽ phân tích</h2>
             <div class="metric-row">
-              <div><strong>12</strong><small>Đơn hàng</small></div>
-              <div><strong>18</strong><small>Phiếu test</small></div>
-              <div><strong>5</strong><small>Báo cáo</small></div>
+              <div><strong id="aiOrderCount">0</strong><small>Đơn hàng</small></div>
+              <div><strong>0</strong><small>Phiếu test</small></div>
+              <div><strong>0</strong><small>Báo cáo</small></div>
             </div>
             <button class="primary wide" type="button" id="mockAiButton">✦ Tạo báo cáo AI</button>
           </section>
 
           <section class="panel-card ai-result">
             <h2>Kết quả AI mẫu</h2>
-            <details open><summary>📌 Tóm tắt điều hành</summary><p>Thị trường có nhu cầu tăng với trà trái cây và nhóm Olong. Cần ưu tiên khách đã test OK.</p></details>
-            <details><summary>🔎 Insight thị trường</summary><p>Đối thủ cạnh tranh mạnh bằng giá, nhưng phản hồi về vị ổn định hơn ở nhóm sản phẩm công ty.</p></details>
-            <details><summary>🧪 Insight sản phẩm</summary><p>Trà Đen, Olong Sen có tín hiệu tốt. Một số điểm bán cần mẫu thử lại.</p></details>
-            <details><summary>💰 Cơ hội bán hàng</summary><p>12 cơ hội đơn hàng, 4 khách nên gọi lại trong 48 giờ.</p></details>
-            <details><summary>👥 Khách cần xử lý</summary><p>Ưu tiên khách có trạng thái OK hoặc cần mẫu lớn.</p></details>
-            <details><summary>⚠️ Rủi ro</summary><p>Giá đối thủ thấp và thiếu đồng bộ dữ liệu ở một số phiếu.</p></details>
-            <details><summary>✅ Bước tiếp theo</summary><p>Chốt đơn nhóm OK, gửi mẫu cho nhóm cần mẫu, báo lại nhóm follow.</p></details>
+            <details open><summary>📌 Tóm tắt điều hành</summary><p>Phase 7 sẽ tổng hợp đơn hàng, test sản phẩm và báo cáo thị trường thật.</p></details>
+            <details><summary>💰 Cơ hội bán hàng</summary><p>Đơn hàng đã tạo ở Phase 3 sẽ là một nguồn dữ liệu đầu vào cho AI.</p></details>
             <div class="export-actions"><button type="button">💾 Lưu báo cáo</button><button type="button">📝 Xuất DOC</button><button type="button">📗 Xuất XLSX</button></div>
           </section>
         </section>
@@ -209,7 +211,7 @@
             <button class="admin-card db" type="button" data-open-dialog="supabaseDialog">
               <span class="admin-icon">◎</span>
               <div><strong>Supabase</strong><small id="supabasePreviewStatus">URL Project: -<br />Anon Key: -</small></div>
-              <em>Chưa nối ›</em>
+              <em id="adminDbState">Chưa nối ›</em>
               <div class="admin-actions"><span>Test DB</span><span>Lưu DB</span></div>
             </button>
 
@@ -222,14 +224,14 @@
 
             <button class="admin-card product" type="button" data-open-dialog="productDialog">
               <span class="admin-icon">▤</span>
-              <div><strong>Sản phẩm / Bếp Sỉ</strong><small>Đang dùng nguồn sản phẩm thủ công. Chưa nối Bếp Sỉ.</small></div>
+              <div><strong>Sản phẩm / Bếp Sỉ</strong><small id="productPreviewStatus">Đang dùng nguồn sản phẩm thủ công. Chưa nối Bếp Sỉ.</small></div>
               <em>Nguồn thủ công ›</em>
               <div class="admin-actions"><span>Quản lý sản phẩm</span></div>
             </button>
 
             <button class="admin-card local" type="button" data-open-dialog="localDialog">
               <span class="admin-icon">▯</span>
-              <div><strong>Dữ liệu máy</strong><small>Tổng bản ghi local 1.245<br />Chờ đồng bộ 23<br />Lỗi đồng bộ 2</small></div>
+              <div><strong>Dữ liệu máy</strong><small>Tổng bản ghi local <b id="localRecordCount">0</b><br />Chờ đồng bộ <b id="pendingSyncCount">0</b><br />Lỗi đồng bộ <b id="errorSyncCount">0</b></small></div>
               <em>›</em>
               <div class="admin-actions danger-row"><span>Đồng bộ lại</span><span>Xóa cache máy</span></div>
             </button>
@@ -251,7 +253,7 @@
           <header><h2>Supabase</h2><button type="button" data-close-dialog>Đóng</button></header>
           <label><span>Supabase Project URL</span><input id="supabaseUrl" type="url" placeholder="https://xxxxx.supabase.co" /></label>
           <label><span>Supabase publishable / anon key</span><input id="supabaseAnonKey" type="password" placeholder="sb_publishable_... hoặc anon public key" /></label>
-          <p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu. Phase 2 mới là app shell, Phase 3 sẽ nối form thật.</p>
+          <p class="muted-note" id="supabaseStatus">Dán URL/key rồi bấm lưu. Đơn hàng sẽ sync vào `orders` và `order_items`.</p>
           <div class="dialog-actions"><button type="button" id="testSupabaseBtn">Test DB</button><button class="primary" type="button" id="saveSupabaseBtn">Lưu DB</button></div>
         </form>
       </dialog>
@@ -269,8 +271,8 @@
       <dialog class="app-dialog" id="productDialog">
         <form method="dialog" class="dialog-body">
           <header><h2>Sản phẩm / Bếp Sỉ</h2><button type="button" data-close-dialog>Đóng</button></header>
-          <p class="muted-note">Hiện dùng bảng `products` trong Supabase. Sau này có thể đồng bộ nguồn Bếp Sỉ.</p>
-          <div class="product-seed-list"><span>Trà Đen</span><span>Trà Quả Mộng</span><span>Trà Gạo Rang</span><span>Trà Lài</span><span>Trà Olong</span><span>Trà Olong Sen</span></div>
+          <p class="muted-note">Hiện dùng bảng `products` trong Supabase. Nếu chưa có DB, app dùng danh sách ONA fallback.</p>
+          <div class="product-seed-list" id="productSeedList"><span>Trà Đen</span><span>Trà Quả Mộng</span><span>Trà Gạo Rang</span><span>Trà Lài</span><span>Trà Olong</span><span>Trà Olong Sen</span></div>
         </form>
       </dialog>
 
@@ -278,7 +280,7 @@
         <form method="dialog" class="dialog-body">
           <header><h2>Dữ liệu máy</h2><button type="button" data-close-dialog>Đóng</button></header>
           <p class="muted-note">LocalStorage chỉ làm cache/offline queue. Supabase là nơi lưu chính.</p>
-          <div class="dialog-actions"><button type="button">Đồng bộ lại</button><button class="danger" type="button">Xóa cache máy</button></div>
+          <div class="dialog-actions"><button type="button" id="syncQueueBtn">Đồng bộ lại</button><button class="danger" type="button" id="clearCacheBtn">Xóa cache máy</button></div>
         </form>
       </dialog>
 
