@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bepi-field-report-v38';
+const CACHE_NAME = 'bepi-field-report-v39';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const APP_ASSETS = [
   './test-module.js',
   './report-flow-v1.js',
   './admin-popup-actions.js',
+  './sync-local-to-supabase.js',
   './data-model.js',
   './supabase-v2.js',
   './sync-queue.js',
@@ -24,4 +25,4 @@ self.addEventListener('activate',(event)=>{event.waitUntil(caches.keys().then((k
 self.addEventListener('message',(event)=>{if(event.data&&event.data.type==='SKIP_WAITING')self.skipWaiting()});
 async function networkFirst(request){const cache=await caches.open(CACHE_NAME);try{const response=await fetch(request);if(response&&response.ok)cache.put(request,response.clone());return response}catch(error){const cached=await cache.match(request);if(cached)return cached;return cache.match('./index.html')}}
 async function cacheFirstThenRefresh(request){const cache=await caches.open(CACHE_NAME);const cached=await cache.match(request);const fetched=fetch(request).then((response)=>{if(response&&response.ok)cache.put(request,response.clone());return response}).catch(()=>null);return cached||fetched||cache.match('./index.html')}
-self.addEventListener('fetch',(event)=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;const isNavigation=event.request.mode==='navigate';const mustBeFresh=url.pathname.endsWith('/sw.js')||url.pathname.endsWith('/version.json')||url.pathname.endsWith('/index.html')||url.pathname.endsWith('/app-config.js')||url.pathname.endsWith('/pwa-update.js')||url.pathname.endsWith('/test-module.js')||url.pathname.endsWith('/report-flow-v1.js')||url.pathname.endsWith('/admin-popup-actions.js')||url.pathname.endsWith('/supabase-v2.js')||url.pathname.endsWith('/sync-queue.js');event.respondWith((isNavigation||mustBeFresh)?networkFirst(event.request):cacheFirstThenRefresh(event.request))});
+self.addEventListener('fetch',(event)=>{if(event.request.method!=='GET')return;const url=new URL(event.request.url);if(url.origin!==self.location.origin)return;const isNavigation=event.request.mode==='navigate';const mustBeFresh=url.pathname.endsWith('/sw.js')||url.pathname.endsWith('/version.json')||url.pathname.endsWith('/index.html')||url.pathname.endsWith('/app-config.js')||url.pathname.endsWith('/sync-local-to-supabase.js')||url.pathname.endsWith('/pwa-update.js')||url.pathname.endsWith('/test-module.js')||url.pathname.endsWith('/report-flow-v1.js')||url.pathname.endsWith('/admin-popup-actions.js')||url.pathname.endsWith('/supabase-v2.js')||url.pathname.endsWith('/sync-queue.js');event.respondWith((isNavigation||mustBeFresh)?networkFirst(event.request):cacheFirstThenRefresh(event.request))});
