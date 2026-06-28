@@ -1,0 +1,147 @@
+.ai-summary-module {
+  display: grid;
+  gap: 12px;
+}
+
+.ai-source-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.ai-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ai-count-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.ai-count-grid div {
+  padding: 10px 6px;
+  border-radius: 12px;
+  border: 1px solid #dbeae6;
+  background: #f8fefd;
+  text-align: center;
+}
+
+.ai-count-grid strong {
+  display: block;
+  color: var(--teal-dark);
+  font-size: 20px;
+}
+
+.ai-count-grid small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ai-action-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 8px;
+}
+
+.ai-action-row button,
+.ai-history-card button {
+  min-height: 40px;
+  border-radius: 9px;
+  border: 1px solid var(--teal);
+  background: #fff;
+  color: var(--teal-dark);
+  font-weight: 850;
+}
+
+.ai-action-row .primary {
+  background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+  color: #fff;
+  border: 0;
+}
+
+.ai-result-card {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-block {
+  border: 1px solid #e1ece8;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+
+.ai-block h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.ai-block p,
+.ai-block li {
+  color: #35464f;
+  line-height: 1.45;
+  font-size: 13px;
+}
+
+.ai-block ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.ai-history-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ai-history-card {
+  border: 1px solid #dce9e5;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  display: grid;
+  gap: 8px;
+}
+
+.ai-history-card header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: start;
+}
+
+.ai-history-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ai-history-card small {
+  color: var(--muted);
+}
+
+.ai-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #eef7ff;
+  color: #1764c8;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.ai-source-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 360px) {
+  .ai-filter-grid,
+  .ai-action-row,
+  .ai-count-grid {
+    grid-template-columns: 1fr;
+  }
+}
