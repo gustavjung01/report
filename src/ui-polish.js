@@ -1,10 +1,17 @@
 function attachStyles() {
-  if (document.querySelector('link[data-ui-polish]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'src/polish.css';
-  link.dataset.uiPolish = 'true';
-  document.head.appendChild(link);
+  if (!document.querySelector('link[data-ui-polish]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'src/polish.css';
+    link.dataset.uiPolish = 'true';
+    document.head.appendChild(link);
+  }
+  if (!document.querySelector('style[data-test-fixes]')) {
+    const style = document.createElement('style');
+    style.dataset.testFixes = 'true';
+    style.textContent = '.hero{display:none}.result-line{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin-top:8px;padding:9px 10px;border:1px solid #dce9e6;border-radius:12px;background:#fbfffd}.result-line span{font-weight:750}.result-line b{font-size:12px;color:#007866}.result-line small{grid-column:1/-1;color:#63727c}';
+    document.head.appendChild(style);
+  }
 }
 
 function focusTestFirstShell() {
