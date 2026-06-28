@@ -11,6 +11,10 @@ window.BEPI_CONFIG = Object.assign({}, window.BEPI_CONFIG || {}, {
   agentJson: ' '
 });
 
+try {
+  localStorage.removeItem('bepi-v2-products');
+} catch (error) {}
+
 window.addEventListener('DOMContentLoaded', () => {
   const script = document.createElement('script');
   script.src = 'sync-local-to-supabase.js?v=flow-v48';
