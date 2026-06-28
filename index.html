@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Bépi Report" />
-    <meta name="description" content="PWA báo cáo khảo sát thị trường trà sữa, đồng bộ Google Sheet." />
+    <meta name="description" content="PWA báo cáo khảo sát thị trường trà sữa, lưu DB Supabase và xuất file." />
     <title>Bépi Field Report</title>
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/bepi-logo.svg" type="image/svg+xml" />
@@ -23,7 +23,7 @@
         <div class="app-title">
           <span>Bépi Field Report</span>
           <strong>Khảo sát trà sữa</strong>
-          <small id="connectionStatus">Chưa nối Google Sheet</small>
+          <small id="connectionStatus">Chưa nối Supabase</small>
         </div>
         <button id="installBtn" class="icon-button" hidden>Cài</button>
       </header>
@@ -33,7 +33,7 @@
           <section class="hero-mobile">
             <div>
               <span>Hôm nay</span>
-              <h1>Ghi nhanh khách, đẩy Sheet.</h1>
+              <h1>Ghi nhanh khách, lưu DB.</h1>
             </div>
             <div id="homeStats" class="hero-metrics">
               <b>0</b><small>báo cáo</small>
@@ -66,6 +66,7 @@
                 <select id="reportKind">
                   <option value="Test">Test</option>
                   <option value="Thị trường" selected>Thị trường</option>
+                  <option value="TSST">TSST</option>
                   <option value="Lên đơn hàng">Lên đơn hàng</option>
                 </select>
               </label>
@@ -112,8 +113,9 @@
                   <em id="activeSyncStatus">Chưa đồng bộ</em>
                 </div>
                 <div class="report-actions">
-                  <button id="syncActiveReportBtn" type="button" class="main-action">Đẩy Sheet</button>
+                  <button id="syncActiveReportBtn" type="button" class="main-action">Đẩy DB</button>
                   <button id="copySummaryBtn" type="button">Copy</button>
+                  <button id="exportTxtBtn" type="button">TXT</button>
                   <button id="exportCsvBtn" type="button">CSV</button>
                 </div>
               </section>
@@ -209,19 +211,45 @@
               <div>
                 <span>Admin</span>
                 <h2>Cài đặt hệ thống</h2>
-                <small class="settings-hint">Tách riêng khỏi màn nhập liệu cho gọn.</small>
+                <small class="settings-hint">Ưu tiên Supabase. Sheet chỉ giữ lại để dự phòng.</small>
               </div>
               <em>04</em>
             </div>
-            <p class="admin-note">Mục này chỉ dùng khi cấu hình Sheet, Drive hoặc xử lý dữ liệu trên máy.</p>
+            <p class="admin-note">Dữ liệu chính sẽ lưu vào Supabase DB. File CSV/TXT có thể tải về điện thoại và upload vào Storage.</p>
+          </section>
+
+          <section class="mobile-card sheet-card" id="supabaseSection">
+            <div class="mobile-card-head">
+              <div>
+                <span>Supabase</span>
+                <h2>Kết nối DB</h2>
+                <small class="settings-hint">Dán Project URL và publishable/anon key.</small>
+              </div>
+              <em>DB</em>
+            </div>
+
+            <label class="mini-field sheet-url-field">
+              <span>Supabase Project URL</span>
+              <input type="url" id="supabaseUrl" placeholder="https://xxxxx.supabase.co" autocomplete="off" />
+            </label>
+            <label class="mini-field sheet-url-field">
+              <span>Supabase anon / publishable key</span>
+              <input type="password" id="supabaseAnonKey" placeholder="sb_publishable_... hoặc anon public key" autocomplete="off" />
+            </label>
+            <div id="supabaseStatus" class="sheet-status">Dán URL/key rồi bấm lưu.</div>
+            <div class="sheet-buttons">
+              <button id="saveSupabaseBtn" type="button">Lưu DB</button>
+              <button id="testSupabaseBtn" type="button" class="main-action">Test DB</button>
+              <button id="syncAllSupabaseBtn" type="button">Đẩy hết DB</button>
+            </div>
           </section>
 
           <section class="mobile-card sheet-card" id="sheetSection">
             <div class="mobile-card-head">
               <div>
-                <span>Google Sheet</span>
-                <h2>Kết nối</h2>
-                <small class="settings-hint">Dán Apps Script /exec tại đây.</small>
+                <span>Google Sheet cũ</span>
+                <h2>Dự phòng</h2>
+                <small class="settings-hint">Chỉ dùng nếu vẫn cần Apps Script.</small>
               </div>
               <em>A1</em>
             </div>
