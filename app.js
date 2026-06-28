@@ -58,13 +58,13 @@ function toast(msg) { els.toast.textContent = msg; els.toast.classList.add('show
 function statusLabel(id) { return STATUS.find((x) => x.id === id)?.label || 'Chưa thử'; }
 function statusClass(id) { return ['ok', 'interested', 'sample'].includes(id) ? 'good' : ['follow', 'retry'].includes(id) ? 'warn' : id === 'bad' ? 'bad' : 'pending'; }
 function statusGroup(id) { return id === 'retry' ? 'bad' : id; }
-function numberOr(value, fallback) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
 function fileSafe(v) { return String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 90) || 'bao-cao'; }
 
 function emptyTests() { const out = {}; PRODUCTS.forEach((p) => out[p.name] = { status: 'pending', note: '' }); return out; }
 function normalizeCustomer(c = {}) { return { id: c.id || uid('cus'), name: c.name || '', area: c.area || '', testType: c.testType || 'Trà ONA Test', followDate: c.followDate || '', note: c.note || '', marketTags: Array.isArray(c.marketTags) ? c.marketTags : [], tests: { ...emptyTests(), ...(c.tests || {}) } }; }
 function normalizeReport(r = {}) { return { id: r.id || uid('report'), kind: r.kind || r.reportType || 'Thị trường', date: r.date || today(), market: r.market || '', sales: r.sales || 'A Tân', note: r.note || '', createdAt: r.createdAt || new Date().toISOString(), updatedAt: r.updatedAt || new Date().toISOString(), sync: r.sync || { status: 'pending', lastAt: '', message: '' }, customers: Array.isArray(r.customers) ? r.customers.map(normalizeCustomer) : [] }; }
 function normalizeSupabaseUrl(value = '') { const raw = String(value || '').trim(); const match = raw.match(/dashboard\/project\/([a-z0-9]+)/i); if (match) return `https://${match[1]}.supabase.co`; if (!raw) return DEFAULT_SUPABASE_URL; return raw.replace(/\/+$/, ''); }
+function isPublishableKey(key = '') { return String(key).trim().startsWith('sb_publishable_'); }
 
 function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function load() {
@@ -146,7 +146,7 @@ async function exportTxt() { const r = activeReport(); if (!r) return; const fil
 
 function saveSupabase(show = true) { state.settings.supabaseUrl = normalizeSupabaseUrl(els.supabaseUrl?.value || DEFAULT_SUPABASE_URL); state.settings.supabaseAnonKey = els.supabaseAnonKey?.value.trim() || ''; save(); renderSupabase(); if (show) toast('Đã lưu Supabase.'); }
 function supabaseReady(show = true) { saveSupabase(false); if (!state.settings.supabaseUrl || !state.settings.supabaseAnonKey) { if (show) toast('Dán Supabase URL và anon/publishable key trước.'); return false; } return true; }
-function sbHeaders(extra = {}) { return { apikey: state.settings.supabaseAnonKey, Authorization: `Bearer ${state.settings.supabaseAnonKey}`, 'Content-Type': 'application/json', ...extra }; }
+function sbHeaders(extra = {}) { const key = state.settings.supabaseAnonKey; const headers = { apikey: key, 'Content-Type': 'application/json', ...extra }; if (!isPublishableKey(key)) headers.Authorization = `Bearer ${key}`; return headers; }
 async function sbFetch(path, options = {}) { if (!supabaseReady(false)) throw new Error('Thiếu Supabase URL/key'); const res = await fetch(`${state.settings.supabaseUrl}${path}`, { ...options, headers: { ...sbHeaders(), ...(options.headers || {}) } }); if (!res.ok) { const text = await res.text(); throw new Error(text || `Supabase lỗi ${res.status}`); } return res; }
 async function sbUpsert(table, rows, conflict = 'id') { if (!rows.length) return; const path = `/rest/v1/${table}?on_conflict=${encodeURIComponent(conflict)}`; await sbFetch(path, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(rows) }); }
 async function sbInsert(table, rows) { if (!rows.length) return; await sbFetch(`/rest/v1/${table}`, { method: 'POST', body: JSON.stringify(rows) }); }
@@ -185,7 +185,7 @@ async function uploadExport(blob, filename, type, r) {
   try {
     const path = `exports/${r.date || today()}/${r.id}/${filename}`;
     const uploadUrl = `${state.settings.supabaseUrl}/storage/v1/object/${EXPORT_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
-    const res = await fetch(uploadUrl, { method: 'POST', headers: { apikey: state.settings.supabaseAnonKey, Authorization: `Bearer ${state.settings.supabaseAnonKey}`, 'x-upsert': 'true', 'Content-Type': blob.type || 'application/octet-stream' }, body: blob });
+    const res = await fetch(uploadUrl, { method: 'POST', headers: sbHeaders({ 'x-upsert': 'true', 'Content-Type': blob.type || 'application/octet-stream' }), body: blob });
     if (!res.ok) throw new Error(await res.text());
     const publicUrl = `${state.settings.supabaseUrl}/storage/v1/object/public/${EXPORT_BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`;
     await sbInsert('exports', [{ report_id: r.id, export_type: type, file_path: path, file_url: publicUrl }]);
