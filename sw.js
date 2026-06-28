@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bepi-field-report-v29';
+const CACHE_NAME = 'bepi-field-report-v30';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -9,7 +9,9 @@ const APP_ASSETS = [
   './data-sync-module.css',
   './ai-summary-module.css',
   './file-out.css',
+  './customer-module.css',
   './app-shell-v2.js',
+  './customer-module.js',
   './test-module.js',
   './market-module.js',
   './data-sync-module.js',
