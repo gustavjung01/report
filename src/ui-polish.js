@@ -1,5 +1,6 @@
 import './test-pull.js';
 import './compact-detail.js';
+import './app-update.js';
 function addCss(){
   if(!document.querySelector('link[data-ui-polish]')){const l=document.createElement('link');l.rel='stylesheet';l.href='src/polish.css';l.dataset.uiPolish='1';document.head.appendChild(l)}
   let s=document.querySelector('style[data-test-fixes]');
