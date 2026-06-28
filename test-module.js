@@ -23,6 +23,27 @@ function loadCss(href) {
   document.head.appendChild(link);
 }
 
+function ensureInlineStyle() {
+  if ($('#testMasterInlineStyle')) return;
+  const style = document.createElement('style');
+  style.id = 'testMasterInlineStyle';
+  style.textContent = `
+    .test-master-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}.test-master-toolbar h3{margin:0}.test-master-toolbar p{margin:2px 0 0;color:#60736f;font-size:13px}.test-master-popup{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:rgba(0,0,0,.36);padding:18px}.test-master-popup-card{width:min(360px,100%);display:grid;gap:12px;border-radius:22px;background:#fff;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.22)}.test-master-popup-card h3{margin:0}.test-master-popup-card p{margin:0;color:#60736f}.test-master-popup-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.test-master-popup-actions .primary{width:100%}@media(max-width:420px){.test-master-toolbar{align-items:stretch;flex-direction:column}.test-master-toolbar button{width:100%}}
+  `;
+  document.head.appendChild(style);
+}
+
+function showCreatedPopup(row) {
+  document.querySelector('.test-master-popup')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'test-master-popup';
+  wrap.innerHTML = `<article class="test-master-popup-card"><h3>Đã tạo bản test tổng</h3><p>${html(row.title)}</p><p>Đã chuyển qua Dữ liệu → Test SP → Chi tiết. Giờ nhập khách test trực tiếp trong bản này.</p><div class="test-master-popup-actions"><button type="button" data-close-test-popup>Đóng</button><button type="button" class="primary" data-close-test-popup>Nhập khách ngay</button></div></article>`;
+  wrap.addEventListener('click', (event) => {
+    if (event.target === wrap || event.target.closest('[data-close-test-popup]')) wrap.remove();
+  });
+  document.body.appendChild(wrap);
+}
+
 function loadProducts() {
   const cached = read(STORAGE_KEYS_V2.products);
   const source = Array.isArray(cached) && cached.length ? cached : DEFAULT_ONA_PRODUCTS;
@@ -54,14 +75,14 @@ function ensurePanel() {
   const anchor = $('#orderFormPanel') || $('.create-grid');
   if (!anchor || $('#testFormPanel')) return;
   anchor.insertAdjacentHTML('afterend', `<section class="panel-card test-form-card" id="testFormPanel" hidden>
-    <div class="section-head test-head"><div><h2>Tạo form test sản phẩm</h2><p>Form tổng chỉ chọn sản phẩm test cố định. Khách test nhập ở Dữ liệu → Test SP → Chi tiết.</p></div><button type="button" id="closeTestFormBtn">Đóng</button></div>
+    <div class="section-head test-head"><div><h2>Tạo bản test tổng</h2><p>Bản test tổng theo ngày/tuyến. Chỉ chọn sản phẩm test cố định; khách test nhập ở Dữ liệu → Test SP → Chi tiết.</p></div><button type="button" id="closeTestFormBtn">Đóng</button></div>
     <form id="onaTestForm" class="test-form">
-      <div class="form-grid two"><label><span>Ngày tạo form</span><input type="date" id="onaTestDate" required /></label><label><span>Sales</span><input id="onaTestSales" value="A Tân" /></label></div>
-      <label><span>Tên form test</span><input id="onaTestTitle" required placeholder="VD: Test ONA Olong Sen tuyến Gò Vấp" /></label>
+      <div class="form-grid two"><label><span>Ngày test tổng</span><input type="date" id="onaTestDate" required /></label><label><span>Sales</span><input id="onaTestSales" value="A Tân" /></label></div>
+      <label><span>Tên bản test tổng</span><input id="onaTestTitle" required placeholder="VD: Test ONA Olong Sen - tuyến Gò Vấp" /></label>
       <div class="section-head test-products-head"><div><h2>Sản phẩm test cố định</h2><p>Thêm đúng sản phẩm cần test, không hiện cả kho dài.</p></div><button type="button" id="addFixedProductBtn">＋ Sản phẩm</button></div>
       <div id="onaFixedProducts" class="test-items"></div>
-      <label><span>Ghi chú form</span><textarea id="onaTestNote" rows="2" placeholder="Mục tiêu test, mẫu, tuyến..."></textarea></label>
-      <div class="sticky-actions"><button type="button" id="resetTestBtn">Xóa form</button><button type="submit" class="primary">Lưu form test</button></div>
+      <label><span>Ghi chú bản test</span><textarea id="onaTestNote" rows="2" placeholder="Mục tiêu test, mẫu, tuyến..."></textarea></label>
+      <div class="sticky-actions"><button type="button" id="resetTestBtn">Xóa form</button><button type="submit" class="primary">Lưu bản test tổng</button></div>
     </form>
   </section>`);
   panel = $('#testFormPanel');
@@ -100,7 +121,7 @@ function saveForm(e) {
   e.preventDefault();
   const title = $('#onaTestTitle').value.trim();
   const fixed = collectProducts();
-  if (!title) return toast('Thiếu tên form test.');
+  if (!title) return toast('Thiếu tên bản test tổng.');
   if (!fixed.length) return toast('Chọn ít nhất 1 sản phẩm test.');
   const rows = read(FORM_KEY);
   const row = { id: uid('test-form'), title, test_date: $('#onaTestDate').value || todayIsoDate(), sales: $('#onaTestSales').value.trim(), products: fixed, note: $('#onaTestNote').value.trim(), created_at: now(), sync_status: 'local' };
@@ -109,22 +130,25 @@ function saveForm(e) {
   activeFormId = row.id;
   resetForm();
   closeForm();
-  renderTests();
   document.querySelector('[data-page-link="dataSection"]')?.click();
   document.querySelector('[data-data-view="tests"]')?.click();
-  toast('Đã tạo form test. Vào Chi tiết để thêm khách test.');
+  renderTests();
+  showCreatedPopup(row);
 }
 
 function resultsOf(formId) { return read(ROW_KEY).filter((r) => r.form_id === formId); }
+function toolbarHtml() {
+  return `<div class="test-master-toolbar"><div><h3>Test sản phẩm</h3><p>Tạo bản test tổng trước, sau đó chọn bản để nhập khách.</p></div><button type="button" class="primary" data-create-test-master>＋ Thêm bản test tổng</button></div>`;
+}
 function formListHtml() {
   const forms = read(FORM_KEY).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  if (!forms.length) return '<article class="record-card placeholder-card"><div><h3>Chưa có form test</h3><p>Bấm Tạo → Test sản phẩm để tạo form tổng trước.</p><small>Đang local-first, chưa ghi Supabase.</small></div></article>';
-  return forms.map((f) => `<article class="record-card"><div><h3>${html(f.title)}</h3><p>${f.products.map(productName).map(html).join(', ')}</p><small>${html(f.test_date)} · ${html(f.sales)} · ${resultsOf(f.id).length} khách test</small></div><aside><span class="status ok">Form test</span><button type="button" data-open-test-detail="${html(f.id)}">Chi tiết</button><em class="sync-dot warn">Local</em></aside></article>`).join('');
+  if (!forms.length) return `${toolbarHtml()}<article class="record-card placeholder-card"><div><h3>Chưa có bản test tổng</h3><p>Bấm “＋ Thêm bản test tổng” để tạo bản test của ngày/tuyến trước.</p><small>Đang local-first, chưa ghi Supabase.</small></div></article>`;
+  return `${toolbarHtml()}${forms.map((f) => `<article class="record-card"><div><h3>${html(f.title)}</h3><p>${f.products.map(productName).map(html).join(', ')}</p><small>${html(f.test_date)} · ${html(f.sales)} · ${resultsOf(f.id).length} khách test</small></div><aside><span class="status ok">Bản test tổng</span><button type="button" data-open-test-detail="${html(f.id)}">Chọn / nhập khách</button><em class="sync-dot warn">Local</em></aside></article>`).join('')}`;
 }
 
 function customerFormHtml(f) {
   const options = f.products.map((p) => `<option value="${html(p.id)}">${html(productName(p))}</option>`).join('');
-  return `<form id="testCustomerForm" data-form-id="${html(f.id)}" class="test-form"><h3>Thêm khách test</h3>
+  return `<form id="testCustomerForm" data-form-id="${html(f.id)}" class="test-form"><h3>Thêm khách test vào bản này</h3>
     <div class="form-grid two"><label><span>Khách hàng</span><input id="testCustomerName" required /></label><label><span>SĐT</span><input id="testCustomerPhone" /></label></div>
     <div class="form-grid two"><label><span>Khu vực</span><input id="testCustomerArea" /></label><label><span>Loại điểm bán</span><input id="testShopType" /></label></div>
     <div class="form-grid two"><label><span>Sản phẩm test</span><select id="testProductId">${options}</select></label><label><span>Kết quả</span><select id="testResult"><option value="interested">Quan tâm</option><option value="ok">OK</option><option value="sample">Cần mẫu</option><option value="follow">Hẹn lại</option><option value="bad">Chưa phù hợp</option></select></label></div>
@@ -137,7 +161,7 @@ function customerFormHtml(f) {
 
 function detailHtml(f) {
   const rows = resultsOf(f.id).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-  return `<section class="test-detail"><button type="button" id="backToTestList">‹ Danh sách form test</button><article class="panel-card"><h2>${html(f.title)}</h2><p><b>Sản phẩm cố định:</b> ${f.products.map(productName).map(html).join(', ')}</p><small>${html(f.test_date)} · ${html(f.sales)}</small></article>${customerFormHtml(f)}<h3>Khách đã test</h3>${rows.length ? rows.map((r) => `<article class="record-card"><div><h3>${html(r.customer_name)}</h3><p>${html(r.product_name)} · ${html(r.result_label)}</p><p>${html(r.feedback || '-')}</p><small>${html(r.area || '')}${r.need_sample ? ' · Cần mẫu' : ''}</small></div><aside><span class="status ${r.need_sample ? 'danger-soft' : 'ok'}">${r.need_sample ? 'Cần mẫu' : 'Đã test'}</span><em class="sync-dot warn">Local</em></aside></article>`).join('') : '<article class="empty-sync-card">Chưa có khách test.</article>'}</section>`;
+  return `<section class="test-detail"><div class="test-master-toolbar"><button type="button" id="backToTestList">‹ Danh sách bản test</button><button type="button" class="primary" data-create-test-master>＋ Thêm bản test tổng</button></div><article class="panel-card"><h2>${html(f.title)}</h2><p><b>Sản phẩm cố định:</b> ${f.products.map(productName).map(html).join(', ')}</p><small>${html(f.test_date)} · ${html(f.sales)}</small></article>${customerFormHtml(f)}<h3>Khách đã test</h3>${rows.length ? rows.map((r) => `<article class="record-card"><div><h3>${html(r.customer_name)}</h3><p>${html(r.product_name)} · ${html(r.result_label)}</p><p>${html(r.feedback || '-')}</p><small>${html(r.area || '')}${r.need_sample ? ' · Cần mẫu' : ''}</small></div><aside><span class="status ${r.need_sample ? 'danger-soft' : 'ok'}">${r.need_sample ? 'Cần mẫu' : 'Đã test'}</span><em class="sync-dot warn">Local</em></aside></article>`).join('') : '<article class="empty-sync-card">Chưa có khách test.</article>'}</section>`;
 }
 
 function renderTests() {
@@ -150,7 +174,7 @@ function saveCustomer(e) {
   e.preventDefault();
   const formId = e.target.dataset.formId;
   const form = read(FORM_KEY).find((f) => f.id === formId);
-  if (!form) return toast('Không tìm thấy form test.');
+  if (!form) return toast('Không tìm thấy bản test tổng.');
   const product = form.products.find((p) => p.id === $('#testProductId').value) || form.products[0];
   const name = $('#testCustomerName').value.trim();
   if (!name) return toast('Thiếu tên khách test.');
@@ -171,13 +195,19 @@ function bind() {
   formEl?.addEventListener('submit', saveForm);
   productBox?.addEventListener('click', (e) => { if (e.target.closest('.remove-fixed-product')) e.target.closest('.fixed-test-product')?.remove(); });
   productBox?.addEventListener('input', (e) => { const input = e.target.closest('.fixed-product-filter'); if (!input) return; const row = input.closest('.fixed-test-product'); $('.fixed-product-select', row).innerHTML = productOptions(input.value); });
-  listEl?.addEventListener('click', (e) => { const open = e.target.closest('[data-open-test-detail]'); if (open) { activeFormId = open.dataset.openTestDetail; renderTests(); } if (e.target.closest('#backToTestList')) { activeFormId = ''; renderTests(); } });
+  listEl?.addEventListener('click', (e) => {
+    if (e.target.closest('[data-create-test-master]')) { activeFormId = ''; openForm(); return; }
+    const open = e.target.closest('[data-open-test-detail]');
+    if (open) { activeFormId = open.dataset.openTestDetail; renderTests(); }
+    if (e.target.closest('#backToTestList')) { activeFormId = ''; renderTests(); }
+  });
   listEl?.addEventListener('submit', (e) => { if (e.target?.id === 'testCustomerForm') saveCustomer(e); });
 }
 
 function init() {
   loadCss('order-module.css');
   loadCss('test-module.css');
+  ensureInlineStyle();
   loadProducts();
   ensurePanel();
   ensureList();
