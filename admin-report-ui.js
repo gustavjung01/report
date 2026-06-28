@@ -64,6 +64,16 @@ function escHtml(value = '') {
     .replaceAll("'", '&#039;');
 }
 
+function isGoogleServiceAccountJson(config) {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return false;
+  const keys = Object.keys(config);
+  return config.type === 'service_account'
+    || Boolean(config.private_key)
+    || Boolean(config.client_email && config.token_uri && config.auth_uri)
+    || keys.includes('private_key_id')
+    || keys.includes('client_x509_cert_url');
+}
+
 function updateAdminPreview() {
   const state = readState();
   const settings = state.settings || {};
@@ -118,7 +128,17 @@ function parseAgentText(text) {
   const candidate = extractJsonCandidate(text);
   const config = JSON.parse(candidate);
   const normalized = Array.isArray(config) ? { agents: config } : config;
-  return { config: normalized, json: JSON.stringify(normalized, null, 2), agents: parseAgentList(normalized) };
+
+  if (isGoogleServiceAccountJson(normalized)) {
+    throw new Error('Đây là Service Account JSON của Google Cloud, không phải Agent JSON. Không dán credential/key vào PWA. Hãy xóa/rotate key này trên Google Cloud.');
+  }
+
+  const agents = parseAgentList(normalized);
+  if (!agents.length) {
+    throw new Error('JSON này không có danh sách agent. Cần JSON dạng {"agents":[{"id":"...","name":"..."}]} hoặc bấm Xóa để dùng agent mặc định.');
+  }
+
+  return { config: normalized, json: JSON.stringify(normalized, null, 2), agents };
 }
 
 function setAgentStatus(text, ok = false) {
@@ -135,6 +155,16 @@ function fillAgentSelect(list, selectedId = '') {
   select.value = selectedId || list[0]?.id || '';
 }
 
+function loadDefaultAgent(showToast = true) {
+  const textarea = document.getElementById('agentJson');
+  const list = parseAgentList(DEFAULT_AGENT_CONFIG);
+  if (textarea) textarea.value = JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
+  fillAgentSelect(list);
+  setAgentStatus('Đã nạp agent mặc định Bépi Report Analyst. Bấm Lưu Agent để dùng.', true);
+  if (showToast) smallToast('Đã nạp agent mặc định.');
+  return list;
+}
+
 function loadAgentFromTextarea(showToast = true) {
   const textarea = document.getElementById('agentJson');
   if (!textarea) {
@@ -142,18 +172,19 @@ function loadAgentFromTextarea(showToast = true) {
     return [];
   }
 
+  if (!textarea.value.trim()) return loadDefaultAgent(showToast);
+
   try {
     const parsed = parseAgentText(textarea.value);
-    const list = parsed.agents.length ? parsed.agents : parseAgentList(DEFAULT_AGENT_CONFIG);
-    textarea.value = parsed.agents.length ? parsed.json : JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
-    fillAgentSelect(list);
-    setAgentStatus(`Đã load ${list.length} agent. Chọn agent rồi bấm Lưu Agent.`, true);
-    if (showToast) smallToast(`Đã load ${list.length} agent.`);
-    return list;
+    textarea.value = parsed.json;
+    fillAgentSelect(parsed.agents);
+    setAgentStatus(`Đã load ${parsed.agents.length} agent. Chọn agent rồi bấm Lưu Agent.`, true);
+    if (showToast) smallToast(`Đã load ${parsed.agents.length} agent.`);
+    return parsed.agents;
   } catch (error) {
     fillAgentSelect([]);
-    setAgentStatus(`Không load được JSON: ${error.message}`);
-    if (showToast) smallToast('JSON/code chưa đúng, app đã báo lỗi ở ô trạng thái.');
+    setAgentStatus(error.message);
+    if (showToast) smallToast('Không load được Agent JSON. Xem dòng báo lỗi trong popup.');
     return [];
   }
 }
@@ -189,16 +220,13 @@ function loadSavedAgentConfig() {
   if (!textarea) return;
 
   if (!saved) {
-    if (!textarea.value.trim()) textarea.value = JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
-    const list = loadAgentFromTextarea(false);
-    setAgentStatus(`Có sẵn agent mặc định. Bấm Lưu Agent để dùng.`, true);
-    fillAgentSelect(list);
+    if (!textarea.value.trim()) loadDefaultAgent(false);
     updateAdminPreview();
     return;
   }
 
   if (nameInput) nameInput.value = saved.name || '';
-  textarea.value = saved.json || JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
+  textarea.value = saved.json || '';
   const list = loadAgentFromTextarea(false);
   fillAgentSelect(list, saved.selectedAgentId || '');
   if (saved.selectedAgentName) setAgentStatus(`Đã lưu agent: ${saved.selectedAgentName}`, true);
@@ -207,12 +235,9 @@ function loadSavedAgentConfig() {
 function clearAgentConfig() {
   localStorage.removeItem(AGENT_CONFIG_KEY);
   const nameInput = document.getElementById('agentName');
-  const textarea = document.getElementById('agentJson');
   if (nameInput) nameInput.value = '';
-  if (textarea) textarea.value = JSON.stringify(DEFAULT_AGENT_CONFIG, null, 2);
-  const list = loadAgentFromTextarea(false);
+  const list = loadDefaultAgent(false);
   fillAgentSelect(list);
-  setAgentStatus('Đã xóa cấu hình cũ, nạp lại agent mặc định.', true);
   updateAdminPreview();
   smallToast('Đã reset AI Agent.');
 }
