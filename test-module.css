@@ -1,0 +1,118 @@
+.test-form-card {
+  border-color: rgba(0, 149, 127, 0.24);
+  background: linear-gradient(180deg, #ffffff, #fbfffd);
+}
+
+.test-head p,
+.test-products-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.test-head button {
+  min-height: 36px;
+  border-radius: 9px;
+  border: 1px solid var(--teal);
+  background: #fff;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
+.test-form {
+  display: grid;
+  gap: 12px;
+}
+
+.need-sample-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  padding: 10px;
+  border: 1px dashed rgba(0, 149, 127, 0.35);
+  border-radius: 10px;
+  background: #f4fffc;
+  font-weight: 750;
+}
+
+.need-sample-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--teal);
+}
+
+.test-items {
+  display: grid;
+  gap: 10px;
+}
+
+.test-item-row {
+  padding: 12px;
+  border: 1px solid #d7e5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  display: grid;
+  gap: 10px;
+}
+
+.test-item-row header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.test-item-row header strong {
+  font-size: 15px;
+}
+
+.test-item-row header small {
+  color: var(--muted);
+}
+
+.test-item-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 8px;
+}
+
+.test-status-select.status-ok { border-color: #84d99a; background: #f0fff3; }
+.test-status-select.status-interested { border-color: #8ad7cc; background: #effffc; }
+.test-status-select.status-sample { border-color: #ffc46d; background: #fff8ed; }
+.test-status-select.status-follow { border-color: #9dc2ff; background: #f1f6ff; }
+.test-status-select.status-bad { border-color: #ffaaa3; background: #fff2f0; }
+.test-status-select.status-retry { border-color: #cbb8ff; background: #f8f4ff; }
+
+.test-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.test-summary-strip div {
+  padding: 10px 6px;
+  border-radius: 10px;
+  background: #f5fbf9;
+  text-align: center;
+  border: 1px solid #e0ece8;
+}
+
+.test-summary-strip strong {
+  display: block;
+  color: var(--teal-dark);
+  font-size: 18px;
+}
+
+.test-summary-strip small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (max-width: 360px) {
+  .test-item-grid,
+  .test-summary-strip {
+    grid-template-columns: 1fr;
+  }
+}
