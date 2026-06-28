@@ -192,10 +192,18 @@ export async function saveAiSummary(summaryPayload = {}) {
   return saved || row;
 }
 
+export async function syncAiSummary(summaryPayload = {}) {
+  return saveAiSummary(summaryPayload);
+}
+
 export async function saveExportRow(exportPayload = {}) {
   const row = makeExportRow({ ...exportPayload, sync_status: 'synced', synced_at: new Date().toISOString() });
   const [saved] = await sbUpsert(TABLES_V2.exports, [row]);
   return saved || row;
+}
+
+export async function syncExport(exportPayload = {}) {
+  return saveExportRow(exportPayload);
 }
 
 export async function uploadExportFile(path, blob, contentType = 'text/plain') {
