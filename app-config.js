@@ -13,6 +13,6 @@ window.BEPI_CONFIG = Object.assign({}, window.BEPI_CONFIG || {}, {
 
 window.addEventListener('DOMContentLoaded', () => {
   const script = document.createElement('script');
-  script.src = 'sync-local-to-supabase.js?v=flow-v47';
+  script.src = 'sync-local-to-supabase.js?v=flow-v48';
   document.body.appendChild(script);
 });
