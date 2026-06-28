@@ -4,6 +4,12 @@
   const TEST_ROW_KEY = 'bepi-local-test-rows-v1';
   const MARKET_FORM_KEY = 'bepi-local-market-forms-v1';
   const MARKET_ROW_KEY = 'bepi-local-market-rows-v1';
+  const FIXED_SUPABASE_URL = 'https://noiadkpkvdohljgopgfb.supabase.co';
+  const FIXED_SUPABASE_KEY = [
+    'sb_publishable_n6LXv',
+    '-fd-ImF3XzeU2mrjg',
+    '_G7tBGy66'
+  ].join('');
 
   const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -13,7 +19,7 @@
     node.textContent = message;
     node.classList.add('show');
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => node.classList.remove('show'), 2600);
+    toast.timer = setTimeout(() => node.classList.remove('show'), 3000);
   }
 
   function readJson(key, fallback) {
@@ -35,10 +41,10 @@
   }
 
   function config() {
-    const stored = readJson(SETTINGS_KEY, { settings: {} });
     const cfg = window.BEPI_CONFIG || {};
-    const supabaseUrl = String(stored.settings?.supabaseUrl || cfg.supabaseUrl || '').replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
-    const supabaseAnonKey = String(stored.settings?.supabaseAnonKey || cfg.supabaseAnonKey || '').trim();
+    const stored = readJson(SETTINGS_KEY, { settings: {} });
+    const supabaseUrl = String(cfg.supabaseUrl || stored.settings?.supabaseUrl || FIXED_SUPABASE_URL).replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
+    const supabaseAnonKey = String(cfg.supabaseAnonKey || stored.settings?.supabaseAnonKey || FIXED_SUPABASE_KEY).trim();
     return { supabaseUrl, supabaseAnonKey };
   }
 
@@ -68,6 +74,9 @@
     if (!response.ok) {
       let message = text;
       try { message = JSON.parse(text).message || message; } catch {}
+      if (response.status === 401 || response.status === 403) {
+        throw new Error(`${table}: Supabase từ chối ghi (${response.status}). Cần mở RLS policy INSERT/UPDATE cho anon/public key.`);
+      }
       throw new Error(`${table}: ${message || response.status}`);
     }
     return cleanRows.length;
@@ -183,7 +192,8 @@
       toast(`Đã đồng bộ ${count} dòng lên Supabase.`);
     } catch (error) {
       if (status) status.textContent = error.message || 'Đồng bộ lỗi.';
-      toast('Đồng bộ lỗi.');
+      toast(error.message || 'Đồng bộ lỗi.');
+      console.error('Sync Supabase error:', error);
     } finally {
       if (button) {
         button.disabled = false;
