@@ -5,13 +5,11 @@
   const MARKET_FORM_KEY = 'bepi-local-market-forms-v1';
   const MARKET_ROW_KEY = 'bepi-local-market-rows-v1';
   const FIXED_SUPABASE_URL = 'https://noiadkpkvdohljgopgfb.supabase.co';
-  const FIXED_SUPABASE_KEY = [
-    'sb_publishable_n6LXv',
-    '-fd-ImF3XzeU2mrjg',
-    '_G7tBGy66'
-  ].join('');
+  const FIXED_SUPABASE_KEY = ['sb_publishable_n6LXv', '-fd-ImF3XzeU2mrjg', '_G7tBGy66'].join('');
 
   const $ = (selector, root = document) => root.querySelector(selector);
+  const now = () => new Date().toISOString();
+  const today = () => new Date().toISOString().slice(0, 10);
 
   function toast(message) {
     const node = $('#toast');
@@ -40,6 +38,23 @@
     return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function slug(value = 'x') {
+    return String(value || 'x')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'x';
+  }
+
+  function stableCustomerId(row = {}, form = {}) {
+    const name = row.customer_name || row.name || '';
+    const phone = row.customer_phone || row.phone || '';
+    const area = row.area || form.route || form.area || '';
+    if (!name && !phone) return null;
+    return `cust-${slug(name)}-${slug(phone || area)}`.slice(0, 90);
+  }
+
   function config() {
     const cfg = window.BEPI_CONFIG || {};
     const stored = readJson(SETTINGS_KEY, { settings: {} });
@@ -65,36 +80,51 @@
     const { supabaseUrl } = config();
     if (!supabaseUrl) throw new Error('Thiếu Supabase URL.');
     const url = `${supabaseUrl}/rest/v1/${table}?on_conflict=${encodeURIComponent(conflict)}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify(cleanRows)
-    });
+    const response = await fetch(url, { method: 'POST', headers: headers(), body: JSON.stringify(cleanRows) });
     const text = await response.text();
     if (!response.ok) {
       let message = text;
       try { message = JSON.parse(text).message || message; } catch {}
-      if (response.status === 401 || response.status === 403) {
-        throw new Error(`${table}: Supabase từ chối ghi (${response.status}). Cần mở RLS policy INSERT/UPDATE cho anon/public key.`);
-      }
       throw new Error(`${table}: ${message || response.status}`);
     }
     return cleanRows.length;
   }
 
-  function testRowsForDb() {
-    const forms = readArray(TEST_FORM_KEY);
-    const rows = readArray(TEST_ROW_KEY);
-    const formById = Object.fromEntries(forms.map((form) => [form.id, form]));
+  function collectCustomers(testRows, marketRows, testFormById, marketFormById) {
+    const map = new Map();
+    const add = (row, form, source) => {
+      const id = stableCustomerId(row, form);
+      if (!id || map.has(id)) return id;
+      map.set(id, {
+        id,
+        name: row.customer_name || row.name || 'Khách chưa tên',
+        phone: row.customer_phone || row.phone || '',
+        area: row.area || form.route || form.area || '',
+        address: row.address || '',
+        shop_type: row.shop_type || '',
+        note: row.note || row.general_note || '',
+        tags: [source],
+        raw_payload: { source, row, form },
+        created_at: row.created_at || form.created_at || now(),
+        updated_at: now()
+      });
+      return id;
+    };
+    testRows.forEach((row) => add(row, testFormById[row.form_id] || {}, 'test'));
+    marketRows.forEach((row) => add(row, marketFormById[row.form_id] || {}, 'market'));
+    return Array.from(map.values());
+  }
 
+  function testRowsForDb(testFormById) {
+    const rows = readArray(TEST_ROW_KEY);
     const tests = rows.map((row) => {
-      const form = formById[row.form_id] || {};
+      const form = testFormById[row.form_id] || {};
       const productResults = Array.isArray(row.product_results) ? row.product_results : [];
       return {
         id: row.id || uid('ona-test'),
-        test_date: form.test_date || row.test_date || new Date().toISOString().slice(0, 10),
+        test_date: form.test_date || row.test_date || today(),
         sales: form.sales || row.sales || '',
-        customer_id: '',
+        customer_id: stableCustomerId(row, form),
         customer_name: row.customer_name || '',
         customer_phone: row.customer_phone || '',
         area: row.area || form.route || '',
@@ -106,19 +136,20 @@
         overall_note: row.general_note || form.note || '',
         sync_status: 'synced',
         raw_payload: { form, row },
-        created_at: row.created_at || form.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        synced_at: new Date().toISOString()
+        created_at: row.created_at || form.created_at || now(),
+        updated_at: now(),
+        synced_at: now()
       };
     });
 
     const items = [];
     rows.forEach((row) => {
       const productResults = Array.isArray(row.product_results) ? row.product_results : [];
+      const testId = row.id || uid('ona-test');
       productResults.forEach((item, index) => {
         items.push({
-          id: `${row.id || uid('test-row')}-${item.product_id || index}`.replace(/[^a-zA-Z0-9_-]/g, '-'),
-          test_id: row.id,
+          id: `${testId}-${item.product_id || index}`.replace(/[^a-zA-Z0-9_-]/g, '-'),
+          test_id: testId,
           product_id: item.product_id || '',
           product_name: item.product_name || '',
           status: item.result || 'pending',
@@ -130,24 +161,21 @@
             item.other_feedback || '',
             item.next_action ? `Tiếp theo: ${item.next_action}` : ''
           ].filter(Boolean).join(' · '),
-          created_at: row.created_at || new Date().toISOString()
+          created_at: row.created_at || now()
         });
       });
     });
 
-    return { tests, items, formsCount: forms.length, rowsCount: rows.length };
+    return { tests, items, rowsCount: rows.length };
   }
 
-  function marketRowsForDb() {
-    const forms = readArray(MARKET_FORM_KEY);
+  function marketRowsForDb(marketFormById) {
     const rows = readArray(MARKET_ROW_KEY);
-    const formById = Object.fromEntries(forms.map((form) => [form.id, form]));
-
     const reports = rows.map((row) => {
-      const form = formById[row.form_id] || {};
+      const form = marketFormById[row.form_id] || {};
       return {
         id: row.id || uid('market-report'),
-        report_date: form.report_date || row.report_date || new Date().toISOString().slice(0, 10),
+        report_date: form.report_date || row.report_date || today(),
         sales: form.sales || row.sales || '',
         market_area: row.area || form.route || '',
         route_name: form.route || '',
@@ -162,43 +190,44 @@
         next_action: row.next_action || '',
         note: [form.title || '', row.customer_name || '', row.customer_phone || '', row.note || ''].filter(Boolean).join(' · '),
         sync_status: 'synced',
-        raw_payload: { form, row },
-        created_at: row.created_at || form.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        synced_at: new Date().toISOString()
+        raw_payload: { form, row, customer_id: stableCustomerId(row, form) },
+        created_at: row.created_at || form.created_at || now(),
+        updated_at: now(),
+        synced_at: now()
       };
     });
-
-    return { reports, formsCount: forms.length, rowsCount: rows.length };
+    return { reports, rowsCount: rows.length };
   }
 
   async function syncLocalToSupabase() {
     const button = $('#syncQueueBtn');
     const status = $('#localDialog .muted-note');
-    if (button) {
-      button.disabled = true;
-      button.textContent = 'Đang đồng bộ...';
-    }
+    if (button) { button.disabled = true; button.textContent = 'Đang đồng bộ...'; }
     try {
-      const test = testRowsForDb();
-      const market = marketRowsForDb();
+      const testForms = readArray(TEST_FORM_KEY);
+      const marketForms = readArray(MARKET_FORM_KEY);
+      const testRows = readArray(TEST_ROW_KEY);
+      const marketRows = readArray(MARKET_ROW_KEY);
+      const testFormById = Object.fromEntries(testForms.map((form) => [form.id, form]));
+      const marketFormById = Object.fromEntries(marketForms.map((form) => [form.id, form]));
+      const customers = collectCustomers(testRows, marketRows, testFormById, marketFormById);
+      const test = testRowsForDb(testFormById);
+      const market = marketRowsForDb(marketFormById);
 
       let count = 0;
+      count += await upsert('customers_master', customers);
       count += await upsert('ona_tests', test.tests);
       count += await upsert('ona_test_items', test.items);
       count += await upsert('market_reports', market.reports);
 
-      if (status) status.textContent = `Đã đẩy ${count} dòng lên Supabase. Test: ${test.rowsCount} khách, Báo cáo: ${market.rowsCount} khách.`;
-      toast(`Đã đồng bộ ${count} dòng lên Supabase.`);
+      if (status) status.textContent = `Đã đẩy ${count} dòng lên Supabase. Khách: ${customers.length}, Test: ${test.rowsCount}, Báo cáo: ${market.rowsCount}.`;
+      toast(`Đã đồng bộ ${count} dòng.`);
     } catch (error) {
       if (status) status.textContent = error.message || 'Đồng bộ lỗi.';
       toast(error.message || 'Đồng bộ lỗi.');
       console.error('Sync Supabase error:', error);
     } finally {
-      if (button) {
-        button.disabled = false;
-        button.textContent = 'Đồng bộ lên Supabase';
-      }
+      if (button) { button.disabled = false; button.textContent = 'Đồng bộ lên Supabase'; }
     }
   }
 
