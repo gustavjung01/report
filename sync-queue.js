@@ -5,6 +5,7 @@ import {
 } from './data-model.js';
 
 import {
+  syncCustomerMaster,
   syncOrder,
   syncOnaTest,
   syncMarketReport,
@@ -13,6 +14,7 @@ import {
 } from './supabase-v2.js';
 
 const SYNC_HANDLERS = Object.freeze({
+  customer_master: syncCustomerMaster,
   order: syncOrder,
   ona_test: syncOnaTest,
   market_report: syncMarketReport,
@@ -85,7 +87,7 @@ async function runSyncItem(item) {
   if (item.type === 'market_report') {
     return handler(payload.report || payload, payload.products || [], payload.competitors || []);
   }
-  return handler(payload);
+  return handler(payload.customer || payload);
 }
 
 export async function flushSyncQueue({ stopOnError = false } = {}) {
