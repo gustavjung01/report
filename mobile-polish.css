@@ -7,7 +7,7 @@
   --amber-soft: #fff4df;
   --rose-soft: #fff1f1;
   --violet-soft: #f5f0ff;
-  --bottom-ui: calc(96px + var(--safe-bottom));
+  --bottom-ui: calc(146px + var(--safe-bottom));
 }
 
 html,
@@ -37,13 +37,24 @@ body {
   position: sticky !important;
   top: 8px !important;
   z-index: 60 !important;
-  min-height: 66px;
+  min-height: 60px;
+  padding: 8px 10px !important;
   box-shadow: 0 16px 34px rgba(17, 36, 32, .13), inset 0 1px 0 #fff;
+}
+
+.app-title strong {
+  font-size: 19px !important;
+}
+
+.app-title small {
+  font-size: 11px !important;
 }
 
 .app-logo {
   display: grid;
   place-items: center;
+  width: 44px !important;
+  height: 44px !important;
   box-shadow: 0 9px 18px rgba(10, 107, 95, .16), inset 0 1px 0 #fff;
   background: linear-gradient(145deg, #fff, var(--green-soft));
 }
@@ -68,24 +79,24 @@ body {
 .screen {
   min-height: 0;
   height: auto !important;
-  margin-top: 12px !important;
+  margin-top: 10px !important;
   overflow: visible !important;
   display: block !important;
 }
 
 .app-page {
   display: none;
-  min-height: calc(100svh - 178px);
+  min-height: calc(100svh - 170px);
   height: auto !important;
   overflow: visible !important;
-  padding: 2px 2px calc(132px + var(--safe-bottom));
+  padding: 2px 2px calc(166px + var(--safe-bottom));
   scroll-margin-top: 92px;
 }
 
 .app-page.is-active {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .page-workspace.is-active {
@@ -97,7 +108,18 @@ body {
 }
 
 .hero-mobile {
-  min-height: 112px;
+  min-height: 86px;
+  padding: 12px !important;
+}
+
+.hero-mobile h1 {
+  font-size: 20px !important;
+  max-width: 205px;
+}
+
+.hero-metrics {
+  min-width: 78px;
+  padding: 8px !important;
 }
 
 .mobile-card,
@@ -163,8 +185,53 @@ body {
   box-shadow: var(--soft-depth), inset 0 1px 0 #fff;
 }
 
+.mobile-card-head {
+  margin-bottom: 9px !important;
+}
+
+.mobile-card-head h2,
+.section-line-title h2 {
+  font-size: 18px !important;
+}
+
+.compact-form {
+  gap: 8px !important;
+}
+
+.mini-field {
+  padding: 8px !important;
+}
+
+input,
+select,
+textarea {
+  min-height: 40px !important;
+  scroll-margin-top: 110px;
+  scroll-margin-bottom: 190px;
+}
+
 .main-action {
   box-shadow: 0 12px 24px rgba(10, 107, 95, .25), inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+
+.page-createSection #reportForm > .main-action {
+  position: fixed !important;
+  left: 50%;
+  bottom: calc(65px + var(--safe-bottom));
+  z-index: 90;
+  width: min(406px, calc(100vw - 24px));
+  min-height: 52px;
+  transform: translateX(-50%);
+  border-radius: 18px;
+  font-size: 16px;
+  box-shadow: 0 18px 42px rgba(10, 107, 95, .35), inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+.keyboard-open.page-createSection #reportForm > .main-action {
+  position: static !important;
+  width: 100%;
+  transform: none;
+  min-height: 48px;
 }
 
 button {
@@ -172,15 +239,11 @@ button {
 }
 
 button:active {
-  transform: var(--tap);
   filter: brightness(.98);
 }
 
-input,
-select,
-textarea {
-  scroll-margin-top: 110px;
-  scroll-margin-bottom: 180px;
+button:not(#reportForm > .main-action):active {
+  transform: var(--tap);
 }
 
 .split-actions button,
@@ -402,7 +465,7 @@ textarea {
 }
 
 .toast {
-  bottom: calc(82px + var(--safe-bottom));
+  bottom: calc(122px + var(--safe-bottom));
 }
 
 .keyboard-open .mobile-tabs,
@@ -417,6 +480,24 @@ textarea {
 
 .keyboard-open .app-page {
   padding-bottom: 220px;
+}
+
+@media (max-height: 690px) {
+  .hero-mobile {
+    display: none !important;
+  }
+
+  .app-bar {
+    min-height: 56px;
+  }
+
+  .app-title span {
+    display: none !important;
+  }
+
+  .page-createSection #reportForm > .main-action {
+    bottom: calc(62px + var(--safe-bottom));
+  }
 }
 
 @media (min-width: 760px) {
