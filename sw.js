@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bepi-field-report-v16';
+const CACHE_NAME = 'bepi-field-report-v17';
 const APP_ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const APP_ASSETS = [
   './fixed-nav.css',
   './app.js',
   './popup-ui.js',
+  './pwa-update.js',
+  './version.json',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/bepi-logo.svg'
@@ -29,19 +31,50 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return cache.match('./index.html');
+  }
+}
+
+async function cacheFirstThenRefresh(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  const fetched = fetch(request)
+    .then((response) => {
+      if (response && response.ok) cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => null);
+  return cached || fetched || cache.match('./index.html');
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'));
-    })
-  );
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isNavigation = event.request.mode === 'navigate';
+  const mustBeFresh = url.pathname.endsWith('/sw.js') || url.pathname.endsWith('/version.json') || url.pathname.endsWith('/index.html');
+
+  if (isNavigation || mustBeFresh) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  event.respondWith(cacheFirstThenRefresh(event.request));
 });
