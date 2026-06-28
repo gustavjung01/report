@@ -40,6 +40,13 @@ function ensureCss() {
   const style = document.createElement('style');
   style.id = 'compactCss';
   style.textContent = `
+    #modal{width:min(420px,calc(100vw - 18px));max-height:calc(100dvh - 18px);overflow:hidden;padding:0;border-radius:18px}
+    #modal::backdrop{background:rgba(8,35,55,.34)}
+    .compact-modal{max-height:calc(100dvh - 18px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0;background:#fff;border-radius:18px}
+    .compact-modal header{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 15px 10px;background:linear-gradient(#fff 82%,rgba(255,255,255,.92));border-bottom:1px solid #edf3f1}
+    .compact-modal h2{font-size:18px;line-height:1.2;margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .compact-modal header button{flex:0 0 auto;border:0;border-radius:999px;background:#eef5f2;padding:8px 12px;color:#082337;font-weight:750}
+    .compact-list{padding:8px 12px 14px}
     .compact-customer{border:1px solid #dce8e5;border-radius:12px;padding:8px 10px;background:#fbfffd;margin-top:7px}
     .compact-customer b{font-size:14px}
     .compact-meta{font-size:11px;color:#63727c;margin-left:6px}
@@ -52,8 +59,7 @@ function ensureCss() {
     .compact-status.bad{background:#fff0ed;color:#c63b2e;border-color:#f3b7ad}
     .compact-note{font-size:11px;color:#63727c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:92px}
     .compact-empty{margin:7px 0 0;font-size:12px;color:#63727c}
-    .compact-modal{gap:7px}
-    .compact-modal h2{font-size:18px}
+    @media(max-width:380px){.compact-product{max-width:104px}.compact-note{max-width:72px}.compact-list{padding-left:9px;padding-right:9px}}
   `;
   document.head.appendChild(style);
 }
@@ -78,7 +84,7 @@ async function openCompact(fileId) {
   const file = tests.find((test) => test.id === fileId);
   const customers = tests.filter((test) => test.raw_payload && test.raw_payload.file_id === fileId);
 
-  let html = `<div class="modal compact-modal"><header><h2>${escapeHtml(file?.customer_name || 'File test')}</h2><button type="button" data-close>Đóng</button></header>`;
+  let html = `<div class="modal compact-modal"><header><h2>${escapeHtml(file?.customer_name || 'File test')}</h2><button type="button" data-close>Đóng</button></header><div class="compact-list">`;
 
   for (const customer of customers) {
     const results = items.filter((item) => item.test_id === customer.id);
@@ -92,7 +98,7 @@ async function openCompact(fileId) {
     `;
   }
 
-  html += `${customers.length ? '' : '<p class="empty">Chưa có khách.</p>'}</div>`;
+  html += `${customers.length ? '' : '<p class="empty">Chưa có khách.</p>'}</div></div>`;
   const modal = query('#modal');
   modal.innerHTML = html;
   modal.showModal();
