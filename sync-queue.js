@@ -36,6 +36,10 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function cacheIdentity(row = {}) {
+  return row.id || row.order?.id || row.test?.id || row.report?.id || row.customer?.id || '';
+}
+
 export function readSyncQueue() {
   const rows = readJson(STORAGE_KEYS_V2.syncQueue, []);
   return Array.isArray(rows) ? rows : [];
@@ -133,9 +137,9 @@ export function readCachedRows(key) {
 
 export function upsertCachedRow(key, row) {
   const rows = readCachedRows(key);
-  const id = row?.id;
+  const id = cacheIdentity(row);
   if (!id) throw new Error('Không thể cache dòng thiếu id.');
-  const index = rows.findIndex((item) => item.id === id);
+  const index = rows.findIndex((item) => cacheIdentity(item) === id);
   if (index >= 0) rows[index] = row;
   else rows.unshift(row);
   cacheRows(key, rows);
@@ -143,7 +147,7 @@ export function upsertCachedRow(key, row) {
 }
 
 export function deleteCachedRow(key, id) {
-  const rows = readCachedRows(key).filter((item) => item.id !== id);
+  const rows = readCachedRows(key).filter((item) => cacheIdentity(item) !== id);
   cacheRows(key, rows);
   return rows;
 }
