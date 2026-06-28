@@ -61,33 +61,23 @@ async function checkVersionFile() {
 
 async function startPwaUpdate() {
   if (!('serviceWorker' in navigator)) return;
-
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (sessionStorage.getItem(PWA_RELOAD_KEY) === '1') return;
     sessionStorage.setItem(PWA_RELOAD_KEY, '1');
     showUpdateToast('Đã cập nhật app, đang mở bản mới...');
     setTimeout(() => location.reload(), 700);
   });
-
   try {
     swRegistration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
     watchInstallingWorker(swRegistration.installing);
     if (swRegistration.waiting) askWorkerToActivate(swRegistration.waiting);
     swRegistration.addEventListener('updatefound', () => watchInstallingWorker(swRegistration.installing));
-
     await checkForUpdate();
     await checkVersionFile();
     clearInterval(updateTimer);
-    updateTimer = setInterval(() => {
-      checkForUpdate();
-      checkVersionFile();
-    }, CHECK_INTERVAL_MS);
-
+    updateTimer = setInterval(() => { checkForUpdate(); checkVersionFile(); }, CHECK_INTERVAL_MS);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        checkForUpdate();
-        checkVersionFile();
-      }
+      if (document.visibilityState === 'visible') { checkForUpdate(); checkVersionFile(); }
     });
   } catch (error) {
     console.warn('Service worker registration failed', error);
@@ -99,4 +89,5 @@ window.addEventListener('load', () => {
   import('./test-module.js').catch((error) => console.warn('Cannot load test module', error));
   import('./market-module.js').catch((error) => console.warn('Cannot load market module', error));
   import('./data-sync-module.js').catch((error) => console.warn('Cannot load data sync module', error));
+  import('./ai-summary-module.js').catch((error) => console.warn('Cannot load summary module', error));
 });
