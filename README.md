@@ -1,72 +1,80 @@
 # Bếp Sỉ Báo Cáo PWA
 
-PWA mobile-first cho sales/thị trường dùng để tạo và quản lý 3 nghiệp vụ riêng:
+Trạng thái hiện tại: **làm lại chuẩn từ module Test trước**.
 
-1. Đơn hàng
-2. Test sản phẩm
-3. Báo cáo thị trường
+## Nguyên tắc mới
 
-AI là tầng tổng hợp dữ liệu đã tạo để làm báo cáo trình công ty. App không phải bản mock UI: dữ liệu được lưu thật vào local database trên máy và đồng bộ lên Supabase khi có mạng.
+- Không phát triển kiểu landing page.
+- Mỗi nghiệp vụ phải là một module/trang rõ ràng.
+- Tạo dữ liệu bằng popup gọn.
+- Sau khi tạo xong, thao tác chi tiết nằm ở trang Dữ liệu.
+- Local DB chỉ là cache/hàng đợi offline.
+- Supabase là nguồn đồng bộ trung tâm khi đã cấu hình Vercel env.
 
-## Nguyên tắc dữ liệu
+## Module đang ưu tiên: Test sản phẩm
 
-- **Local DB bắt buộc:** app dùng IndexedDB (`bep-si-report-local-db`), không dùng `localStorage` làm nơi lưu nghiệp vụ chính.
-- **Offline-first:** sales có thể nhập đơn/test/báo cáo khi mất mạng.
-- **Sync queue:** mỗi bản ghi mới được đưa vào hàng đợi đồng bộ.
-- **Supabase là kho trung tâm:** khi có mạng và đã cấu hình URL/key, app tự đẩy queue lên Supabase và kéo dữ liệu mới về máy.
-- **Không trộn nghiệp vụ:** đơn hàng, phiếu test và báo cáo thị trường nằm ở các bảng riêng.
-- **AI tổng hợp:** đọc dữ liệu thật từ Local DB/Supabase, không còn số liệu mẫu cứng.
+Luồng Test chuẩn:
 
-## Bảng dữ liệu Supabase
+1. Tạo file test tổng.
+2. Nhập thủ công sản phẩm cần test.
+3. Không lấy danh sách sản phẩm Bếp Sỉ.
+4. Sang Dữ liệu test.
+5. Mở file test, bấm Thao tác.
+6. Thêm khách vào file test.
+7. Mỗi khách chỉ test các sản phẩm đã chọn trong file tổng.
 
-App đang dùng các bảng sau:
+## File runtime hiện tại
 
-- `products`
-- `customers_master`
-- `orders`
-- `order_items`
-- `ona_tests`
-- `ona_test_items`
-- `market_reports`
-- `market_report_products`
-- `market_report_competitors`
-- `ai_summaries`
-- `exports`
+- `index.html`: shell mobile.
+- `test-first-app.js`: runtime Test-first hiện đang chạy.
+- `local-db.js`: IndexedDB hiện tại.
+- `supabase-v2.js`: kết nối Supabase.
+- `api/config.js`: đọc env từ Vercel.
+- `api/ai-report.js`: endpoint AI thật.
+- `sw.js`: service worker cache runtime Test-first.
 
-## Luồng sử dụng ngoài thị trường
+## Cấu trúc mục tiêu
 
-1. Mở app trên điện thoại.
-2. Vào **Tạo**.
-3. Chọn đúng nghiệp vụ: **Đơn hàng**, **Test sản phẩm**, hoặc **Báo cáo thị trường**.
-4. Bấm lưu. Dữ liệu được ghi vào IndexedDB ngay lập tức.
-5. Nếu có mạng và đã nối Supabase, app tự đồng bộ.
-6. Vào **Dữ liệu** để xem trạng thái từng card: `Chờ sync`, `Đã đồng bộ`, hoặc `Lỗi sync`.
-7. Vào **AI** để tổng hợp báo cáo từ dữ liệu thật đã tạo.
+```text
+src/
+  app.js
+  db.js
+  supabase.js
+  styles.css
+  modules/
+    test/
+      test.module.js
+      test.store.js
+      test.ui.js
+    orders/
+    market/
+    ai/
+api/
+icons/
+index.html
+manifest.webmanifest
+sw.js
+```
 
-## Cấu hình Supabase
+## Việc cần dọn tiếp
 
-Trong app vào **Admin → Supabase**:
+Một số file root cũ còn tồn tại vì connector GitHub chặn thao tác xóa trong phiên này. Các file đó không được `index.html` hoặc `sw.js` gọi nữa. Khi thao tác local, nên xóa sạch các file legacy không còn dùng.
 
-1. Dán Project URL, ví dụ `https://xxxxx.supabase.co`.
-2. Dán publishable/anon key.
-3. Chỉ dùng public key phù hợp cho frontend PWA; không đưa private/server key vào app.
-4. Bấm **Lưu DB**.
-5. Bấm **Đồng bộ lại** trong **Dữ liệu máy** nếu cần đẩy lại queue.
+Các file legacy cần bỏ khi dọn local:
 
-## Deploy Vercel
+- `core-app.js`
+- `core-test-app.js`
+- `app-shell-v2.css` nếu còn
+- `flow-stability.js` nếu còn
+- `runtime-fix.js` nếu còn
+- `ai-bridge.js` nếu còn
+- các CSS/module cũ còn sót từ phase trước
 
-App là static PWA thuần, không cần build:
+## Deploy
 
-- Framework Preset: `Other`
-- Root Directory: `./`
-- Build Command: để trống
-- Output Directory: để trống
-- Install Command: để trống
-
-## Quy trình 2 repo
-
-Repo nguồn: `gustavjung01/report`.
-
-Repo deploy Vercel: `minhmannguyengdp-sketch/report-02`.
-
-Sau khi sửa repo nguồn, ở local chạy lệnh fetch/reset từ origin main rồi push sang remote deploy bằng force-with-lease.
+```powershell
+cd "F:\1_A_Disk_D\Tool\report"
+git fetch origin main
+git reset --hard origin/main
+git push deploy main --force-with-lease
+```
