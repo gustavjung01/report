@@ -3,6 +3,7 @@ import './compact-detail.js?v=test-detail-width-1';
 import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
+import './modal-form-ui.js';
 import './data-hub-shell.js';
 import './mcp-ui-shell.js';
 import './order-ui.js';
