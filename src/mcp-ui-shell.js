@@ -1,12 +1,12 @@
 import './business-ui-shells.js';
-import { makeMcpRoute, makeMcpRouteCustomer, makeMcpVisit, todayIsoDate } from '../data-model.js';
+import { makeMcpRouteCustomer } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, putLocal } from '../local-db.js';
+import { getActiveMcpSessionDetail, recalcMcpRouteSession, upsertMcpVisitForSession } from './mcp-core.js';
 
 const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-const statusLabel = { todo: 'Chưa ghé', done: 'Đã ghé', order: 'Có đơn', test: 'Có test', no: 'Không mua' };
-const statusNote = { done: 'Đã check-in', order: 'Đánh dấu có đơn', test: 'Đánh dấu có test', no: 'Đã ghé nhưng không mua' };
+const statusLabel = { todo: 'Chưa ghé', done: 'Đã ghé', checked_in: 'Đã ghé', order: 'Có đơn', test: 'Có test', report: 'Có báo cáo', no: 'Không mua', no_buy: 'Không mua', follow_up: 'Theo dõi', skipped: 'Bỏ qua' };
+const statusNote = { done: 'Đã check-in', checked_in: 'Đã check-in', order: 'Đánh dấu có đơn', test: 'Đánh dấu có test', report: 'Đánh dấu có báo cáo', no: 'Đã ghé nhưng không mua', no_buy: 'Đã ghé nhưng không mua' };
 let activeFilter = 'all';
-let activeRouteId = '';
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -23,10 +23,6 @@ function toast(message) {
 
 function css() { /* Shell styles are preloaded from polish.css to avoid first-load reflow. */ }
 
-function todayWeekday() {
-  return new Date().getDay();
-}
-
 function page() {
   if (document.querySelector('section.page[data-page="mcp"]')) return;
   const main = document.querySelector('main');
@@ -34,28 +30,19 @@ function page() {
   main.insertAdjacentHTML('beforeend', '<section class="page mcp-page" data-page="mcp"></section>');
 }
 
-async function ensureRoute() {
-  const weekday = todayWeekday();
-  const routes = await getAllLocal(LOCAL_STORES.mcpRoutes);
-  const activeRoutes = routes.filter((route) => route.active !== false && Number(route.weekday) === weekday);
-  const route = activeRoutes[0] || makeMcpRoute({ route_name: 'Tuyến A', weekday, area: 'Khu vực hôm nay', note: 'Tuyến mặc định, có thể thêm khách ngay.' });
-  if (!activeRoutes.length) await putLocal(LOCAL_STORES.mcpRoutes, route);
-  activeRouteId = activeRouteId || route.id;
-  return routes.find((item) => item.id === activeRouteId) || route;
-}
-
 async function loadState() {
-  const route = await ensureRoute();
-  const [customers, visits] = await Promise.all([
-    getAllLocal(LOCAL_STORES.mcpRouteCustomers),
-    getAllLocal(LOCAL_STORES.mcpVisits)
-  ]);
-  const today = todayIsoDate();
-  const routeCustomers = customers
-    .filter((customer) => customer.route_id === route.id && customer.active !== false)
-    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0) || String(a.customer_name).localeCompare(String(b.customer_name), 'vi'));
-  const todayVisits = visits.filter((visit) => visit.route_id === route.id && visit.visit_date === today);
-  return { route, customers: routeCustomers, visits: todayVisits, today };
+  const detail = await getActiveMcpSessionDetail();
+  if (!detail) return null;
+  const session = detail.session;
+  const route = detail.route || { id: session.route_id, route_name: session.route_name, area: session.area };
+  return {
+    session,
+    route,
+    customers: detail.customers,
+    visits: detail.visits,
+    stats: detail.stats,
+    today: session.session_date
+  };
 }
 
 function visitFor(customer, visits) {
@@ -67,6 +54,8 @@ function statusOf(customer, visits) {
   if (!visit) return 'todo';
   if (visit.status === 'order' || visit.has_order) return 'order';
   if (visit.status === 'test' || visit.has_test) return 'test';
+  if (visit.status === 'report' || visit.has_report) return 'report';
+  if (visit.status === 'no_buy') return 'no';
   return visit.status || 'done';
 }
 
@@ -86,7 +75,7 @@ function renderCards(customers, visits) {
   });
 
   if (!customers.length) {
-    return '<p class="mcp-empty">Chưa có khách trong tuyến. Bấm + Khách để thêm khách đầu tiên.</p>';
+    return '<p class="mcp-empty">Tuyến này chưa có khách. Bấm + Khách để thêm khách đầu tiên.</p>';
   }
   if (!filtered.length) return '<p class="mcp-empty">Không có khách trong bộ lọc này.</p>';
 
@@ -106,14 +95,20 @@ function renderCards(customers, visits) {
   }).join('');
 }
 
+function renderNoSession(section) {
+  section.innerHTML = `<article class="mcp-route-card"><div class="mcp-route-main"><small>Chưa chọn phiên tuyến</small><b>MCP tuyến</b><p>Chọn ngày và tuyến trước khi thao tác khách.</p></div><div class="mcp-score"><span><b>0</b> khách</span><span><b>0</b> ghé</span></div></article><div class="mcp-list-wrap"><div class="mcp-list"><p class="mcp-empty">Chưa có phiên MCP đang mở. Bấm nút bên dưới để chọn ngày/tuyến.</p><button type="button" class="primary wide" data-mcp-start>Chọn / bắt đầu tuyến</button></div></div>`;
+}
+
 async function render() {
   const section = document.querySelector('section.page[data-page="mcp"]');
   if (!section) return;
-  const { route, customers, visits, today } = await loadState();
+  const state = await loadState();
+  if (!state) return renderNoSession(section);
+  const { session, route, customers, visits, today } = state;
   const done = customers.filter((customer) => statusOf(customer, visits) !== 'todo').length;
   const order = statCount(customers, visits, 'order');
   const test = statCount(customers, visits, 'test');
-  const weekday = weekdayNames[todayWeekday()] || 'Hôm nay';
+  const weekday = weekdayNames[Number(session.weekday)] || 'Phiên tuyến';
   const filters = [
     ['all', 'Tất cả'],
     ['todo', 'Chưa ghé'],
@@ -123,9 +118,9 @@ async function render() {
     ['no', 'Không mua']
   ];
 
-  section.innerHTML = `<article class="mcp-route-card"><div class="mcp-route-main"><small>${esc(weekday)} · ${esc(today)}</small><b>${esc(route.route_name)} · ${esc(route.area || 'Chưa đặt khu vực')}</b><p>Tuyến hôm nay, khách trong tuyến và trạng thái ghé.</p></div><div class="mcp-score"><span><b>${customers.length}</b> khách</span><span><b>${done}</b> ghé</span></div></article>
+  section.innerHTML = `<article class="mcp-route-card"><div class="mcp-route-main"><small>${esc(weekday)} · ${esc(today)}</small><b>${esc(route.route_name || session.route_name || 'Tuyến')} · ${esc(route.area || session.area || 'Chưa đặt khu vực')}</b><p>Phiên MCP đang thao tác.</p></div><div class="mcp-score"><span><b>${customers.length}</b> khách</span><span><b>${done}</b> ghé</span></div></article>
     <div class="mcp-stats"><div class="mcp-stat"><b>${customers.length}</b><span>Khách</span></div><div class="mcp-stat"><b>${done}</b><span>Đã ghé</span></div><div class="mcp-stat"><b>${order}</b><span>Có đơn</span></div><div class="mcp-stat"><b>${test}</b><span>Có test</span></div></div>
-    <div class="mcp-list-wrap"><div class="mcp-filters"><button type="button" class="mcp-filter mcp-add" data-mcp-add-customer>+ Khách</button>${filters.map(([value, label]) => `<button type="button" class="mcp-filter ${activeFilter === value ? 'active' : ''}" data-mcp-filter="${value}">${label}</button>`).join('')}</div><div class="mcp-list">${renderCards(customers, visits)}</div></div>`;
+    <div class="mcp-list-wrap"><div class="mcp-filters"><button type="button" class="mcp-filter mcp-add" data-mcp-add-customer>+ Khách</button><button type="button" class="mcp-filter" data-mcp-start>Đổi tuyến</button>${filters.map(([value, label]) => `<button type="button" class="mcp-filter ${activeFilter === value ? 'active' : ''}" data-mcp-filter="${value}">${label}</button>`).join('')}</div><div class="mcp-list">${renderCards(customers, visits)}</div></div>`;
 }
 
 function openCustomerModal() {
@@ -139,41 +134,42 @@ function openCustomerModal() {
 
 async function saveCustomer(event) {
   event.preventDefault();
-  const route = await ensureRoute();
+  const state = await loadState();
+  if (!state) return toast('Chọn phiên tuyến trước khi thêm khách.');
   const customers = await getAllLocal(LOCAL_STORES.mcpRouteCustomers);
-  const current = customers.filter((customer) => customer.route_id === route.id);
+  const current = customers.filter((customer) => customer.route_id === state.session.route_id);
   const name = document.querySelector('#mcpCustomerName')?.value.trim();
   if (!name) return toast('Nhập tên khách trước đã.');
   const row = makeMcpRouteCustomer({
-    route_id: route.id,
+    route_id: state.session.route_id,
     customer_name: name,
     phone: document.querySelector('#mcpCustomerPhone')?.value,
-    area: document.querySelector('#mcpCustomerArea')?.value || route.area,
+    area: document.querySelector('#mcpCustomerArea')?.value || state.route.area || state.session.area,
     address: document.querySelector('#mcpCustomerAddress')?.value,
     note: document.querySelector('#mcpCustomerNote')?.value,
     sort_order: current.length + 1
   });
   await putLocal(LOCAL_STORES.mcpRouteCustomers, row);
+  await recalcMcpRouteSession(state.session.id);
   document.querySelector('#modal')?.close();
   await render();
   toast('Đã thêm khách vào tuyến.');
 }
 
 async function setVisitStatus(customerId, status) {
-  const { route, visits, today } = await loadState();
-  const existing = visits.find((visit) => visit.route_customer_id === customerId);
-  const visit = makeMcpVisit({
+  const state = await loadState();
+  if (!state) return toast('Chọn phiên tuyến trước khi cập nhật.');
+  const existing = state.visits.find((visit) => visit.route_customer_id === customerId);
+  await upsertMcpVisitForSession({
     ...(existing || {}),
-    id: existing?.id || `mcp-visit-${today}-${customerId}`,
-    route_id: route.id,
+    session_id: state.session.id,
     route_customer_id: customerId,
-    visit_date: today,
     status,
-    has_order: status === 'order',
-    has_test: status === 'test',
-    note: statusNote[status] || ''
+    has_order: status === 'order' || existing?.has_order,
+    has_test: status === 'test' || existing?.has_test,
+    has_report: status === 'report' || existing?.has_report,
+    note: statusNote[status] || existing?.note || ''
   });
-  await putLocal(LOCAL_STORES.mcpVisits, visit);
   await render();
   toast(statusLabel[status] ? `Đã cập nhật: ${statusLabel[status]}` : 'Đã cập nhật trạng thái.');
 }
@@ -212,5 +208,6 @@ document.addEventListener('submit', (event) => {
   saveCustomer(event);
 });
 
+window.addEventListener('mcp:session-changed', () => render());
 boot();
 window.addEventListener('DOMContentLoaded', boot);
