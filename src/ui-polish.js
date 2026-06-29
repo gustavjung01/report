@@ -106,6 +106,5 @@ function focus(){
 }
 
 addCss();
+focus();
 window.addEventListener('DOMContentLoaded',focus);
-setTimeout(focus,300);
-setTimeout(focus,1200);
