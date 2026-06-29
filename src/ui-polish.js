@@ -9,6 +9,7 @@ import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
 import './mcp-order-actions.js?v=mcp-order-compact-1';
+import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
