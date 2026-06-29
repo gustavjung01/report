@@ -1,4 +1,4 @@
-const CACHE_NAME='bep-si-report-local-only-v54';
+const CACHE_NAME='bep-si-report-local-only-v55';
 const ASSETS=['./','./index.html','./test-first-app.js','./src/ui-polish.js','./src/test-pull.js','./src/compact-detail.js','./src/app-update.js','./src/test-export.js','./src/modal-scroll-fix.js','./src/mcp-ui-shell.js','./src/business-ui-shells.js','./src/data-hub-shell.js','./src/data-hub-force.js','./src/polish.css','./data-model.js','./local-db.js','./manifest.webmanifest','./icons/icon.svg','./icons/bepi-logo.svg','./favicon.ico'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
