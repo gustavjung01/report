@@ -3,12 +3,13 @@ import './compact-detail.js';
 import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
+import './mcp-ui-shell.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=home-dashboard-1';
+  l.href='src/polish.css?v=mcp-shell-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -21,7 +22,7 @@ function addCss(){
     .hero,.tabs{display:none!important}
     .card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     .card *,.nav button *{pointer-events:none!important}
-    .test-actions *,.admin-actions *,.modal *{pointer-events:auto!important}
+    .test-actions *,.admin-actions *,.modal *,.mcp-page *{pointer-events:auto!important}
   `;
 }
 
@@ -32,6 +33,7 @@ function ensureMcpCard(){
   card.type='button';
   card.className='card home-card card-mcp';
   card.dataset.homeCard='mcp';
+  card.dataset.page='mcp';
   card.innerHTML='<i>🧭</i><b>MCP tuyến</b><small>Tuyến hôm nay và trạng thái ghé.</small><em>Xem UI</em>';
   grid.insertBefore(card,grid.firstElementChild);
 }
@@ -46,6 +48,7 @@ function tuneHomeCards(){
 
     if(c.dataset.homeCard==='mcp'||t.includes('MCP')){
       c.classList.add('card-mcp');
+      c.dataset.page='mcp';
       if(i)i.textContent='🧭';
       if(b)b.textContent='MCP tuyến';
       if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.';
