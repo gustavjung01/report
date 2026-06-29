@@ -24,24 +24,23 @@ async function table(name) {
 export async function pullTestFromSupabase() {
   await openLocalDb();
   if (!(await loadCfg())) return false;
+
   const files = await table('test_files');
   const products = await table('test_file_products');
   const customers = await table('test_customers');
   const results = await table('test_customer_results');
+
   const tests = [];
   for (const f of files) tests.push(makeOnaTest({ id: f.id, test_date: f.test_date || todayIsoDate(), sales: f.sales || '', customer_name: f.title || 'File test', overall_status: 'pending', overall_note: f.note || '', sync_status: 'synced', created_at: f.created_at, updated_at: f.updated_at, raw_payload: { kind: 'test_file' } }));
   for (const c of customers) tests.push(makeOnaTest({ id: c.id, test_date: String(c.created_at || todayIsoDate()).slice(0, 10), sales: '', customer_name: c.customer_name || '', customer_phone: c.phone || '', area: c.area || '', overall_status: c.status || 'pending', overall_note: c.note || '', sync_status: 'synced', created_at: c.created_at, updated_at: c.updated_at, raw_payload: { kind: 'test_customer', file_id: c.file_id } }));
+
   const items = [];
   for (const p of products) items.push(makeOnaTestItem({ id: p.id, test_id: p.file_id, product_id: p.id, product_name: p.product_name || '', status: 'pending', note: '', created_at: p.created_at, updated_at: p.updated_at, raw_payload: { kind: 'selected_product', source: 'supabase' } }));
   for (const r of results) items.push(makeOnaTestItem({ id: r.id, test_id: r.customer_id, product_id: r.product_id || '', product_name: r.product_name || '', status: r.status || 'pending', note: r.note || '', created_at: r.created_at, updated_at: r.updated_at }));
+
   await putManyLocal(LOCAL_STORES.onaTests, tests);
   await putManyLocal(LOCAL_STORES.onaTestItems, items);
   return true;
 }
 
 await pullTestFromSupabase().catch((error) => console.warn('pull test failed', error));
-document.addEventListener('click', async (event) => {
-  if (!event.target.closest('#syncBtn')) return;
-  const ok = await pullTestFromSupabase().catch(() => false);
-  if (ok) setTimeout(() => location.reload(), 250);
-}, true);
