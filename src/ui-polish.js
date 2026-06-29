@@ -11,7 +11,7 @@ import './data-hub-shell.js?v=ui-boundary-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-import-ui.js?v=mcp-import-1';
 import './order-ui.js?v=home-card-selector-fix-1';
-import './business-ui-shells.js?v=ui-report-scope-1';
+import './business-ui-shells.js?v=mcp-order-1';
 import './ai-agent-settings.js';
 
 function addCss(){
