@@ -32,6 +32,12 @@ function activateMcpPage() {
   window.dispatchEvent(new CustomEvent('mcp:session-changed'));
 }
 
+async function openMcpSession(sessionId) {
+  if (!sessionId) return;
+  await setActiveMcpRouteSessionId(sessionId);
+  activateMcpPage();
+}
+
 async function sessionCard(session) {
   const detail = await getMcpSessionDetail(session.id);
   const stats = detail?.stats || session;
@@ -42,7 +48,7 @@ async function sessionCard(session) {
   const orders = Number(stats.order_count || 0);
   const tests = Number(stats.test_count || 0);
   const reports = Number(stats.report_count || 0);
-  return `<article class="data-shell-card mcp-session-card" data-mcp-session-id="${esc(session.id)}"><div class="shell-card-head"><div><h3>${esc(formatDate(session.session_date))} · ${esc(routeName)}</h3><small>${esc(area)}${session.sales ? ` · Sales: ${esc(session.sales)}` : ''}</small><small>${planned} khách · ${visited} đã ghé · ${orders} đơn · ${tests} test · ${reports} báo cáo</small></div><span class="shell-badge green">${esc(session.status || 'active')}</span></div><div class="shell-actions"><button type="button" class="primary-lite" data-mcp-open-session="${esc(session.id)}">Mở phiên</button><button type="button" data-mcp-open-session="${esc(session.id)}">Chi tiết</button></div></article>`;
+  return `<article class="data-shell-card mcp-session-card" data-mcp-session-id="${esc(session.id)}" role="button" tabindex="0"><div class="shell-card-head"><div><h3>${esc(formatDate(session.session_date))} · ${esc(routeName)}</h3><small>${esc(area)}${session.sales ? ` · Sales: ${esc(session.sales)}` : ''}</small><small>${planned} khách · ${visited} đã ghé · ${orders} đơn · ${tests} test · ${reports} báo cáo</small></div><span class="shell-badge green">${esc(session.status || 'active')}</span></div><div class="shell-actions"><button type="button" class="primary-lite" data-mcp-open-session="${esc(session.id)}">Mở phiên</button><button type="button" data-mcp-open-session="${esc(session.id)}">Chi tiết</button></div></article>`;
 }
 
 async function renderMcpShell(shell) {
@@ -52,7 +58,7 @@ async function renderMcpShell(shell) {
   const todaySessions = activeSessions.filter((session) => session.session_date === today);
   const doneSessions = activeSessions.filter((session) => session.status === 'done').length;
   const cards = await Promise.all(activeSessions.map(sessionCard));
-  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${activeSessions.length}</b><span>Phiên tuyến</span></div><div class="data-shell-kpi"><b>${todaySessions.length}</b><span>Hôm nay</span></div><div class="data-shell-kpi"><b>${doneSessions}</b><span>Đã chốt</span></div></div><article class="data-shell-card data-shell-open-card"><h3>Dữ liệu MCP theo phiên tuyến</h3><small>Mỗi dòng là một ngày đi tuyến. Bấm “Mở phiên” để xem lại hoặc thao tác khách của đúng ngày đó.</small><button type="button" class="secondary data-shell-open-btn" data-mcp-start>Bắt đầu phiên mới</button></article><div class="data-shell-list">${cards.join('') || '<p class="data-shell-note">Chưa có phiên MCP. Bấm “Bắt đầu phiên mới” để chọn ngày/tuyến.</p>'}</div>`;
+  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${activeSessions.length}</b><span>Phiên tuyến</span></div><div class="data-shell-kpi"><b>${todaySessions.length}</b><span>Hôm nay</span></div><div class="data-shell-kpi"><b>${doneSessions}</b><span>Đã chốt</span></div></div><article class="data-shell-card data-shell-open-card"><h3>Dữ liệu MCP theo phiên tuyến</h3><small>Mỗi dòng là một ngày đi tuyến. Bấm vào cả card phiên tuyến để mở đúng MCP detail.</small><button type="button" class="secondary data-shell-open-btn" data-mcp-start>Bắt đầu phiên mới</button></article><div class="data-shell-list">${cards.join('') || '<p class="data-shell-note">Chưa có phiên MCP. Bấm “Bắt đầu phiên mới” để chọn ngày/tuyến.</p>'}</div>`;
 }
 
 async function renderOrderShell(shell) {
@@ -132,8 +138,14 @@ document.addEventListener('click', async (event) => {
   if (sessionButton) {
     event.preventDefault();
     event.stopImmediatePropagation();
-    await setActiveMcpRouteSessionId(sessionButton.dataset.mcpOpenSession);
-    activateMcpPage();
+    await openMcpSession(sessionButton.dataset.mcpOpenSession);
+    return;
+  }
+  const sessionCardElement = event.target.closest('#dataShell [data-mcp-session-id]');
+  if (sessionCardElement) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    await openMcpSession(sessionCardElement.dataset.mcpSessionId);
     return;
   }
   const button = event.target.closest('#dataHub [data-data-view]');
@@ -141,6 +153,14 @@ document.addEventListener('click', async (event) => {
   event.preventDefault();
   apply(button.dataset.dataView);
 }, true);
+
+document.addEventListener('keydown', async (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const sessionCardElement = event.target.closest?.('#dataShell [data-mcp-session-id]');
+  if (!sessionCardElement) return;
+  event.preventDefault();
+  await openMcpSession(sessionCardElement.dataset.mcpSessionId);
+});
 
 ensure();
 window.addEventListener('DOMContentLoaded', ensure);
