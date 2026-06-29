@@ -23,7 +23,7 @@ function weekdayFromDate(value) {
 }
 
 function activateMcpPage() {
-  document.querySelectorAll('.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'mcp'));
+  document.querySelectorAll('section.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'mcp'));
   document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.page === 'create'));
   const subtitle = document.querySelector('#subtitle');
   if (subtitle) subtitle.textContent = 'MCP tuyến';
@@ -134,8 +134,8 @@ async function startSession(event) {
 
 document.addEventListener('click', (event) => {
   const startButton = event.target.closest('[data-mcp-start]');
-  const mcpPageEntry = event.target.closest('[data-page="mcp"]');
-  if (startButton || (mcpPageEntry && !event.target.closest('section.page[data-page="mcp"]'))) {
+  const homeMcpCard = event.target.closest('section.page[data-page="create"] .home-card[data-page="mcp"]');
+  if (startButton || homeMcpCard) {
     event.preventDefault();
     event.stopImmediatePropagation();
     openMcpStartModal();
