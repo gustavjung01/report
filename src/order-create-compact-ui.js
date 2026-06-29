@@ -63,6 +63,10 @@ function mountOrderCreateCompactUi() {
       font-size:16px!important;
       line-height:1.2!important;
     }
+    #modal[data-type="order-create"] select{
+      cursor:pointer!important;
+      touch-action:manipulation!important;
+    }
     #modal[data-type="order-create"] textarea{
       min-height:54px!important;
       resize:vertical!important;
@@ -82,11 +86,13 @@ function mountOrderCreateCompactUi() {
       padding-right:6px!important;
     }
     #modal[data-type="order-create"] #orderProvince,
-    #modal[data-type="order-create"] #orderDistrict,
-    #modal[data-type="order-create"] #orderGeoText{
-      min-height:36px!important;
+    #modal[data-type="order-create"] #orderDistrict{
+      min-height:40px!important;
+      font-weight:900!important;
+      padding-right:8px!important;
     }
     #modal[data-type="order-create"] #orderGeoText{
+      min-height:36px!important;
       font-size:14px!important;
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;
     }
