@@ -3,6 +3,7 @@ import './compact-detail.js';
 import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
+import './data-hub-shell.js';
 import './mcp-ui-shell.js';
 import './business-ui-shells.js';
 import './ai-agent-settings.js';
