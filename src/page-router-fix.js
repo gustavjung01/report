@@ -14,9 +14,15 @@ function setPage(page) {
   return true;
 }
 
+function isExplicitPageTrigger(element) {
+  if (!element || !element.matches?.('[data-page]')) return false;
+  if (element.matches('section.page')) return false;
+  return element.matches('button, a, [role="button"], .card, .home-card, .nav button, .head button');
+}
+
 document.addEventListener('click', (event) => {
-  const trigger = event.target.closest('[data-page]');
-  if (!trigger) return;
+  const trigger = event.target.closest('button[data-page], a[data-page], [role="button"][data-page], .card[data-page], .home-card[data-page], .nav button[data-page], .head button[data-page]');
+  if (!isExplicitPageTrigger(trigger)) return;
   const target = trigger.dataset.page;
   if (!shellPages[target]) return;
   if (!setPage(target)) return;
@@ -26,5 +32,5 @@ document.addEventListener('click', (event) => {
 
 window.addEventListener('DOMContentLoaded', () => {
   const active = document.querySelector('.page.active')?.dataset.page;
-  if (active) setPage(active);
+  if (active && shellPages[active]) setPage(active);
 });
