@@ -8,4 +8,5 @@ function reportCards(){return [['Khu Chợ Lớn','Đối thủ giảm giá trà
 function wireHomeCards(){document.querySelectorAll('.card').forEach(c=>{const t=c.textContent||'';if(t.includes('Đơn hàng')){c.removeAttribute('data-open');c.dataset.page='order-shell'}if(t.includes('Báo cáo thị trường')||t.includes('Báo cáo')){c.removeAttribute('data-open');c.dataset.page='report-shell'}})}
 function boot(){css();orderPage();reportPage();wireHomeCards()}
 document.addEventListener('click',e=>{if(e.target.closest('[data-shell-demo]')){e.preventDefault();toast('Đây là UI demo, chưa nối logic nghiệp vụ.')}},true);
-window.addEventListener('DOMContentLoaded',boot);setTimeout(boot,250);setTimeout(boot,1000);setTimeout(wireHomeCards,1500);
+boot();
+window.addEventListener('DOMContentLoaded',boot);
