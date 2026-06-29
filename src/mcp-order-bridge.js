@@ -30,7 +30,7 @@ function mountMcpOrderBridgeStyle() {
     document.head.appendChild(style);
   }
   style.textContent = `
-    section.page[data-page="mcp"] [data-mcp-create-order]{border-color:#ffd8a8!important;background:#fff8ef!important;color:#b95f00!important}
+    section.page[data-page="mcp"] .mcp-actions [data-mcp-create-order]{border-color:#ffd8a8!important;background:#fff8ef!important;color:#b95f00!important}
     #modal[data-type="mcp-order"] .modal{max-height:calc(100dvh - 26px);overflow:auto}
     #modal[data-type="mcp-order"] .mcp-order-source{border:1px solid #ffd8a8;border-radius:14px;background:#fff8ef;padding:10px;color:#7b3f00;font-size:12px;line-height:1.35}
     #modal[data-type="mcp-order"] .mcp-order-line{display:grid;grid-template-columns:minmax(0,1.35fr) 54px 78px 34px;gap:6px;align-items:center}
@@ -45,16 +45,24 @@ function ensureMcpOrderButtons() {
   const section = document.querySelector('section.page[data-page="mcp"]');
   if (!section) return;
   section.querySelectorAll('.mcp-customer[data-customer-id]').forEach((card) => {
-    if (card.querySelector('[data-mcp-create-order]')) return;
     const customerId = card.dataset.customerId || '';
-    const target = card.querySelector('.mcp-manage-actions') || card.querySelector('.mcp-actions');
-    if (!target || !customerId) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.dataset.mcpCreateOrder = '1';
-    button.dataset.customerId = customerId;
-    button.textContent = '+ Đơn';
-    target.appendChild(button);
+    if (!customerId) return;
+    const oldLoose = card.querySelector('.mcp-manage-actions [data-mcp-create-order]');
+    if (oldLoose) oldLoose.remove();
+    const statusOrder = card.querySelector('.mcp-actions [data-mcp-status="order"]');
+    if (statusOrder) {
+      statusOrder.removeAttribute('data-mcp-status');
+      statusOrder.dataset.mcpCreateOrder = '1';
+      statusOrder.dataset.customerId = customerId;
+      statusOrder.textContent = '+ Đơn';
+      return;
+    }
+    const existing = card.querySelector('.mcp-actions [data-mcp-create-order]');
+    if (existing) {
+      existing.dataset.customerId = customerId;
+      existing.textContent = '+ Đơn';
+      return;
+    }
   });
 }
 
