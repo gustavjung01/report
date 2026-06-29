@@ -1,3 +1,5 @@
+setTimeout(() => import('./mcp-order-actions.js?v=mcp-order-safe-1').catch(() => {}), 0);
+
 function mountMcpCustomerManageStyle() {
   let style = document.querySelector('style[data-mcp-customer-manage]');
   if (!style) {
