@@ -90,7 +90,9 @@ function nowIso() {
 }
 
 function needsSync(row = {}) {
-  return row.sync_status !== 'synced' || !row.synced_at;
+  if (row.sync_status !== 'synced' || !row.synced_at) return true;
+  const changedAt = row.updated_at || row.created_at || '';
+  return Boolean(changedAt && String(changedAt) > String(row.synced_at));
 }
 
 function pickColumns(row = {}, columns = [], syncedAt = '') {
