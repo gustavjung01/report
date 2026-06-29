@@ -2,8 +2,9 @@ import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
 
 const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
-const mock = { order: [['8', 'Đơn'], ['5.4tr', 'Doanh số'], ['3', 'Chờ xác nhận']], report: [['6', 'Báo cáo'], ['4', 'Đối thủ'], ['2', 'Cơ hội']] };
+const mock = { report: [['6', 'Báo cáo'], ['4', 'Đối thủ'], ['2', 'Cơ hội']] };
 const statusLabel = { todo: 'Chưa ghé', done: 'Đã ghé', order: 'Có đơn', test: 'Có test', no: 'Không mua' };
+const money = new Intl.NumberFormat('vi-VN');
 let active = 'test';
 
 function esc(value = '') {
@@ -11,6 +12,11 @@ function esc(value = '') {
 }
 
 function css() { /* Shell styles are preloaded from polish.css to avoid first-load reflow. */ }
+
+function formatMoney(value) {
+  const amount = Number(value || 0);
+  return amount ? `${money.format(amount)}đ` : '0đ';
+}
 
 function visitStatus(customer, visits) {
   const visit = visits.find((row) => row.route_customer_id === customer.id);
@@ -40,6 +46,26 @@ async function renderMcpShell(shell) {
       return `<article class="data-shell-card"><h3>${esc(customer.customer_name)}</h3><small>${esc(statusLabel[status] || status)} · ${esc(customer.area || route?.area || '')}</small></article>`;
     }).join('') || '<p class="data-shell-note">Chưa có khách MCP. Vào Home → MCP tuyến → + Khách để thêm.</p>';
   shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${routeCustomers.length}</b><span>Khách tuyến</span></div><div class="data-shell-kpi"><b>${done}</b><span>Đã ghé</span></div><div class="data-shell-kpi"><b>${order}</b><span>Có đơn</span></div></div><p class="data-shell-note">${esc(route ? `${route.route_name} · ${route.area || 'Chưa đặt khu vực'}` : 'Chưa có tuyến MCP.')}</p><div class="data-shell-list">${cards}</div>`;
+}
+
+async function renderOrderShell(shell) {
+  const [orders, items] = await Promise.all([
+    getAllLocal(LOCAL_STORES.orders),
+    getAllLocal(LOCAL_STORES.orderItems)
+  ]);
+  const today = todayIsoDate();
+  const todayOrders = orders.filter((order) => order.order_date === today);
+  const revenue = todayOrders.reduce((sum, order) => sum + Number(order.grand_total || 0), 0);
+  const pending = orders.filter((order) => order.status === 'draft' || order.status === 'pending_confirm').length;
+  const cards = orders
+    .slice()
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .map((order) => {
+      const lines = items.filter((item) => item.order_id === order.id);
+      const products = lines.map((item) => `${item.product_name} x${item.quantity}`).join(' · ') || 'Chưa có sản phẩm';
+      return `<article class="data-shell-card"><h3>${esc(order.customer_name || 'Khách lẻ')} · ${esc(formatMoney(order.grand_total))}</h3><small>${esc(products)}</small></article>`;
+    }).join('') || '<p class="data-shell-note">Chưa có đơn. Vào Home → Đơn hàng → + Đơn để tạo.</p>';
+  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${todayOrders.length}</b><span>Đơn hôm nay</span></div><div class="data-shell-kpi"><b>${esc(formatMoney(revenue))}</b><span>Doanh số</span></div><div class="data-shell-kpi"><b>${pending}</b><span>Chờ xử lý</span></div></div><p class="data-shell-note">Dữ liệu đơn hàng local, chưa bật sync Supabase.</p><div class="data-shell-list">${cards}</div>`;
 }
 
 function ensure() {
@@ -84,6 +110,10 @@ async function apply(value) {
   shell.className = 'data-shell active';
   if (active === 'mcp') {
     await renderMcpShell(shell);
+    return;
+  }
+  if (active === 'order') {
+    await renderOrderShell(shell);
     return;
   }
   const k = mock[active] || [];
