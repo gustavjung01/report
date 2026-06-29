@@ -9,7 +9,7 @@ function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=mcp-shell-1';
+  l.href='src/polish.css?v=test-select-tint-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -23,6 +23,11 @@ function addCss(){
     .card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     .card *,.nav button *{pointer-events:none!important}
     .test-actions *,.admin-actions *,.modal *,.mcp-page *{pointer-events:auto!important}
+    .modal .test-row{background:linear-gradient(180deg,#f5fffb,#eefbf6)!important;border-color:#bfe9dc!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75)!important}
+    .modal .test-row>b{color:#087463!important}
+    .modal .test-row select{background:#e4f7f0!important;border-color:#9bdccd!important;color:#075f52!important;font-weight:900!important;box-shadow:0 1px 0 rgba(255,255,255,.8)!important}
+    .modal .test-row select:focus{outline:2px solid rgba(0,149,127,.16)!important;border-color:#00957f!important}
+    .modal .test-row input{background:#fff!important;border-color:#cad7d4!important}
   `;
 }
 
