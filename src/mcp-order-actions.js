@@ -23,6 +23,12 @@ function formatMoney(value) {
   return amount ? `${currency.format(amount)}đ` : '0đ';
 }
 
+function compactDate(value) {
+  if (!value) return todayIsoDate();
+  const [year, month, day] = String(value).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
 function mountStyle() {
   let style = document.querySelector('style[data-mcp-order-actions]');
   if (!style) {
@@ -34,7 +40,10 @@ function mountStyle() {
     section.page[data-page="mcp"] .mcp-actions [data-mcp-create-order]{border-color:#ffd8a8!important;background:#fff8ef!important;color:#b95f00!important}
     section.page[data-page="mcp"] .mcp-actions [data-mcp-reset-status]{border-color:#b9dfd8!important;background:#f4fffc!important;color:#007866!important}
     #modal[data-type="mcp-order"] .modal{max-height:calc(100dvh - 26px);overflow:auto}
-    #modal[data-type="mcp-order"] .mcp-order-source{border:1px solid #ffd8a8;border-radius:14px;background:#fff8ef;padding:10px;color:#7b3f00;font-size:12px;line-height:1.35}
+    #modal[data-type="mcp-order"] .mcp-order-source{border:1px solid #ffd8a8;border-radius:14px;background:#fff8ef;padding:9px 10px;color:#7b3f00;font-size:12px;line-height:1.35;display:grid;gap:3px}
+    #modal[data-type="mcp-order"] .mcp-order-source b{font-size:13px;color:#7b3f00}
+    #modal[data-type="mcp-order"] .mcp-order-source span{color:#203940;font-weight:800}
+    #modal[data-type="mcp-order"] .mcp-order-source small{color:#66757c;font-size:11px}
     #modal[data-type="mcp-order"] .mcp-order-line{display:grid;grid-template-columns:minmax(0,1.35fr) 54px 78px 34px;gap:6px;align-items:center}
     #modal[data-type="mcp-order"] .mcp-order-line input{min-width:0}
     #modal[data-type="mcp-order"] .mcp-order-line .secondary{min-height:34px;padding:0!important}
@@ -107,6 +116,12 @@ function updateTotal() {
   if (element) element.innerHTML = `<b>Tổng: ${esc(formatMoney(total))}</b>`;
 }
 
+function customerSummary({ detail, customer, routeName }) {
+  const addressLine = [customer.area || detail.route?.area || detail.session.area, customer.address].filter(Boolean).join(' · ') || 'Chưa có địa chỉ';
+  const sessionLine = [`Ngày ${compactDate(detail.session.session_date)}`, detail.session.sales ? `Sales ${detail.session.sales}` : 'Chưa nhập sales'].join(' · ');
+  return `<div class="mcp-order-source"><b>🧭 ${esc(routeName)}</b><span>${esc(customer.customer_name || 'Khách MCP')}${customer.phone ? ` · ${esc(customer.phone)}` : ''}</span><small>${esc(addressLine)}</small><small>${esc(sessionLine)}</small></div>`;
+}
+
 async function openMcpOrderModal(customerId) {
   const detail = await getActiveMcpSessionDetail();
   if (!detail?.session) return toast('Chọn phiên MCP trước khi tạo đơn.');
@@ -116,7 +131,7 @@ async function openMcpOrderModal(customerId) {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
   dialog.dataset.type = 'mcp-order';
-  dialog.innerHTML = `<form class="modal" data-mcp-order-form data-customer-id="${esc(customer.id)}"><header><h2>Tạo đơn từ MCP</h2><button type="button" data-close>Đóng</button></header><div class="form order-form"><div class="mcp-order-source"><b>🧭 ${esc(routeName)}</b><br><span>${esc(customer.customer_name)}${customer.area ? ` · ${esc(customer.area)}` : ''}</span></div><div class="grid"><label><span>Ngày</span><input id="mcpOrderDate" type="date" value="${esc(detail.session.session_date || todayIsoDate())}"></label><label><span>Sales</span><input id="mcpOrderSales" value="${esc(detail.session.sales || '')}"></label></div><div class="grid"><label><span>Khách</span><input id="mcpOrderCustomerName" required value="${esc(customer.customer_name || '')}"></label><label><span>SĐT</span><input id="mcpOrderCustomerPhone" inputmode="tel" value="${esc(customer.phone || '')}"></label></div><label><span>Khu vực</span><input id="mcpOrderArea" value="${esc(customer.area || detail.route?.area || detail.session.area || '')}"></label><label><span>Địa chỉ giao</span><input id="mcpOrderAddress" value="${esc(customer.address || '')}"></label><div class="line"><b>Sản phẩm</b><div id="mcpOrderLines">${productRow()}</div><button type="button" class="secondary wide" data-mcp-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="mcpOrderNote" rows="2"></textarea></label><div class="total" id="mcpOrderTotal"><b>Tổng: 0đ</b></div><button class="primary">Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-mcp-order-form data-customer-id="${esc(customer.id)}"><header><h2>Tạo đơn từ MCP</h2><button type="button" data-close>Đóng</button></header><div class="form order-form">${customerSummary({ detail, customer, routeName })}<div class="line"><b>Sản phẩm</b><div id="mcpOrderLines">${productRow()}</div><button type="button" class="secondary wide" data-mcp-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="mcpOrderNote" rows="2"></textarea></label><div class="total" id="mcpOrderTotal"><b>Tổng: 0đ</b></div><button class="primary">Lưu đơn</button></div></form>`;
   if (!dialog.open) dialog.showModal();
   updateTotal();
   document.querySelector('[data-mcp-order-product]')?.focus();
@@ -131,21 +146,20 @@ async function saveMcpOrder(event) {
   const customer = detail.customers.find((item) => item.id === customerId);
   if (!customer) return toast('Không tìm thấy khách trong tuyến.');
   const lines = readLines();
-  const customerName = document.querySelector('#mcpOrderCustomerName')?.value.trim();
-  if (!customerName) return toast('Nhập tên khách trước đã.');
+  if (!customer.customer_name) return toast('Khách trong tuyến chưa có tên. Bấm Sửa ở card khách trước.');
   if (!lines.length) return toast('Thêm ít nhất 1 sản phẩm.');
 
   const total = lines.reduce((sum, line) => sum + line.line_total, 0);
   const visit = detail.visits.find((item) => item.route_customer_id === customer.id);
   const order = makeOrder({
     id: uid('order'),
-    order_date: document.querySelector('#mcpOrderDate')?.value || detail.session.session_date || todayIsoDate(),
-    sales: document.querySelector('#mcpOrderSales')?.value,
+    order_date: detail.session.session_date || todayIsoDate(),
+    sales: detail.session.sales || '',
     customer_id: customer.id,
-    customer_name: customerName,
-    customer_phone: document.querySelector('#mcpOrderCustomerPhone')?.value,
-    area: document.querySelector('#mcpOrderArea')?.value,
-    delivery_address: document.querySelector('#mcpOrderAddress')?.value,
+    customer_name: customer.customer_name,
+    customer_phone: customer.phone || '',
+    area: customer.area || detail.route?.area || detail.session.area || '',
+    delivery_address: customer.address || '',
     source_type: 'mcp',
     source_id: customer.id,
     status: 'pending_confirm',
