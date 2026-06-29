@@ -6,7 +6,7 @@ import './modal-scroll-fix.js';
 import './modal-form-ui.js';
 import './mcp-start.js';
 import './page-router-fix.js';
-import './data-hub-shell.js';
+import './data-hub-shell.js?v=mcp-sessions-1';
 import './mcp-ui-shell.js';
 import './order-ui.js?v=home-card-selector-fix-1';
 import './business-ui-shells.js?v=home-card-selector-fix-1';
