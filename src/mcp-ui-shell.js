@@ -28,7 +28,7 @@ function todayWeekday() {
 }
 
 function page() {
-  if (document.querySelector('[data-page="mcp"]')) return;
+  if (document.querySelector('section.page[data-page="mcp"]')) return;
   const main = document.querySelector('main');
   if (!main) return;
   main.insertAdjacentHTML('beforeend', '<section class="page mcp-page" data-page="mcp"></section>');
@@ -107,7 +107,7 @@ function renderCards(customers, visits) {
 }
 
 async function render() {
-  const section = document.querySelector('[data-page="mcp"]');
+  const section = document.querySelector('section.page[data-page="mcp"]');
   if (!section) return;
   const { route, customers, visits, today } = await loadState();
   const done = customers.filter((customer) => statusOf(customer, visits) !== 'todo').length;
