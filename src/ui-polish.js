@@ -4,6 +4,7 @@ import './app-update.js';
 import './test-export.js';
 import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=ui-modal-zoom-1';
+import './test-file-modal-ui.js?v=test-file-modal-1';
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
