@@ -11,6 +11,7 @@ import './data-hub-shell.js?v=ui-boundary-1';
 import './mcp-order-actions.js?v=mcp-order-compact-1';
 import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
+import './mcp-card-compact-ui.js?v=mcp-card-compact-1';
 import './mcp-import-ui.js?v=mcp-import-1';
 import './order-ui.js?v=home-card-selector-fix-1';
 import './business-ui-shells.js?v=ui-safe-1';
