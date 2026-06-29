@@ -128,7 +128,7 @@ function openCustomerModal() {
   if (!dialog) return;
   dialog.dataset.type = 'mcp-customer';
   dialog.innerHTML = `<form class="modal" data-mcp-customer-form><header><h2>Thêm khách vào tuyến</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="grid"><label><span>Khách</span><input id="mcpCustomerName" required placeholder="Tên quán / đại lý"></label><label><span>SĐT</span><input id="mcpCustomerPhone" inputmode="tel"></label></div><label><span>Khu vực</span><input id="mcpCustomerArea" placeholder="Ví dụ: Chợ Lớn"></label><label><span>Địa chỉ</span><input id="mcpCustomerAddress"></label><label><span>Ghi chú tuyến</span><textarea id="mcpCustomerNote" rows="2" placeholder="Giờ ghé, người liên hệ, ưu tiên..."></textarea></label><button class="primary" data-mcp-save-customer>Thêm vào tuyến</button></div></form>`;
-  dialog.showModal();
+  if (!dialog.open) dialog.showModal();
   document.querySelector('#mcpCustomerName')?.focus();
 }
 
@@ -174,6 +174,35 @@ async function setVisitStatus(customerId, status) {
   toast(statusLabel[status] ? `Đã cập nhật: ${statusLabel[status]}` : 'Đã cập nhật trạng thái.');
 }
 
+function isInActiveMcpPage(target) {
+  return Boolean(target?.closest?.('section.page[data-page="mcp"].active'));
+}
+
+function handleMcpActionClick(event) {
+  if (!isInActiveMcpPage(event.target)) return;
+  const addButton = event.target.closest('[data-mcp-add-customer]');
+  if (addButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openCustomerModal();
+    return;
+  }
+  const filter = event.target.closest('[data-mcp-filter]');
+  if (filter) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    activeFilter = filter.dataset.mcpFilter || 'all';
+    render();
+    return;
+  }
+  const statusButton = event.target.closest('[data-mcp-status]');
+  if (statusButton) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setVisitStatus(statusButton.dataset.customerId, statusButton.dataset.mcpStatus);
+  }
+}
+
 function boot() {
   css();
   page();
@@ -183,25 +212,7 @@ function boot() {
   });
 }
 
-document.addEventListener('click', (event) => {
-  const filter = event.target.closest('[data-mcp-filter]');
-  if (filter) {
-    event.preventDefault();
-    activeFilter = filter.dataset.mcpFilter || 'all';
-    render();
-    return;
-  }
-  if (event.target.closest('[data-mcp-add-customer]')) {
-    event.preventDefault();
-    openCustomerModal();
-    return;
-  }
-  const statusButton = event.target.closest('[data-mcp-status]');
-  if (statusButton) {
-    event.preventDefault();
-    setVisitStatus(statusButton.dataset.customerId, statusButton.dataset.mcpStatus);
-  }
-}, true);
+window.addEventListener('click', handleMcpActionClick, true);
 
 document.addEventListener('submit', (event) => {
   if (!event.target.matches('[data-mcp-customer-form]')) return;
