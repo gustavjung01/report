@@ -3,6 +3,7 @@ function ensureModalFormCss() {
   const style = document.createElement('style');
   style.dataset.modalFormUi = '1';
   style.textContent = `
+    #modal[data-type="mcp-start"],
     #modal[data-type="mcp-customer"],
     #modal[data-type="order-create"],
     #modal[data-type="order-detail"]{
@@ -11,6 +12,7 @@ function ensureModalFormCss() {
       background:#fff!important;
       box-shadow:0 24px 70px rgba(8,35,55,.22)!important;
     }
+    #modal[data-type="mcp-start"] .modal,
     #modal[data-type="mcp-customer"] .modal,
     #modal[data-type="order-create"] .modal,
     #modal[data-type="order-detail"] .modal{
@@ -24,6 +26,7 @@ function ensureModalFormCss() {
       display:grid!important;
       gap:12px!important;
     }
+    #modal[data-type="mcp-start"] header,
     #modal[data-type="mcp-customer"] header,
     #modal[data-type="order-create"] header,
     #modal[data-type="order-detail"] header{
@@ -37,6 +40,7 @@ function ensureModalFormCss() {
       background:#fff!important;
       padding-bottom:4px!important;
     }
+    #modal[data-type="mcp-start"] h2,
     #modal[data-type="mcp-customer"] h2,
     #modal[data-type="order-create"] h2,
     #modal[data-type="order-detail"] h2{
@@ -44,6 +48,7 @@ function ensureModalFormCss() {
       font-size:19px!important;
       line-height:1.18!important;
     }
+    #modal[data-type="mcp-start"] header button,
     #modal[data-type="mcp-customer"] header button,
     #modal[data-type="order-create"] header button,
     #modal[data-type="order-detail"] header button{
@@ -56,12 +61,14 @@ function ensureModalFormCss() {
       padding:0 11px!important;
       font-weight:850!important;
     }
+    #modal[data-type="mcp-start"] .form,
     #modal[data-type="mcp-customer"] .form,
     #modal[data-type="order-create"] .form{
       display:grid!important;
       gap:10px!important;
       min-width:0!important;
     }
+    #modal[data-type="mcp-start"] .grid,
     #modal[data-type="mcp-customer"] .grid,
     #modal[data-type="order-create"] .grid{
       display:grid!important;
@@ -69,6 +76,7 @@ function ensureModalFormCss() {
       gap:9px!important;
       min-width:0!important;
     }
+    #modal[data-type="mcp-start"] label,
     #modal[data-type="mcp-customer"] label,
     #modal[data-type="order-create"] label{
       display:grid!important;
@@ -79,6 +87,7 @@ function ensureModalFormCss() {
       font-size:12px!important;
       font-weight:850!important;
     }
+    #modal[data-type="mcp-start"] label span,
     #modal[data-type="mcp-customer"] label span,
     #modal[data-type="order-create"] label span{
       display:block!important;
@@ -87,6 +96,9 @@ function ensureModalFormCss() {
       font-size:11.5px!important;
       line-height:1.2!important;
     }
+    #modal[data-type="mcp-start"] input,
+    #modal[data-type="mcp-start"] textarea,
+    #modal[data-type="mcp-start"] select,
     #modal[data-type="mcp-customer"] input,
     #modal[data-type="mcp-customer"] textarea,
     #modal[data-type="mcp-customer"] select,
@@ -106,11 +118,15 @@ function ensureModalFormCss() {
       line-height:1.2!important;
       outline:none!important;
     }
+    #modal[data-type="mcp-start"] textarea,
     #modal[data-type="mcp-customer"] textarea,
     #modal[data-type="order-create"] textarea{
       min-height:74px!important;
       resize:vertical!important;
     }
+    #modal[data-type="mcp-start"] input:focus,
+    #modal[data-type="mcp-start"] textarea:focus,
+    #modal[data-type="mcp-start"] select:focus,
     #modal[data-type="mcp-customer"] input:focus,
     #modal[data-type="mcp-customer"] textarea:focus,
     #modal[data-type="mcp-customer"] select:focus,
@@ -120,12 +136,14 @@ function ensureModalFormCss() {
       border-color:#00957f!important;
       box-shadow:0 0 0 3px rgba(0,149,127,.13)!important;
     }
+    #modal[data-type="mcp-start"] .primary,
     #modal[data-type="mcp-customer"] .primary,
     #modal[data-type="order-create"] .primary{
       width:100%!important;
       min-height:44px!important;
       border-radius:13px!important;
     }
+    #modal[data-type="mcp-start"] .line,
     #modal[data-type="order-create"] .line,
     #modal[data-type="order-detail"] .line,
     #modal[data-type="order-detail"] .total{
@@ -160,6 +178,7 @@ function ensureModalFormCss() {
       color:#9a5500!important;
     }
     @media(max-width:390px){
+      #modal[data-type="mcp-start"] .grid,
       #modal[data-type="mcp-customer"] .grid,
       #modal[data-type="order-create"] .grid{
         grid-template-columns:1fr!important;
