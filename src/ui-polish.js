@@ -5,6 +5,7 @@ import './test-export.js';
 import './modal-scroll-fix.js';
 import './data-hub-shell.js';
 import './mcp-ui-shell.js';
+import './order-ui.js';
 import './business-ui-shells.js';
 import './ai-agent-settings.js';
 
@@ -63,8 +64,8 @@ function tuneHomeCards(){
       c.dataset.page='order-shell';
       if(i)i.textContent='🛒';
       if(b)b.textContent='Đơn hàng';
-      if(sm)sm.textContent='Khung UI tạo đơn nhanh.';
-      if(e)e.textContent='Xem UI';
+      if(sm)sm.textContent='Tạo đơn nhanh từ khách/tuyến.';
+      if(e)e.textContent='Mở';
       return;
     }
 
