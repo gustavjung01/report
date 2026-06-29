@@ -8,7 +8,7 @@ import './test-file-modal-ui.js?v=test-file-modal-1';
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
-import './mcp-ui-shell.js?v=mcp-geo-1';
+import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './order-ui.js?v=home-card-selector-fix-1';
 import './business-ui-shells.js?v=ui-report-scope-1';
 import './ai-agent-settings.js';
