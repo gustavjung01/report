@@ -13,6 +13,22 @@ function esc(value = '') {
 
 function css() { /* Shell styles are preloaded from polish.css to avoid first-load reflow. */ }
 
+function dataPage() {
+  return document.querySelector('section.page[data-page="data"]');
+}
+
+function dataList() {
+  return dataPage()?.querySelector('#dataList') || null;
+}
+
+function dataHub() {
+  return dataPage()?.querySelector('#dataHub') || null;
+}
+
+function dataShell() {
+  return dataPage()?.querySelector('#dataShell') || null;
+}
+
 function formatMoney(value) {
   const amount = Number(value || 0);
   return amount ? `${money.format(amount)}đ` : '0đ';
@@ -25,7 +41,7 @@ function formatDate(value = '') {
 }
 
 function activateMcpPage() {
-  document.querySelectorAll('.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'mcp'));
+  document.querySelectorAll('section.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'mcp'));
   document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.page === 'create'));
   const subtitle = document.querySelector('#subtitle');
   if (subtitle) subtitle.textContent = 'MCP tuyến';
@@ -83,12 +99,12 @@ async function renderOrderShell(shell) {
 
 function ensure() {
   css();
-  const page = document.querySelector('[data-page="data"]');
-  const list = document.querySelector('#dataList');
+  const page = dataPage();
+  const list = dataList();
   if (!page || !list) return;
   const h = page.querySelector('h1');
   if (h) h.hidden = true;
-  let hub = document.querySelector('#dataHub');
+  let hub = dataHub();
   if (!hub) {
     hub = document.createElement('div');
     hub.id = 'dataHub';
@@ -108,9 +124,9 @@ function ensure() {
 
 async function apply(value) {
   active = value || 'test';
-  document.querySelectorAll('#dataHub [data-data-view]').forEach((button) => button.classList.toggle('active', button.dataset.dataView === active));
-  const list = document.querySelector('#dataList');
-  const shell = document.querySelector('#dataShell');
+  dataHub()?.querySelectorAll('[data-data-view]').forEach((button) => button.classList.toggle('active', button.dataset.dataView === active));
+  const list = dataList();
+  const shell = dataShell();
   const wrap = list && list.closest('.data-list-wrap');
   if (!list || !shell) return;
   if (active === 'test') {
@@ -134,7 +150,7 @@ async function apply(value) {
 }
 
 document.addEventListener('click', async (event) => {
-  const sessionButton = event.target.closest('[data-mcp-open-session]');
+  const sessionButton = event.target.closest('#dataShell [data-mcp-open-session]');
   if (sessionButton) {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -149,7 +165,7 @@ document.addEventListener('click', async (event) => {
     return;
   }
   const button = event.target.closest('#dataHub [data-data-view]');
-  if (!button) return;
+  if (!button || !dataPage()?.contains(button)) return;
   event.preventDefault();
   apply(button.dataset.dataView);
 }, true);
@@ -157,7 +173,7 @@ document.addEventListener('click', async (event) => {
 document.addEventListener('keydown', async (event) => {
   if (event.key !== 'Enter' && event.key !== ' ') return;
   const sessionCardElement = event.target.closest?.('#dataShell [data-mcp-session-id]');
-  if (!sessionCardElement) return;
+  if (!sessionCardElement || !dataPage()?.contains(sessionCardElement)) return;
   event.preventDefault();
   await openMcpSession(sessionCardElement.dataset.mcpSessionId);
 });
