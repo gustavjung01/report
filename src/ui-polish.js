@@ -8,7 +8,7 @@ import './test-file-modal-ui.js?v=test-file-modal-1';
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
 import './data-hub-shell.js?v=ui-boundary-1';
-import './mcp-order-actions.js?v=mcp-order-safe-2';
+import './mcp-order-actions.js?v=mcp-order-compact-1';
 import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-import-ui.js?v=mcp-import-1';
