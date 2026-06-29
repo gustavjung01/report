@@ -5,14 +5,12 @@ import './test-export.js';
 import './modal-scroll-fix.js';
 import './mcp-ui-shell.js';
 import './business-ui-shells.js';
-import './data-hub-shell.js';
-import './data-hub-force.js';
 
 function addCss(){
   document.querySelectorAll('link[data-ui-polish]').forEach(l=>l.remove());
   const l=document.createElement('link');
   l.rel='stylesheet';
-  l.href='src/polish.css?v=data-tabs-force-1';
+  l.href='src/polish.css?v=emergency-click-1';
   l.dataset.uiPolish='1';
   document.head.appendChild(l);
 
@@ -25,7 +23,7 @@ function addCss(){
     .hero,.tabs{display:none!important}
     .card,.nav button,.secondary,.primary,.sync-state,.head button,.mini{pointer-events:auto!important;touch-action:manipulation!important}
     .card *,.nav button *{pointer-events:none!important}
-    .test-actions *,.admin-actions *,.modal *,.mcp-page *,.shell-page *,.data-hub *{pointer-events:auto!important}
+    .test-actions *,.admin-actions *,.modal *,.mcp-page *,.shell-page *{pointer-events:auto!important}
     .modal .test-row{background:linear-gradient(180deg,#f5fffb,#eefbf6)!important;border-color:#bfe9dc!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.75)!important}
     .modal .test-row>b{color:#087463!important}
     .modal .test-row select{background:#e4f7f0!important;border-color:#9bdccd!important;color:#075f52!important;font-weight:900!important;box-shadow:0 1px 0 rgba(255,255,255,.8)!important}
@@ -118,4 +116,3 @@ addCss();
 window.addEventListener('DOMContentLoaded',focus);
 setTimeout(focus,300);
 setTimeout(focus,1200);
-setInterval(focus,2500);
