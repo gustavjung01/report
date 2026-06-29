@@ -20,6 +20,19 @@ function toast(message) {
   toast.timer = setTimeout(() => element.classList.remove('show'), 2600);
 }
 
+function mountCloudStatusStyle() {
+  if (document.querySelector('style[data-cloud-sync-status]')) return;
+  const style = document.createElement('style');
+  style.dataset.cloudSyncStatus = '1';
+  style.textContent = `
+    .sync-state.cloud-ok span{background:#12a150!important}
+    .sync-state.cloud-local span{background:#f59625!important}
+    .sync-state.cloud-sync span{background:#f59e0b!important;box-shadow:0 0 0 3px rgba(245,158,11,.14)}
+    .sync-state.cloud-error span{background:#dc2626!important;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+  `;
+  document.head.appendChild(style);
+}
+
 function setSyncButtonBusy(isBusy) {
   const button = document.querySelector('#syncBtn');
   if (!button) return;
@@ -27,16 +40,32 @@ function setSyncButtonBusy(isBusy) {
   button.textContent = isBusy ? 'Đang sync...' : 'Đồng bộ';
 }
 
-function setSyncState(label, online = false) {
+function setSyncState(label, tone = 'local') {
   const state = document.querySelector('#syncState');
   if (!state) return;
-  state.className = `sync-state ${online ? 'online' : 'error'}`;
+  state.className = `sync-state cloud-${tone}`;
   state.innerHTML = `<span></span><b>${label}</b>`;
+}
+
+function setAdminTitle() {
+  const card = document.querySelector('section.page[data-page="admin"] article.admin');
+  const title = card?.querySelector('b');
+  if (title) title.textContent = 'Đồng bộ đám mây';
+  const warn = document.querySelector('section.page[data-page="admin"] .warn');
+  if (warn) warn.textContent = 'Local DB là cache. Đám mây dùng để đồng bộ nhiều thiết bị.';
+}
+
+function normalizeCloudLabels() {
+  mountCloudStatusStyle();
+  setAdminTitle();
+  const current = document.querySelector('#syncState b');
+  if (current?.textContent?.trim() === 'Supabase') current.textContent = 'Đám mây';
 }
 
 function setAdminInfo(message) {
   const info = document.querySelector('#dbInfo');
   if (info) info.textContent = message;
+  setAdminTitle();
 }
 
 async function refreshAdminStats(extra = '') {
@@ -68,7 +97,7 @@ async function loadConfig() {
   return cfg;
 }
 
-function hasSupabase() {
+function hasCloud() {
   return Boolean(cfg.supabaseUrl && cfg.supabaseKey && navigator.onLine);
 }
 
@@ -181,18 +210,19 @@ export async function syncBusinessNow({ silent = false } = {}) {
   if (syncing) return { total: 0, detail: 'đang sync' };
   syncing = true;
   setSyncButtonBusy(true);
+  setSyncState('Đang sync', 'sync');
   try {
     await loadConfig();
-    if (!hasSupabase()) {
-      setSyncState('Local DB', false);
-      setAdminInfo('Thiếu Supabase env hoặc đang offline. Dữ liệu vẫn lưu máy.');
-      if (!silent) toast('Chưa có Supabase env hoặc đang offline.');
+    if (!hasCloud()) {
+      setSyncState('Máy', 'local');
+      setAdminInfo('Chưa nối đám mây hoặc đang offline. Dữ liệu vẫn lưu máy.');
+      if (!silent) toast('Chưa nối đám mây hoặc đang offline.');
       await refreshAdminStats();
       return { total: 0, detail: 'offline' };
     }
 
-    setSyncState('Supabase', true);
-    setAdminInfo(`Đã nối Supabase\n${cfg.supabaseUrl}`);
+    setSyncState('Đám mây', 'ok');
+    setAdminInfo(`Đã nối đám mây\n${cfg.supabaseUrl}`);
     const results = [];
     results.push(await syncMcp());
     results.push(await syncOrders());
@@ -203,10 +233,12 @@ export async function syncBusinessNow({ silent = false } = {}) {
     window.dispatchEvent(new CustomEvent('mcp:session-changed'));
     window.dispatchEvent(new CustomEvent('report:changed'));
     window.dispatchEvent(new CustomEvent('order:changed'));
+    normalizeCloudLabels();
     return summary;
   } catch (error) {
     console.warn('business sync failed', error);
-    setAdminInfo(`Lỗi sync business: ${error.message}`);
+    setSyncState('Lỗi sync', 'error');
+    setAdminInfo(`Lỗi sync đám mây: ${error.message}`);
     await refreshAdminStats('Business sync: lỗi');
     if (!silent) toast('Sync business lỗi. Xem Admin để biết thêm.');
     return { total: 0, detail: 'error', error };
@@ -220,17 +252,26 @@ function handleSyncClick(event) {
   if (!event.target.closest('#syncBtn')) return;
   syncBusinessNow().catch((error) => {
     console.warn('business sync click failed', error);
+    setSyncState('Lỗi sync', 'error');
     toast('Sync business lỗi.');
   });
+  setTimeout(normalizeCloudLabels, 100);
+  setTimeout(normalizeCloudLabels, 600);
+  setTimeout(normalizeCloudLabels, 1400);
 }
 
 async function boot() {
+  mountCloudStatusStyle();
   await loadConfig();
-  setSyncState(hasSupabase() ? 'Supabase' : 'Local DB', hasSupabase());
-  setAdminInfo(hasSupabase() ? `Đã nối Supabase\n${cfg.supabaseUrl}` : 'Thiếu Supabase env hoặc đang offline.');
+  setSyncState(hasCloud() ? 'Đám mây' : 'Máy', hasCloud() ? 'ok' : 'local');
+  setAdminInfo(hasCloud() ? `Đã nối đám mây\n${cfg.supabaseUrl}` : 'Chưa nối đám mây hoặc đang offline.');
+  normalizeCloudLabels();
 }
 
 document.addEventListener('click', handleSyncClick);
 window.bepSiSyncBusiness = syncBusinessNow;
 boot();
 window.addEventListener('DOMContentLoaded', boot);
+window.addEventListener('online', boot);
+window.addEventListener('offline', boot);
+document.addEventListener('click', () => setTimeout(normalizeCloudLabels, 120));
