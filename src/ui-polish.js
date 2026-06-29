@@ -7,8 +7,8 @@ import './modal-form-ui.js';
 import './page-router-fix.js';
 import './data-hub-shell.js';
 import './mcp-ui-shell.js';
-import './order-ui.js';
-import './business-ui-shells.js';
+import './order-ui.js?v=home-card-selector-fix-1';
+import './business-ui-shells.js?v=home-card-selector-fix-1';
 import './ai-agent-settings.js';
 
 function addCss(){
