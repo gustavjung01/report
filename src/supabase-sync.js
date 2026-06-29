@@ -1,4 +1,4 @@
-import { LOCAL_STORES, getAllLocal, putLocal, localStats } from '../local-db.js';
+import { LOCAL_STORES, getAllLocal, putLocal, putManyLocal, localStats } from '../local-db.js';
 
 let cfg = { supabaseUrl: '', supabaseKey: '', loaded: false };
 let syncing = false;
@@ -10,6 +10,16 @@ const MCP_VISIT_COLUMNS = ['id', 'session_id', 'route_id', 'route_customer_id', 
 const ORDER_COLUMNS = ['id', 'order_code', 'order_date', 'sales', 'customer_id', 'customer_name', 'customer_phone', 'area', 'delivery_address', 'source_type', 'source_id', 'status', 'subtotal', 'discount_total', 'grand_total', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
 const ORDER_ITEM_COLUMNS = ['id', 'order_id', 'product_id', 'product_name', 'sku', 'unit', 'quantity', 'unit_price', 'discount', 'line_total', 'note', 'raw_payload', 'created_at'];
 const MARKET_REPORT_COLUMNS = ['id', 'report_date', 'sales', 'market_area', 'route_name', 'market_type', 'total_shops', 'competitor_summary', 'price_summary', 'demand_summary', 'company_product_summary', 'opportunity_summary', 'risk_summary', 'next_action', 'note', 'sync_status', 'raw_payload', 'created_at', 'updated_at', 'synced_at'];
+
+const BUSINESS_GROUPS = [
+  { store: LOCAL_STORES.mcpRoutes, table: 'mcp_routes', columns: MCP_ROUTE_COLUMNS, label: 'tuyến' },
+  { store: LOCAL_STORES.mcpRouteCustomers, table: 'mcp_route_customers', columns: MCP_ROUTE_CUSTOMER_COLUMNS, label: 'khách tuyến' },
+  { store: LOCAL_STORES.mcpRouteSessions, table: 'mcp_route_sessions', columns: MCP_ROUTE_SESSION_COLUMNS, label: 'phiên tuyến' },
+  { store: LOCAL_STORES.mcpVisits, table: 'mcp_visits', columns: MCP_VISIT_COLUMNS, label: 'lượt ghé' },
+  { store: LOCAL_STORES.orders, table: 'orders', columns: ORDER_COLUMNS, label: 'đơn' },
+  { store: LOCAL_STORES.orderItems, table: 'order_items', columns: ORDER_ITEM_COLUMNS, label: 'dòng đơn' },
+  { store: LOCAL_STORES.marketReports, table: 'market_reports', columns: MARKET_REPORT_COLUMNS, label: 'báo cáo' }
+];
 
 function toast(message) {
   const element = document.querySelector('#toast');
@@ -101,16 +111,18 @@ function hasCloud() {
   return Boolean(cfg.supabaseUrl && cfg.supabaseKey && navigator.onLine);
 }
 
-function apiUrl(table) {
-  return `${cfg.supabaseUrl}/rest/v1/${table}?on_conflict=id`;
+function apiUrl(table, params = 'on_conflict=id') {
+  const query = params ? `?${params}` : '';
+  return `${cfg.supabaseUrl}/rest/v1/${table}${query}`;
 }
 
-function headers() {
+function headers(extra = {}) {
   return {
     apikey: cfg.supabaseKey,
     Authorization: `Bearer ${cfg.supabaseKey}`,
     'Content-Type': 'application/json',
-    Prefer: 'resolution=merge-duplicates,return=minimal'
+    Prefer: 'resolution=merge-duplicates,return=minimal',
+    ...extra
   };
 }
 
@@ -157,24 +169,38 @@ async function upsert(table, rows) {
   return rows.length;
 }
 
+async function fetchRows(table) {
+  const response = await fetch(apiUrl(table, 'select=*'), {
+    method: 'GET',
+    headers: headers({ Prefer: 'return=representation' }),
+    cache: 'no-store'
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`${table} pull: ${response.status} ${text}`);
+  }
+  return response.json();
+}
+
 async function syncStore({ store, table, columns, label }) {
   const rows = (await getAllLocal(store)).filter(needsSync);
-  if (!rows.length) return { label, count: 0 };
+  if (!rows.length) return { label, count: 0, mode: 'push' };
   const syncedAt = nowIso();
   await upsert(table, rows.map((row) => pickColumns(row, columns, syncedAt)));
   for (const row of rows) await putLocal(store, markSynced(row, syncedAt));
-  return { label, count: rows.length };
+  return { label, count: rows.length, mode: 'push' };
+}
+
+async function pullStore({ store, table, label }) {
+  const rows = await fetchRows(table);
+  if (!rows.length) return { label, count: 0, mode: 'pull' };
+  await putManyLocal(store, rows);
+  return { label, count: rows.length, mode: 'pull' };
 }
 
 async function syncMcp() {
-  const groups = [
-    { store: LOCAL_STORES.mcpRoutes, table: 'mcp_routes', columns: MCP_ROUTE_COLUMNS, label: 'tuyến' },
-    { store: LOCAL_STORES.mcpRouteCustomers, table: 'mcp_route_customers', columns: MCP_ROUTE_CUSTOMER_COLUMNS, label: 'khách tuyến' },
-    { store: LOCAL_STORES.mcpRouteSessions, table: 'mcp_route_sessions', columns: MCP_ROUTE_SESSION_COLUMNS, label: 'phiên tuyến' },
-    { store: LOCAL_STORES.mcpVisits, table: 'mcp_visits', columns: MCP_VISIT_COLUMNS, label: 'lượt ghé' }
-  ];
   const results = [];
-  for (const group of groups) results.push(await syncStore(group));
+  for (const group of BUSINESS_GROUPS.slice(0, 4)) results.push(await syncStore(group));
   return results;
 }
 
@@ -184,7 +210,7 @@ async function syncOrders() {
     getAllLocal(LOCAL_STORES.orderItems)
   ]);
   const pendingOrders = orders.filter(needsSync);
-  if (!pendingOrders.length) return [{ label: 'đơn', count: 0 }, { label: 'dòng đơn', count: 0 }];
+  if (!pendingOrders.length) return [{ label: 'đơn', count: 0, mode: 'push' }, { label: 'dòng đơn', count: 0, mode: 'push' }];
 
   const syncedAt = nowIso();
   const orderIds = new Set(pendingOrders.map((order) => order.id));
@@ -192,11 +218,17 @@ async function syncOrders() {
   await upsert('orders', pendingOrders.map((order) => pickColumns(order, ORDER_COLUMNS, syncedAt)));
   await upsert('order_items', scopedItems.map((item) => pickColumns(item, ORDER_ITEM_COLUMNS, syncedAt)));
   for (const order of pendingOrders) await putLocal(LOCAL_STORES.orders, markSynced(order, syncedAt));
-  return [{ label: 'đơn', count: pendingOrders.length }, { label: 'dòng đơn', count: scopedItems.length }];
+  return [{ label: 'đơn', count: pendingOrders.length, mode: 'push' }, { label: 'dòng đơn', count: scopedItems.length, mode: 'push' }];
 }
 
 async function syncReports() {
   return [await syncStore({ store: LOCAL_STORES.marketReports, table: 'market_reports', columns: MARKET_REPORT_COLUMNS, label: 'báo cáo' })];
+}
+
+async function pullBusiness() {
+  const results = [];
+  for (const group of BUSINESS_GROUPS) results.push(await pullStore(group));
+  return results;
 }
 
 function summarize(results = []) {
@@ -204,6 +236,10 @@ function summarize(results = []) {
   const total = flat.reduce((sum, item) => sum + Number(item.count || 0), 0);
   const detail = flat.filter((item) => item.count).map((item) => `${item.count} ${item.label}`).join(' · ');
   return { total, detail: detail || 'không có dòng mới' };
+}
+
+function summarizeByMode(results = [], mode = '') {
+  return summarize(results.flat().filter((item) => item.mode === mode));
 }
 
 export async function syncBusinessNow({ silent = false } = {}) {
@@ -227,14 +263,16 @@ export async function syncBusinessNow({ silent = false } = {}) {
     results.push(await syncMcp());
     results.push(await syncOrders());
     results.push(await syncReports());
-    const summary = summarize(results);
-    await refreshAdminStats(`Business sync: ${summary.detail}`);
-    if (!silent) toast(`Đã sync business: ${summary.detail}.`);
+    results.push(await pullBusiness());
+    const pushed = summarizeByMode(results, 'push');
+    const pulled = summarizeByMode(results, 'pull');
+    await refreshAdminStats(`Đẩy lên: ${pushed.detail}<br>Kéo về: ${pulled.detail}`);
+    if (!silent) toast(`Đã đồng bộ. Kéo về: ${pulled.detail}.`);
     window.dispatchEvent(new CustomEvent('mcp:session-changed'));
     window.dispatchEvent(new CustomEvent('report:changed'));
     window.dispatchEvent(new CustomEvent('order:changed'));
     normalizeCloudLabels();
-    return summary;
+    return { total: pushed.total + pulled.total, detail: `push ${pushed.detail}; pull ${pulled.detail}` };
   } catch (error) {
     console.warn('business sync failed', error);
     setSyncState('Lỗi sync', 'error');
