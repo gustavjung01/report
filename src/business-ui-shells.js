@@ -1,6 +1,5 @@
 import './data-hub-shell.js';
 import './mcp-customer-manage-style.js?v=mcp-customer-manage-1';
-import './mcp-order-bridge.js?v=mcp-order-2';
 function toast(message){const e=document.querySelector('#toast');if(!e)return;e.textContent=message;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2200)}
 function css(){/* Shell styles are preloaded from polish.css to avoid first-load reflow. */}
 function reportPage(){if(document.querySelector('section.page[data-page="report-shell"]'))return;const main=document.querySelector('main');if(!main)return;main.insertAdjacentHTML('beforeend',`<section class="page shell-page" data-page="report-shell"><div class="shell-top"><div class="shell-title"><h1>Báo cáo thị trường</h1><p>UI shell · chưa nối logic báo cáo thật</p></div><button type="button" class="shell-back" data-page="create">Home</button></div><article class="shell-hero report"><b>Ghi nhận thị trường nhanh</b><small>Giá · đối thủ · nhu cầu · cơ hội tại điểm bán</small></article><div class="shell-grid"><div class="shell-kpis"><div class="shell-kpi"><b>6</b><span>Báo cáo</span></div><div class="shell-kpi"><b>4</b><span>Đối thủ</span></div><div class="shell-kpi"><b>2</b><span>Cơ hội</span></div></div><div class="shell-list">${reportCards()}</div></div></section>`)}
