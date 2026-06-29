@@ -8,6 +8,7 @@ export const STORAGE_KEYS_V2 = Object.freeze({
   aiSummaries: 'bepi-v2-ai-summaries',
   mcpRoutes: 'bepi-v2-mcp-routes',
   mcpRouteCustomers: 'bepi-v2-mcp-route-customers',
+  mcpRouteSessions: 'bepi-v2-mcp-route-sessions',
   mcpVisits: 'bepi-v2-mcp-visits',
   syncQueue: 'bepi-v2-sync-queue'
 });
@@ -25,6 +26,7 @@ export const TABLES_V2 = Object.freeze({
   aiSummaries: 'ai_summaries',
   mcpRoutes: 'mcp_routes',
   mcpRouteCustomers: 'mcp_route_customers',
+  mcpRouteSessions: 'mcp_route_sessions',
   mcpVisits: 'mcp_visits',
   exports: 'exports'
 });
@@ -48,12 +50,24 @@ export const TEST_STATUSES = Object.freeze([
   'retry'
 ]);
 
+export const MCP_SESSION_STATUSES = Object.freeze([
+  'draft',
+  'active',
+  'done',
+  'cancelled'
+]);
+
 export const MCP_VISIT_STATUSES = Object.freeze([
   'todo',
   'done',
+  'checked_in',
   'order',
   'test',
-  'no'
+  'report',
+  'no',
+  'no_buy',
+  'follow_up',
+  'skipped'
 ]);
 
 export const DEFAULT_ONA_PRODUCTS = Object.freeze([
@@ -163,17 +177,48 @@ export function makeMcpRouteCustomer(input = {}) {
   };
 }
 
+export function makeMcpRouteSession(input = {}) {
+  const sessionDate = input.session_date || input.visit_date || input.date || todayIsoDate();
+  const weekdayFallback = Number.isFinite(Number(input.weekday)) ? Number(input.weekday) : new Date(`${sessionDate}T00:00:00`).getDay();
+  return {
+    id: input.id || uid('mcp-session'),
+    route_id: cleanText(input.route_id),
+    route_name: cleanText(input.route_name || input.name),
+    session_date: sessionDate,
+    weekday: Math.max(0, Math.min(6, Math.trunc(toNumber(weekdayFallback, new Date().getDay())))),
+    sales: cleanText(input.sales),
+    area: cleanText(input.area),
+    status: keepStatus(input.status, MCP_SESSION_STATUSES, 'active'),
+    planned_customers: Math.max(0, Math.trunc(toNumber(input.planned_customers))),
+    visited_customers: Math.max(0, Math.trunc(toNumber(input.visited_customers))),
+    order_count: Math.max(0, Math.trunc(toNumber(input.order_count))),
+    test_count: Math.max(0, Math.trunc(toNumber(input.test_count))),
+    report_count: Math.max(0, Math.trunc(toNumber(input.report_count))),
+    note: cleanText(input.note),
+    sync_status: cleanText(input.sync_status) || 'local',
+    raw_payload: input.raw_payload || input,
+    created_at: input.created_at || nowIso(),
+    updated_at: input.updated_at || nowIso(),
+    synced_at: input.synced_at || null
+  };
+}
+
 export function makeMcpVisit(input = {}) {
   const status = keepStatus(input.status, MCP_VISIT_STATUSES, 'done');
   return {
     id: input.id || uid('mcp-visit'),
+    session_id: cleanText(input.session_id),
     route_id: cleanText(input.route_id),
     route_customer_id: cleanText(input.route_customer_id),
     visit_date: input.visit_date || input.date || todayIsoDate(),
     status,
     has_order: Boolean(input.has_order || status === 'order'),
     has_test: Boolean(input.has_test || status === 'test'),
-    has_report: Boolean(input.has_report),
+    has_report: Boolean(input.has_report || status === 'report'),
+    order_id: cleanText(input.order_id),
+    test_id: cleanText(input.test_id),
+    report_id: cleanText(input.report_id),
+    checkin_at: input.checkin_at || (['done', 'checked_in', 'order', 'test', 'report', 'no', 'no_buy', 'follow_up'].includes(status) ? nowIso() : null),
     note: cleanText(input.note),
     sync_status: cleanText(input.sync_status) || 'local',
     raw_payload: input.raw_payload || input,
