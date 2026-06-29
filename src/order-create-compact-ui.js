@@ -31,6 +31,18 @@ function mountOrderCreateCompactUi() {
       gap:7px!important;
       align-items:end!important;
     }
+    #modal[data-type="order-create"] .order-customer-source-row{
+      grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)!important;
+    }
+    #modal[data-type="order-create"] .order-customer-source-row label.is-disabled span{
+      color:#91a0a5!important;
+    }
+    #modal[data-type="order-create"] .order-customer-source-row select:disabled{
+      background:#f5f8f7!important;
+      color:#91a0a5!important;
+      -webkit-text-fill-color:#91a0a5!important;
+      opacity:1!important;
+    }
     #modal[data-type="order-create"] label{
       display:grid!important;
       gap:3px!important;
@@ -55,9 +67,14 @@ function mountOrderCreateCompactUi() {
       min-height:54px!important;
       resize:vertical!important;
     }
+    #modal[data-type="order-create"] #orderCustomerMode,
     #modal[data-type="order-create"] #orderCustomerSelect{
       min-height:40px!important;
       font-weight:850!important;
+    }
+    #modal[data-type="order-create"] #orderCustomerMode{
+      padding-left:8px!important;
+      padding-right:6px!important;
     }
     #modal[data-type="order-create"] #orderProvince,
     #modal[data-type="order-create"] #orderDistrict,
@@ -135,6 +152,7 @@ function mountOrderCreateCompactUi() {
       #modal[data-type="order-create"] .modal{padding:10px 11px 12px!important;gap:6px!important}
       #modal[data-type="order-create"] .form.order-form{gap:6px!important}
       #modal[data-type="order-create"] .grid{gap:6px!important}
+      #modal[data-type="order-create"] .order-customer-source-row{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)!important}
       #modal[data-type="order-create"] .order-line{grid-template-columns:minmax(0,1fr) 46px 66px 32px!important;gap:5px!important}
       #modal[data-type="order-create"] .order-line [data-order-remove-line]{width:32px!important}
     }
