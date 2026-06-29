@@ -1,1 +1,38 @@
-body{overflow-x:hidden!important}.app{width:100%!important;max-width:none!important;margin:0!important;overflow-x:hidden!important}.top{min-height:72px!important;padding:10px 14px!important}.brand b{font-size:16px!important}.brand small{font-size:12px!important}.logo{width:38px!important;height:38px!important;font-size:22px!important}.sync-state{font-size:14px!important;padding:7px 10px!important}main{padding:12px 12px 88px!important;overflow-x:hidden!important}.hero,.tabs{display:none!important}.grid-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.card{min-height:116px!important;padding:11px!important;border-radius:18px!important;display:grid!important;grid-template-columns:1fr!important;gap:5px!important;box-shadow:0 8px 18px rgba(12,55,50,.05)!important}.card i{width:42px!important;height:42px!important;font-size:23px!important}.card b{font-size:15px!important;line-height:1.15!important}.card small{font-size:11.5px!important;line-height:1.25!important}.card em{min-height:30px!important;padding:0 10px!important;font-size:12px!important}.panel{padding:12px!important;margin-top:10px!important}.panel .head h2{font-size:18px!important}.mini{min-height:52px!important}.mini b{font-size:14px!important}.mini small{font-size:11px!important}.nav{left:0!important;right:0!important;bottom:0!important;transform:none!important;width:100%!important;max-width:none!important;grid-template-columns:repeat(4,1fr)!important}.nav button{min-height:52px!important;font-size:19px!important;pointer-events:auto!important}.nav span{font-size:10.5px!important}dialog{width:min(400px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18px)!important}.modal{padding:14px!important;gap:9px!important;max-height:calc(100dvh - 18px)!important;overflow-y:auto!important}.modal h2{font-size:22px!important}.modal label span{font-size:13px!important}.modal input,.modal select,.modal textarea{font-size:16px!important;min-height:40px!important}.modal .test-row{background:#f0fbf7!important;border:1px solid #bfe9dc!important;border-radius:14px!important;padding:10px!important;margin-bottom:8px!important}.modal .test-row>b{font-size:16px!important;color:#087463!important}.modal .test-row select{background:#e4f7f0!important;border-color:#9bdccd!important;color:#075f52!important}.modal .test-row input{background:#fff!important}#modal[data-type=customer] .form{display:grid!important;gap:10px!important;overflow-x:hidden!important}#modal[data-type=customer] .form>.grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;width:100%!important;max-width:100%!important}#modal[data-type=customer] label{display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important}#modal[data-type=customer] label span{display:block!important;margin:0 0 5px!important;line-height:1.2!important;white-space:normal!important}#modal[data-type=customer] input,#modal[data-type=customer] textarea{display:block!important;width:100%!important;max-width:100%!important}#modal[data-type=customer] .test-row{width:100%!important;max-width:100%!important;overflow:hidden!important}
+body{overflow-x:hidden!important}
+.app{width:100%!important;max-width:none!important;margin:0!important;overflow-x:hidden!important}
+.top{min-height:72px!important;padding:10px 14px!important}
+.brand b{font-size:16px!important}
+.brand small{font-size:12px!important}
+.logo{width:38px!important;height:38px!important;font-size:22px!important}
+.sync-state{font-size:14px!important;padding:7px 10px!important}
+main{padding:12px 12px 88px!important;overflow-x:hidden!important}
+.hero,.tabs{display:none!important}
+section.page[data-page="create"] .grid-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}
+section.page[data-page="create"] .home-card{min-height:116px!important;padding:11px!important;border-radius:18px!important;display:grid!important;grid-template-columns:1fr!important;gap:5px!important;box-shadow:0 8px 18px rgba(12,55,50,.05)!important}
+section.page[data-page="create"] .home-card i{width:42px!important;height:42px!important;font-size:23px!important}
+section.page[data-page="create"] .home-card b{font-size:15px!important;line-height:1.15!important}
+section.page[data-page="create"] .home-card small{font-size:11.5px!important;line-height:1.25!important}
+section.page[data-page="create"] .home-card em{min-height:30px!important;padding:0 10px!important;font-size:12px!important}
+section.page[data-page="create"] .panel{padding:12px!important;margin-top:10px!important}
+section.page[data-page="create"] .panel .head h2{font-size:18px!important}
+#recent .mini{min-height:52px!important}
+#recent .mini b{font-size:14px!important}
+#recent .mini small{font-size:11px!important}
+.nav{left:0!important;right:0!important;bottom:0!important;transform:none!important;width:100%!important;max-width:none!important;grid-template-columns:repeat(4,1fr)!important}
+.nav button{min-height:52px!important;font-size:19px!important;pointer-events:auto!important}
+.nav span{font-size:10.5px!important}
+dialog{width:min(400px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18px)!important}
+#modal .modal{padding:14px!important;gap:9px!important;max-height:calc(100dvh - 18px)!important;overflow-y:auto!important}
+#modal .modal h2{font-size:22px!important}
+#modal .modal label span{font-size:13px!important}
+#modal .modal input,#modal .modal select,#modal .modal textarea{font-size:16px!important;min-height:40px!important}
+#modal .modal .test-row{background:#f0fbf7!important;border:1px solid #bfe9dc!important;border-radius:14px!important;padding:10px!important;margin-bottom:8px!important}
+#modal .modal .test-row>b{font-size:16px!important;color:#087463!important}
+#modal .modal .test-row select{background:#e4f7f0!important;border-color:#9bdccd!important;color:#075f52!important}
+#modal .modal .test-row input{background:#fff!important}
+#modal[data-type=customer] .form{display:grid!important;gap:10px!important;overflow-x:hidden!important}
+#modal[data-type=customer] .form>.grid{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;width:100%!important;max-width:100%!important}
+#modal[data-type=customer] label{display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important}
+#modal[data-type=customer] label span{display:block!important;margin:0 0 5px!important;line-height:1.2!important;white-space:normal!important}
+#modal[data-type=customer] input,#modal[data-type=customer] textarea{display:block!important;width:100%!important;max-width:100%!important}
+#modal[data-type=customer] .test-row{width:100%!important;max-width:100%!important;overflow:hidden!important}
