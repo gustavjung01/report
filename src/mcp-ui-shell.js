@@ -6,4 +6,5 @@ function cards(){return [ ['todo','Tạp hoá Minh Anh','Chưa ghé · 1.2km · 
 function filter(v){document.querySelectorAll('.mcp-filter').forEach(b=>b.classList.toggle('active',b.dataset.mcpFilter===v));let n=0;document.querySelectorAll('.mcp-customer').forEach(c=>{const ok=v==='all'||String(c.dataset.status||'').split(' ').includes(v);c.hidden=!ok;if(ok)n++});let e=document.querySelector('.mcp-empty'),list=document.querySelector('.mcp-list');if(!e&&list){e=document.createElement('p');e.className='mcp-empty';e.textContent='Không có khách trong bộ lọc này.';list.appendChild(e)}if(e)e.hidden=n>0}
 function boot(){css();page()}
 document.addEventListener('click',e=>{const f=e.target.closest('[data-mcp-filter]');if(f){e.preventDefault();filter(f.dataset.mcpFilter);return}if(e.target.closest('[data-mcp-demo]')){e.preventDefault();toast('MCP mới là UI demo, chưa nối logic nghiệp vụ.')}},true);
-window.addEventListener('DOMContentLoaded',boot);setTimeout(boot,250);setTimeout(boot,1000);
+boot();
+window.addEventListener('DOMContentLoaded',boot);
