@@ -3,7 +3,6 @@ import { LOCAL_STORES, getAllLocal } from '../local-db.js';
 import { getMcpSessionDetail, getMcpRouteSessions, setActiveMcpRouteSessionId } from './mcp-core.js';
 
 const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
-const mock = { report: [['6', 'Báo cáo'], ['4', 'Đối thủ'], ['2', 'Cơ hội']] };
 const money = new Intl.NumberFormat('vi-VN');
 let active = 'test';
 
@@ -38,6 +37,15 @@ function formatDate(value = '') {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value || '-';
   const [year, month, day] = value.split('-');
   return `${day}/${month}/${year}`;
+}
+
+function labelType(type = '') {
+  const map = { competitor: 'Đối thủ', price: 'Giá', demand: 'Nhu cầu', opportunity: 'Cơ hội', risk: 'Rủi ro', general: 'Tổng hợp' };
+  return map[type] || type || 'Tổng hợp';
+}
+
+function mainReportLine(report) {
+  return report.opportunity_summary || report.demand_summary || report.competitor_summary || report.price_summary || report.risk_summary || report.note || 'Chưa có nội dung chính';
 }
 
 function activateMcpPage() {
@@ -97,6 +105,16 @@ async function renderOrderShell(shell) {
   shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${todayOrders.length}</b><span>Đơn hôm nay</span></div><div class="data-shell-kpi"><b>${esc(formatMoney(revenue))}</b><span>Doanh số</span></div><div class="data-shell-kpi"><b>${pending}</b><span>Chờ xử lý</span></div></div><p class="data-shell-note">Dữ liệu đơn hàng local, chưa bật sync Supabase.</p><div class="data-shell-list">${cards}</div>`;
 }
 
+async function renderReportShell(shell) {
+  const reports = (await getAllLocal(LOCAL_STORES.marketReports)).slice().sort((a, b) => String(b.created_at || b.report_date).localeCompare(String(a.created_at || a.report_date)));
+  const today = todayIsoDate();
+  const todayReports = reports.filter((report) => report.report_date === today).length;
+  const opportunities = reports.filter((report) => report.market_type === 'opportunity' || report.opportunity_summary).length;
+  const risks = reports.filter((report) => report.market_type === 'risk' || report.risk_summary).length;
+  const cards = reports.map((report) => `<article class="data-shell-card"><h3>${esc(report.market_area || 'Báo cáo')} · ${esc(labelType(report.market_type))}</h3><small>${esc(formatDate(report.report_date))}${report.sales ? ` · ${esc(report.sales)}` : ''}${report.route_name ? ` · ${esc(report.route_name)}` : ''}</small><small>${esc(mainReportLine(report))}</small></article>`).join('') || '<p class="data-shell-note">Chưa có báo cáo. Vào Home → Báo cáo → + Báo cáo để tạo.</p>';
+  shell.innerHTML = `<div class="data-shell-kpis"><div class="data-shell-kpi"><b>${reports.length}</b><span>Báo cáo</span></div><div class="data-shell-kpi"><b>${todayReports}</b><span>Hôm nay</span></div><div class="data-shell-kpi"><b>${opportunities}</b><span>Cơ hội</span></div><div class="data-shell-kpi"><b>${risks}</b><span>Rủi ro</span></div></div><p class="data-shell-note">Dữ liệu báo cáo thị trường local, chưa bật sync Supabase.</p><div class="data-shell-list">${cards}</div>`;
+}
+
 function ensure() {
   css();
   const page = dataPage();
@@ -145,8 +163,11 @@ async function apply(value) {
     await renderOrderShell(shell);
     return;
   }
-  const k = mock[active] || [];
-  shell.innerHTML = '<div class="data-shell-kpis">' + k.map((item) => '<div class="data-shell-kpi"><b>' + item[0] + '</b><span>' + item[1] + '</span></div>').join('') + '</div><p class="data-shell-note">UI shell tham khảo, chưa nối dữ liệu thật.</p><div class="data-shell-list"><article class="data-shell-card"><h3>Dữ liệu ' + active + '</h3><small>Danh sách mẫu, chưa ghi dữ liệu thật.</small></article></div>';
+  if (active === 'report') {
+    await renderReportShell(shell);
+    return;
+  }
+  shell.innerHTML = '<p class="data-shell-note">Chưa hỗ trợ dữ liệu này.</p>';
 }
 
 document.addEventListener('click', async (event) => {
@@ -176,6 +197,10 @@ document.addEventListener('keydown', async (event) => {
   if (!sessionCardElement || !dataPage()?.contains(sessionCardElement)) return;
   event.preventDefault();
   await openMcpSession(sessionCardElement.dataset.mcpSessionId);
+});
+
+window.addEventListener('report:changed', () => {
+  if (active === 'report') apply('report');
 });
 
 ensure();
