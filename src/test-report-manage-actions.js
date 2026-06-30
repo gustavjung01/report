@@ -13,10 +13,21 @@ function saveText(filename, content, type = 'text/plain;charset=utf-8') { const 
 function saveCsv(filename, rows) { saveText(filename, `\ufeff${rows.map((row) => row.map(csvCell).join(';')).join('\n')}`, 'text/csv;charset=utf-8'); }
 function toast(message) { const el = document.querySelector('#toast'); if (!el) return; el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2300); }
 function softDeleted(row = {}, reason = '') { const now = new Date().toISOString(); return { ...row, status: row.status === 'cancelled' ? 'cancelled' : 'deleted', sync_status: 'local', updated_at: now, deleted_at: now, raw_payload: { ...(row.raw_payload || {}), deleted_at: now, delete_reason: reason || 'local_ui' } }; }
-function mainReportLine(report = {}) { return report.opportunity_summary || report.demand_summary || report.competitor_summary || report.price_summary || report.risk_summary || report.note || ''; }
 
 async function loadTestData() { const [tests, items] = await Promise.all([getAllLocal(LOCAL_STORES.onaTests), getAllLocal(LOCAL_STORES.onaTestItems)]); return { tests, items }; }
 async function loadReportData() { return (await getAllLocal(LOCAL_STORES.marketReports)).slice().sort((a, b) => String(b.created_at || b.report_date || '').localeCompare(String(a.created_at || a.report_date || ''))); }
+
+function removeVisibleTestFile(fileId = '') {
+  if (!fileId) return;
+  document.querySelectorAll('[data-test-file-id], [data-delete-test-file], [data-detail], [data-add-customer], [data-export-test]').forEach((node) => {
+    const id = node.dataset.testFileId || node.dataset.deleteTestFile || node.dataset.detail || node.dataset.addCustomer || node.dataset.exportTest;
+    if (id !== fileId) return;
+    const card = node.closest('.record, .mini, .data-shell-card, article');
+    if (card) card.remove();
+  });
+  const dialog = document.querySelector('#modal[data-type="test-detail-enhanced"]');
+  if (dialog?.open) dialog.close();
+}
 
 async function deleteTestFile(fileId = '') {
   const { tests, items } = await loadTestData();
@@ -29,7 +40,9 @@ async function deleteTestFile(fileId = '') {
   const affectedItems = items.filter((item) => item.test_id === fileId || customerIds.has(item.test_id)).map((item) => softDeleted(item, 'delete_test_file'));
   await putManyLocal(LOCAL_STORES.onaTests, affectedTests);
   if (affectedItems.length) await putManyLocal(LOCAL_STORES.onaTestItems, affectedItems);
+  removeVisibleTestFile(fileId);
   window.dispatchEvent(new CustomEvent('test:changed'));
+  setTimeout(schedule, 40);
   toast('Đã xoá mềm file test.');
 }
 
@@ -133,7 +146,8 @@ async function enhanceTestList() {
   if (!list.querySelector('[data-export-test-summary]')) list.insertAdjacentHTML('afterbegin', '<div class="test-summary-row"><button type="button" class="secondary" data-export-test-summary>Xuất tổng hợp</button><button type="button" class="secondary" data-open-test>Tạo file test</button></div>');
   [...list.querySelectorAll(':scope > .record')].forEach((card, index) => {
     const file = files[index]; if (!file) return;
-    card.classList.toggle('is-soft-deleted', !activeTest(file));
+    card.dataset.testFileId = file.id;
+    if (!activeTest(file)) { card.remove(); return; }
     const actions = card.querySelector('.test-actions'); if (!actions) return;
     if (!actions.querySelector('[data-delete-test-file]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="secondary danger" data-delete-test-file="${esc(file.id)}">Xoá</button>`);
   });
