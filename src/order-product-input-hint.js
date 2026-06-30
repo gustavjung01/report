@@ -17,34 +17,26 @@ function ensureProductInputHintCss() {
       box-shadow:0 0 0 3px rgba(0,149,127,.12)!important;
       outline:0!important;
     }
-    #modal[data-type="order-create"] .order-product-manual-note{
-      display:block;
-      margin:-4px 0 8px;
-      color:#5d7479;
-      font-size:11px;
-      font-weight:800;
-    }
   `;
   document.head.appendChild(style);
+}
+
+function removeCatalogLoadedNoise(modal) {
+  modal.querySelectorAll('.data-shell-note, small').forEach((node) => {
+    const text = (node.textContent || '').trim();
+    if (/^Đã nạp\s+\d+\s+mã sản phẩm chuẩn từ Bếp Sỉ/i.test(text)) node.remove();
+  });
 }
 
 function tuneProductInputs(root = document) {
   const modal = root.querySelector?.('#modal[data-type="order-create"]') || document.querySelector('#modal[data-type="order-create"]');
   if (!modal) return;
+  removeCatalogLoadedNoise(modal);
   modal.querySelectorAll('input[data-order-product]').forEach((input) => {
     input.placeholder = 'Nhập tay / tìm SKU ▾';
     input.title = 'Có thể nhập tay nếu sản phẩm chưa có trong data, hoặc bấm + Chọn sản phẩm để lọc/chọn nhiều mã.';
     input.setAttribute('aria-label', 'Sản phẩm, có thể nhập tay hoặc chọn từ catalog');
   });
-
-  const lines = modal.querySelector('#orderLines');
-  if (lines && !modal.querySelector('[data-order-product-manual-note]')) {
-    const note = document.createElement('small');
-    note.className = 'order-product-manual-note';
-    note.dataset.orderProductManualNote = '1';
-    note.textContent = 'Ô sản phẩm có thể nhập tay; dấu ▾ là gợi ý tìm/chọn từ catalog.';
-    lines.parentElement?.insertBefore(note, lines);
-  }
 }
 
 function bootProductInputHint() {
