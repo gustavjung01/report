@@ -17,7 +17,7 @@ import './page-router-fix.js?v=revenue-route-1';
 import './home-ui-owner.js?v=home-ui-owner-1';
 
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
-import './data-admin-ui-owner.js?v=data-admin-ui-owner-2';
+import './data-admin-ui-owner.js?v=data-admin-ui-owner-3';
 
 // MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
 import './mcp-order-actions.js?v=mcp-order-compact-2';
@@ -34,7 +34,7 @@ import './order-product-input-hint.js?v=product-input-hint-2';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
 // Revenue dashboard: read-only local summaries built from orders/order_items. Rendered inside Data hub.
-import './revenue-ui.js?v=revenue-ui-3';
+import './revenue-ui.js?v=revenue-ui-4';
 
 // Shared business shell.
 import './business-ui-shells.js?v=ui-safe-1';
