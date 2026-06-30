@@ -119,125 +119,30 @@ export async function putManyLocal(storeName, rows = []) {
   const tx = db.transaction(storeName, 'readwrite');
   const store = tx.objectStore(storeName);
   rows.forEach((row) => {
-    if (row?.id) store.put(row);
+    if (!row?.id && storeName !== LOCAL_STORES.meta) throw new Error(`Dòng ${storeName} thiếu id.`);
+    store.put(row);
   });
   await txDone(tx);
   return rows;
 }
 
-export async function deleteLocal(storeName, id) {
+export async function clearLocalStore(storeName) {
   const db = await openLocalDb();
   const tx = db.transaction(storeName, 'readwrite');
-  tx.objectStore(storeName).delete(id);
-  await txDone(tx);
-}
-
-export async function deleteWhereLocal(storeName, predicate) {
-  const rows = await getAllLocal(storeName);
-  const targets = rows.filter(predicate);
-  const db = await openLocalDb();
-  const tx = db.transaction(storeName, 'readwrite');
-  const store = tx.objectStore(storeName);
-  targets.forEach((row) => store.delete(row.id));
-  await txDone(tx);
-  return targets.length;
-}
-
-export async function whereLocal(storeName, predicate) {
-  const rows = await getAllLocal(storeName);
-  return rows.filter(predicate);
-}
-
-export async function getMeta(key, fallback = null) {
-  const db = await openLocalDb();
-  const tx = db.transaction(LOCAL_STORES.meta, 'readonly');
-  const row = await requestToPromise(tx.objectStore(LOCAL_STORES.meta).get(key));
-  return row ? row.value : fallback;
-}
-
-export async function setMeta(key, value) {
-  const db = await openLocalDb();
-  const tx = db.transaction(LOCAL_STORES.meta, 'readwrite');
-  tx.objectStore(LOCAL_STORES.meta).put({ key, value, updated_at: new Date().toISOString() });
-  await txDone(tx);
-  return value;
-}
-
-export async function enqueueLocalSync(type, sourceId, payload) {
-  const existing = await getAllLocal(LOCAL_STORES.syncQueue);
-  const duplicated = existing.find((job) => job.type === type && job.source_id === sourceId && job.status !== 'done');
-  const now = new Date().toISOString();
-  const job = {
-    id: duplicated?.id || `sync-${type}-${sourceId}`,
-    type,
-    source_id: sourceId,
-    payload,
-    status: 'pending',
-    attempts: duplicated?.attempts || 0,
-    last_error: '',
-    created_at: duplicated?.created_at || now,
-    updated_at: now
-  };
-  await putLocal(LOCAL_STORES.syncQueue, job);
-  return job;
-}
-
-export async function updateSyncJob(id, patch = {}) {
-  const current = await getLocal(LOCAL_STORES.syncQueue, id);
-  if (!current) return null;
-  const next = { ...current, ...patch, updated_at: new Date().toISOString() };
-  await putLocal(LOCAL_STORES.syncQueue, next);
-  return next;
-}
-
-export async function getSyncQueue() {
-  const rows = await getAllLocal(LOCAL_STORES.syncQueue);
-  return rows.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-}
-
-export async function clearDoneSyncJobs() {
-  return deleteWhereLocal(LOCAL_STORES.syncQueue, (job) => job.status === 'done');
-}
-
-export async function clearBusinessData() {
-  const db = await openLocalDb();
-  const tx = db.transaction([...BUSINESS_STORES, LOCAL_STORES.syncQueue], 'readwrite');
-  [...BUSINESS_STORES, LOCAL_STORES.syncQueue].forEach((name) => tx.objectStore(name).clear());
+  tx.objectStore(storeName).clear();
   await txDone(tx);
 }
 
 export async function localStats() {
-  const [orders, tests, reports, customers, ai, routes, routeCustomers, routeSessions, visits, queue] = await Promise.all([
-    getAllLocal(LOCAL_STORES.orders),
-    getAllLocal(LOCAL_STORES.onaTests),
-    getAllLocal(LOCAL_STORES.marketReports),
-    getAllLocal(LOCAL_STORES.customers),
-    getAllLocal(LOCAL_STORES.aiSummaries),
-    getAllLocal(LOCAL_STORES.mcpRoutes),
-    getAllLocal(LOCAL_STORES.mcpRouteCustomers),
-    getAllLocal(LOCAL_STORES.mcpRouteSessions),
-    getAllLocal(LOCAL_STORES.mcpVisits),
-    getAllLocal(LOCAL_STORES.syncQueue)
-  ]);
-  const countByStatus = queue.reduce((acc, job) => {
-    acc[job.status] = (acc[job.status] || 0) + 1;
-    return acc;
-  }, { pending: 0, syncing: 0, error: 0, done: 0 });
-  const mcp = routes.length + routeCustomers.length + routeSessions.length + visits.length;
-  return {
-    records: orders.length + tests.length + reports.length + customers.length + ai.length + mcp,
-    orders: orders.length,
-    tests: tests.length,
-    reports: reports.length,
-    customers: customers.length,
-    ai: ai.length,
-    mcp,
-    mcpRoutes: routes.length,
-    mcpCustomers: routeCustomers.length,
-    mcpSessions: routeSessions.length,
-    mcpVisits: visits.length,
-    queue: countByStatus,
-    pending: (countByStatus.pending || 0) + (countByStatus.syncing || 0),
-    error: countByStatus.error || 0
-  };
+  const db = await openLocalDb();
+  const stats = { records: 0, pending: 0, error: 0, byStore: {} };
+  for (const name of BUSINESS_STORES) {
+    const tx = db.transaction(name, 'readonly');
+    const rows = await requestToPromise(tx.objectStore(name).getAll());
+    stats.byStore[name] = rows.length;
+    stats.records += rows.length;
+    stats.pending += rows.filter((row) => row.sync_status === 'pending' || row.sync_status === 'local').length;
+    stats.error += rows.filter((row) => row.sync_status === 'error').length;
+  }
+  return stats;
 }
