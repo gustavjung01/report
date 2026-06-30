@@ -7,10 +7,12 @@ import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=ui-modal-zoom-1';
 import './test-file-modal-ui.js?v=test-file-modal-1';
 
-// Core routing/data shell. Import order is intentionally preserved from the pre-audit baseline.
+// Core routing shell. Import order is intentionally preserved from the pre-audit baseline.
 import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js';
-import './data-hub-shell.js?v=ui-boundary-1';
+
+// Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
+import './data-admin-ui-owner.js?v=data-admin-ui-owner-1';
 
 // MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
 import './mcp-order-actions.js?v=mcp-order-compact-1';
@@ -34,9 +36,11 @@ import './report-ui-owner.js?v=report-ui-owner-1';
 // MCP management compact UI loaded after shared shell patches to keep existing override behavior.
 import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
 
-// Sync/Admin/AI. Do not rename #syncBtn/#syncState/#dbInfo/#adminStats without sync audit.
+// Sync/Admin. Do not rename #syncBtn/#syncState/#dbInfo/#adminStats without sync audit.
 import './supabase-sync.js?v=supabase-sync-1';
-import './ai-agent-settings.js';
+
+// AI ownership: AI page/settings adapter loads after sync to preserve current behavior.
+import './ai-ui-owner.js?v=ai-ui-owner-1';
 
 function addCss(){
   let s=document.querySelector('style[data-test-fixes]');
