@@ -1,18 +1,19 @@
 import { LOCAL_STORES, getAllLocal, getLocal, putLocal, putManyLocal } from '../local-db.js';
+import { isActiveBusinessRow, isActiveTestRow, makeSoftDeleted } from './soft-delete.js';
 
 const TEST_LABEL = { pending: 'Chưa thử', ok: 'OK', interested: 'Quan tâm', sample: 'Cần mẫu', follow: 'Báo sau', bad: 'Chưa tốt', retry: 'Thử lại' };
 const REPORT_LABEL = { competitor: 'Đối thủ', price: 'Giá', demand: 'Nhu cầu', opportunity: 'Cơ hội', risk: 'Rủi ro', general: 'Tổng hợp' };
 
 function clean(value = '') { return String(value ?? '').replace(/\s+/g, ' ').trim(); }
 function esc(value = '') { return String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
-function activeRow(row = {}) { return !row.deleted_at && !row.raw_payload?.deleted_at && row.status !== 'deleted' && row.status !== 'cancelled'; }
-function activeTest(row = {}) { return !row.deleted_at && !row.raw_payload?.deleted_at && row.status !== 'deleted'; }
+function activeRow(row = {}) { return isActiveBusinessRow(row); }
+function activeTest(row = {}) { return isActiveTestRow(row); }
 function stamp() { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`; }
 function csvCell(value = '') { return `"${clean(value).replace(/"/g, '""')}"`; }
 function saveText(filename, content, type = 'text/plain;charset=utf-8') { const blob = new Blob([content], { type }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); }
 function saveCsv(filename, rows) { saveText(filename, `\ufeff${rows.map((row) => row.map(csvCell).join(';')).join('\n')}`, 'text/csv;charset=utf-8'); }
 function toast(message) { const el = document.querySelector('#toast'); if (!el) return; el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2300); }
-function softDeleted(row = {}, reason = '') { const now = new Date().toISOString(); return { ...row, status: row.status === 'cancelled' ? 'cancelled' : 'deleted', sync_status: 'local', updated_at: now, deleted_at: now, raw_payload: { ...(row.raw_payload || {}), deleted_at: now, delete_reason: reason || 'local_ui' } }; }
+function softDeleted(row = {}, reason = '') { return makeSoftDeleted(row, reason || 'local_ui'); }
 
 async function loadTestData() { const [tests, items] = await Promise.all([getAllLocal(LOCAL_STORES.onaTests), getAllLocal(LOCAL_STORES.onaTestItems)]); return { tests, items }; }
 async function loadReportData() { return (await getAllLocal(LOCAL_STORES.marketReports)).slice().sort((a, b) => String(b.created_at || b.report_date || '').localeCompare(String(a.created_at || a.report_date || ''))); }
