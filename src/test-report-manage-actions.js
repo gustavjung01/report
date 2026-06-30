@@ -137,16 +137,26 @@ function installStyle() {
   style.textContent = `.test-summary-row,.report-export-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin:0 0 8px!important}.test-summary-row button,.report-export-row button{min-height:34px!important}.danger{border-color:#fecaca!important;background:#fff7f7!important;color:#b91c1c!important}.is-soft-deleted{display:none!important}.test-detail-enhanced{max-height:calc(100dvh - 24px)!important;overflow:auto!important}.test-manage-toolbar{display:grid!important;grid-template-columns:1fr 1fr 1fr!important;gap:6px!important}.manage-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:center!important;margin-top:6px!important}.manage-row span,.manage-row small{min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important}.manage-row button{min-height:30px!important;font-size:11px!important}`;
 }
 
+function fileIdFromCard(card) {
+  return card?.dataset?.testFileId
+    || card?.querySelector('[data-add-customer]')?.dataset?.addCustomer
+    || card?.querySelector('[data-detail]')?.dataset?.detail
+    || card?.querySelector('[data-export-test]')?.dataset?.exportTest
+    || '';
+}
+
 async function enhanceTestList() {
   const dataPage = document.querySelector('section.page[data-page="data"].active');
   const testTab = document.querySelector('#dataHub [data-data-view="test"].active');
   const list = document.querySelector('#dataList');
   if (!dataPage || !testTab || !list || list.closest('.data-list-wrap')?.style.display === 'none') return;
   const { tests } = await loadTestData();
-  const files = tests.filter((row) => row.raw_payload?.kind === 'test_file');
+  const fileMap = new Map(tests.filter((row) => row.raw_payload?.kind === 'test_file').map((row) => [row.id, row]));
   if (!list.querySelector('[data-export-test-summary]')) list.insertAdjacentHTML('afterbegin', '<div class="test-summary-row"><button type="button" class="secondary" data-export-test-summary>Xuất tổng hợp</button><button type="button" class="secondary" data-open-test>Tạo file test</button></div>');
-  [...list.querySelectorAll(':scope > .record')].forEach((card, index) => {
-    const file = files[index]; if (!file) return;
+  [...list.querySelectorAll(':scope > .record')].forEach((card) => {
+    const fileId = fileIdFromCard(card);
+    const file = fileMap.get(fileId);
+    if (!file) return;
     card.dataset.testFileId = file.id;
     if (!activeTest(file)) { card.remove(); return; }
     const actions = card.querySelector('.test-actions'); if (!actions) return;
