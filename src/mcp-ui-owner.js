@@ -7,4 +7,5 @@
 import './mcp-order-modal-ui.js?v=mcp-order-modal-1';
 import './mcp-ui-shell.js?v=mcp-customer-manage-1';
 import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
+import './mcp-page-scroll-ui.js?v=mcp-page-scroll-1';
 import './mcp-import-ui.js?v=mcp-import-1';
