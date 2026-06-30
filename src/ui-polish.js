@@ -24,8 +24,9 @@ import './mcp-test-actions.js?v=mcp-test-1';
 // MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
 import './mcp-ui-owner.js?v=mcp-ui-owner-1';
 
-// Order ownership: order logic stays in order-ui.js; scoped UI patches load via order-ui-owner.js.
+// Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
+import './order-product-picker.js?v=picker-panel-1';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
 // Shared business shell.
