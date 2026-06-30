@@ -27,6 +27,7 @@ import './bottom-nav-status-ui.js?v=bottom-nav-status-1';
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
 import './data-admin-ui-owner.js?v=data-admin-ui-owner-3';
 import './data-report-compact-ui.js?v=data-report-compact-1';
+import './data-mcp-scroll-ui.js?v=data-mcp-scroll-1';
 
 // MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
 import './mcp-order-actions.js?v=mcp-order-compact-2';
