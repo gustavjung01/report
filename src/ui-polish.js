@@ -17,7 +17,7 @@ import './page-router-fix.js?v=revenue-route-1';
 import './home-ui-owner.js?v=home-ui-owner-1';
 
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
-import './data-admin-ui-owner.js?v=data-admin-ui-owner-1';
+import './data-admin-ui-owner.js?v=data-admin-ui-owner-2';
 
 // MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
 import './mcp-order-actions.js?v=mcp-order-compact-2';
@@ -33,8 +33,8 @@ import './order-product-picker.js?v=picker-panel-3';
 import './order-product-input-hint.js?v=product-input-hint-2';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
-// Revenue dashboard: read-only local summaries built from orders/order_items.
-import './revenue-ui.js?v=revenue-ui-2';
+// Revenue dashboard: read-only local summaries built from orders/order_items. Rendered inside Data hub.
+import './revenue-ui.js?v=revenue-ui-3';
 
 // Shared business shell.
 import './business-ui-shells.js?v=ui-safe-1';
@@ -77,6 +77,10 @@ function tuneHomeCards(){
   ensureMcpCard();
   homeCards().forEach(c=>{
     const t=c.textContent||'';
+    if(c.dataset.homeCard==='revenue'||t.includes('Doanh thu')){
+      c.remove();
+      return;
+    }
     c.classList.remove('is-hidden','card-mcp','card-order','card-test','card-report','card-revenue','home-card');
     c.classList.add('home-card');
     let i=c.querySelector('i'),b=c.querySelector('b'),sm=c.querySelector('small'),e=c.querySelector('em');
@@ -85,10 +89,6 @@ function tuneHomeCards(){
       c.classList.add('card-mcp');
       c.dataset.page='mcp';
       if(i)i.textContent='🧭'; if(b)b.textContent='MCP tuyến'; if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.'; if(e)e.textContent='Xem UI';
-    }else if(c.dataset.homeCard==='revenue'||t.includes('Doanh thu')){
-      c.classList.add('card-revenue');
-      c.dataset.page='revenue-shell';
-      if(i)i.textContent='💰'; if(b)b.textContent='Doanh thu'; if(sm)sm.textContent='Theo khách, ngành, SKU, tuyến.'; if(e)e.textContent='Xem số liệu';
     }else if(t.includes('Đơn')){
       c.classList.add('card-order');
       if(i)i.textContent='🧾'; if(b)b.textContent='Đơn hàng'; if(sm)sm.textContent='Tạo đơn nhanh theo khách/tuyến.'; if(e)e.textContent='Tạo đơn';
