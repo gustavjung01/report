@@ -154,11 +154,11 @@ function ensurePanel(page, filters) {
     panel.id = PANEL_ID;
     panel.className = 'mcp-more-panel';
     panel.innerHTML = '<div class="mcp-more-panel-inner"></div>';
-    filters.insertAdjacentElement('afterend', panel);
   }
   if (!panel.querySelector('.mcp-more-panel-inner')) {
     panel.innerHTML = '<div class="mcp-more-panel-inner"></div>';
   }
+  if (filters.nextElementSibling !== panel) filters.insertAdjacentElement('afterend', panel);
   return panel;
 }
 
