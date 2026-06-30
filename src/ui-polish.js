@@ -26,7 +26,7 @@ import './mcp-ui-owner.js?v=mcp-ui-owner-1';
 
 // Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
-import './order-product-picker.js?v=picker-panel-1';
+import './order-product-picker.js?v=picker-panel-2';
 import './order-product-input-hint.js?v=product-input-hint-2';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
@@ -78,63 +78,26 @@ function tuneHomeCards(){
     if(c.dataset.homeCard==='mcp'||t.includes('MCP')){
       c.classList.add('card-mcp');
       c.dataset.page='mcp';
-      if(i)i.textContent='🧭';
-      if(b)b.textContent='MCP tuyến';
-      if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.';
-      if(e)e.textContent='Xem UI';
-      return;
-    }
-
-    if(t.includes('Đơn hàng')){
+      if(i)i.textContent='🧭'; if(b)b.textContent='MCP tuyến'; if(sm)sm.textContent='Tuyến hôm nay và trạng thái ghé.'; if(e)e.textContent='Xem UI';
+    }else if(t.includes('Đơn')){
       c.classList.add('card-order');
-      c.removeAttribute('data-open');
-      c.dataset.page='order-shell';
-      if(i)i.textContent='🛒';
-      if(b)b.textContent='Đơn hàng';
-      if(sm)sm.textContent='Tạo đơn nhanh từ khách/tuyến.';
-      if(e)e.textContent='Mở';
-      return;
-    }
-
-    if(t.includes('File test')||t.includes('Test sản phẩm')){
+      if(i)i.textContent='🧾'; if(b)b.textContent='Đơn hàng'; if(sm)sm.textContent='Tạo đơn nhanh theo khách/tuyến.'; if(e)e.textContent='Tạo đơn';
+    }else if(t.includes('Test')){
       c.classList.add('card-test');
-      c.removeAttribute('data-open');
-      c.setAttribute('data-open-test','');
-      if(i)i.textContent='🧪';
-      if(b)b.textContent='Test sản phẩm';
-      if(sm)sm.textContent='Tạo file test và thêm khách.';
-      if(e)e.textContent='Mở';
-      return;
-    }
-
-    if(t.includes('Báo cáo thị trường')||t.includes('Báo cáo')){
+      if(i)i.textContent='🧪'; if(b)b.textContent='Test sản phẩm'; if(sm)sm.textContent='Ghi nhận mẫu test và trạng thái.'; if(e)e.textContent='Tạo test';
+    }else if(t.includes('Báo cáo')){
       c.classList.add('card-report');
-      c.removeAttribute('data-open');
-      c.dataset.page='report-shell';
-      if(i)i.textContent='📊';
-      if(b)b.textContent='Báo cáo';
-      if(sm)sm.textContent='Khung UI thị trường.';
-      if(e)e.textContent='Xem UI';
+      if(i)i.textContent='📊'; if(b)b.textContent='Báo cáo thị trường'; if(sm)sm.textContent='Ghi nhận giá, đối thủ, nhu cầu.'; if(e)e.textContent='Tạo báo cáo';
+    }else{
+      c.classList.add('is-hidden');
     }
   });
 }
 
-function focus(){
+function boot(){
+  installAppShellUi();
   tuneHomeCards();
-  const h=document.querySelector('section.page[data-page="data"] h1');
-  if(h)h.textContent='Dữ liệu';
-  const w=document.querySelector('section.page[data-page="admin"] .warn');
-  if(w)w.textContent='Local DB là cache. Supabase dùng để đồng bộ nhiều thiết bị.';
-  const create=document.querySelector('.nav [data-page="create"] span');
-  const data=document.querySelector('.nav [data-page="data"] span');
-  const ai=document.querySelector('.nav [data-page="ai"] span');
-  const admin=document.querySelector('.nav [data-page="admin"] span');
-  if(create)create.textContent='Home';
-  if(data)data.textContent='Dữ liệu';
-  if(ai)ai.textContent='AI';
-  if(admin)admin.textContent='Admin';
 }
 
-installAppShellUi();
-focus();
-window.addEventListener('DOMContentLoaded',focus);
+window.addEventListener('DOMContentLoaded',boot);
+boot();
