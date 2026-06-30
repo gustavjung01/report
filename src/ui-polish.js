@@ -14,7 +14,7 @@ import './mcp-start.js?v=ui-boundary-1';
 import './page-router-fix.js?v=revenue-route-1';
 
 // Home ownership: visual-only home launcher, floating cloud chip, and background decoration.
-import './home-ui-owner.js?v=home-ui-owner-1';
+import './home-ui-owner.js?v=home-spacing-1';
 import './home-today-dashboard.js?v=home-compact-1';
 
 // App bottom navigation and compact sync status dot.
