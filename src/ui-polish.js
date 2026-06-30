@@ -25,10 +25,12 @@ import './mcp-import-ui.js?v=mcp-import-1';
 import './order-ui.js?v=order-address-select-1';
 import './order-ui-owner.js?v=order-ui-owner-1';
 
-// Shared business shells and Report ownership.
+// Shared business shell.
 import './business-ui-shells.js?v=ui-safe-1';
+
+// Report ownership: report logic stays in report-ui.js; scoped UI patches load via report-ui-owner.js.
 import './report-ui.js?v=report-local-1';
-import './report-modal-ui.js?v=report-modal-1';
+import './report-ui-owner.js?v=report-ui-owner-1';
 
 // MCP management compact UI loaded after shared shell patches to keep existing override behavior.
 import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
