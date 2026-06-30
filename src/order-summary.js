@@ -1,6 +1,6 @@
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
+import { isActiveBusinessRow } from './soft-delete.js';
 
-const CANCELLED_STATUSES = new Set(['cancelled', 'deleted']);
 const UNKNOWN = 'Chưa rõ';
 
 function text(value = '', fallback = '') {
@@ -26,13 +26,9 @@ function inDateRange(order = {}, filters = {}) {
   return true;
 }
 
-function isDeleted(order = {}) {
-  return Boolean(order.deleted_at || order.raw_payload?.deleted_at || order.raw_payload?.delete_reason);
-}
-
 function isRevenueOrder(order = {}, filters = {}) {
   const status = text(order.status, 'draft');
-  if (filters.include_cancelled !== true && (CANCELLED_STATUSES.has(status) || isDeleted(order))) return false;
+  if (filters.include_cancelled !== true && !isActiveBusinessRow(order)) return false;
   if (filters.status && status !== filters.status) return false;
   if (filters.sales && text(order.sales) !== filters.sales) return false;
   if (filters.customer_id && text(order.customer_id) !== filters.customer_id) return false;
