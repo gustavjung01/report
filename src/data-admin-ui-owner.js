@@ -9,4 +9,4 @@ import './data-hub-shell.js?v=data-hub-order-manage-1';
 import './order-manage-actions.js?v=order-detail-1';
 import './order-detail-enhance.js?v=order-detail-1';
 import './order-data-hub-enhance.js?v=order-data-hub-1';
-import './test-report-manage-actions.js?v=test-report-manage-1';
+import './test-report-manage-actions.js?v=test-report-manage-2';
