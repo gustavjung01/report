@@ -139,22 +139,28 @@ async function enhanceTestList() {
   });
 }
 
+function decorateReportCard(card, report) {
+  if (!card || !report) return;
+  card.dataset.reportId = report.id;
+  card.classList.toggle('is-soft-deleted', !activeRow(report));
+  const actions = card.querySelector('.shell-actions') || card.appendChild(document.createElement('div'));
+  actions.classList.add('shell-actions');
+  if (!actions.querySelector('[data-export-report-one]')) actions.insertAdjacentHTML('beforeend', `<button type="button" data-export-report-one="${esc(report.id)}">Xuất</button>`);
+  if (activeRow(report) && !actions.querySelector('[data-delete-report]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="danger" data-delete-report="${esc(report.id)}">Xoá</button>`);
+}
+
 async function enhanceReports() {
   const reports = await loadReportData();
   const activeReports = reports.filter(activeRow);
-  document.querySelectorAll('[data-report-id]').forEach((card) => {
-    const report = reports.find((row) => row.id === card.dataset.reportId); if (!report) return;
-    card.classList.toggle('is-soft-deleted', !activeRow(report));
-    const actions = card.querySelector('.shell-actions') || card.appendChild(document.createElement('div'));
-    actions.classList.add('shell-actions');
-    if (!actions.querySelector('[data-export-report-one]')) actions.insertAdjacentHTML('beforeend', `<button type="button" data-export-report-one="${esc(report.id)}">Xuất</button>`);
-    if (activeRow(report) && !actions.querySelector('[data-delete-report]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="danger" data-delete-report="${esc(report.id)}">Xoá</button>`);
-  });
+  document.querySelectorAll('section.page[data-page="report-shell"] [data-report-id]').forEach((card) => decorateReportCard(card, reports.find((row) => row.id === card.dataset.reportId)));
   const dataReport = document.querySelector('#dataShell.active');
   const reportTab = document.querySelector('#dataHub [data-data-view="report"].active');
-  if (dataReport && reportTab && !dataReport.querySelector('[data-export-report-list]')) {
-    const note = dataReport.querySelector('.data-shell-note');
-    note?.insertAdjacentHTML('afterend', '<div class="report-export-row"><button type="button" class="secondary" data-export-report-list>Xuất danh sách</button><button type="button" class="secondary" data-page="report-shell">Tạo báo cáo</button></div>');
+  if (dataReport && reportTab) {
+    if (!dataReport.querySelector('[data-export-report-list]')) {
+      const note = dataReport.querySelector('.data-shell-note');
+      note?.insertAdjacentHTML('afterend', '<div class="report-export-row"><button type="button" class="secondary" data-export-report-list>Xuất danh sách</button><button type="button" class="secondary" data-page="report-shell">Tạo báo cáo</button></div>');
+    }
+    [...dataReport.querySelectorAll('.data-shell-list > .data-shell-card')].forEach((card, index) => decorateReportCard(card, reports[index]));
   }
   const reportShell = document.querySelector('section.page[data-page="report-shell"]');
   if (reportShell) {
