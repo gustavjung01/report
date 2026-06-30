@@ -1,7 +1,7 @@
 import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
 import { getMcpSessionDetail, getMcpRouteSessions, setActiveMcpRouteSessionId } from './mcp-core.js';
-import { renderRevenueInto } from './revenue-ui.js?v=revenue-ui-3';
+import { renderRevenueInto } from './revenue-ui.js?v=revenue-ui-4';
 
 const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['revenue', '💰', 'DT'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
 const money = new Intl.NumberFormat('vi-VN');
