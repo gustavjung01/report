@@ -97,17 +97,6 @@ function filteredCatalog() {
   }).slice(0, 80);
 }
 
-function choiceKeyFor(product = {}) {
-  const groups = product.choice_groups || [];
-  const selected = state.selected.get(product.id)?.choices || {};
-  return groups.map((group) => selected[group.key] || '').join('|');
-}
-
-function selectedKey(product = {}) {
-  const choicePart = choiceKeyFor(product);
-  return `${product.id || product.sku}::${choicePart}`;
-}
-
 function filterHtml() {
   return FILTERS.map(([key, label]) => `<button type="button" class="order-picker-filter ${state.filter === key ? 'active' : ''}" data-order-picker-filter="${esc(key)}">${esc(label)}</button>`).join('');
 }
@@ -131,11 +120,20 @@ function selectedCount() {
   return state.selected.size;
 }
 
-function renderPicker() {
+function focusSearch() {
+  const search = pickerPanel()?.querySelector('[data-order-picker-search]');
+  if (!search) return;
+  search.focus();
+  const length = search.value.length;
+  try { search.setSelectionRange(length, length); } catch {}
+}
+
+function renderPicker({ keepSearchFocus = false } = {}) {
   const panel = pickerPanel();
   if (!panel) return;
   const items = filteredCatalog();
   panel.innerHTML = `<div class="order-picker-head"><b>Chọn sản phẩm</b><button type="button" data-order-picker-close>Đóng</button></div><div class="order-picker-tools"><input data-order-picker-search placeholder="Tìm tên / SKU" value="${esc(state.q)}"><div class="order-picker-filters">${filterHtml()}</div></div><div class="order-picker-list">${items.map(itemHtml).join('') || '<div class="order-picker-empty">Không có sản phẩm phù hợp.</div>'}</div><div class="order-picker-foot"><small>Đã chọn: ${selectedCount()} mã</small><button type="button" data-order-picker-commit ${selectedCount() ? '' : 'disabled'}>Thêm ${selectedCount()} mã vào đơn</button></div>`;
+  if (keepSearchFocus) setTimeout(focusSearch, 0);
 }
 
 async function openPicker() {
@@ -151,8 +149,7 @@ async function openPicker() {
     panel.setAttribute('data-order-picker-panel', '');
     modal.appendChild(panel);
   }
-  renderPicker();
-  setTimeout(() => panel.querySelector('[data-order-picker-search]')?.focus(), 0);
+  renderPicker({ keepSearchFocus: true });
 }
 
 function closePicker() {
@@ -175,13 +172,12 @@ function setChoice(productId, choiceKey, value) {
 function toggleProduct(productId) {
   const product = productById(productId);
   if (!product) return;
-  const groups = product.choice_groups || [];
   const current = state.selected.get(productId);
   if (current) {
     state.selected.delete(productId);
   } else {
     const choices = {};
-    groups.forEach((group) => {
+    (product.choice_groups || []).forEach((group) => {
       if ((group.values || []).length === 1) choices[group.key] = group.values[0];
     });
     state.selected.set(productId, { product, quantity: 1, choices });
@@ -220,11 +216,12 @@ function commitSelection() {
   }
   const target = document.querySelector('#modal[data-type="order-create"] #orderLines');
   if (!target) return;
-  const emptyRows = [...target.querySelectorAll('[data-order-line]')].filter((row) => !(row.querySelector('[data-order-product]')?.value || '').trim());
-  emptyRows.forEach((row) => row.remove());
+  [...target.querySelectorAll('[data-order-line]')]
+    .filter((row) => !(row.querySelector('[data-order-product]')?.value || '').trim())
+    .forEach((row) => row.remove());
   target.insertAdjacentHTML('beforeend', entries.map(lineHtml).join(''));
   closePicker();
-  document.querySelector('#modal[data-type="order-create"] [data-order-line] [data-order-qty]')?.dispatchEvent(new Event('input', { bubbles: true }));
+  target.querySelector('[data-order-qty]')?.dispatchEvent(new Event('input', { bubbles: true }));
   toast(`Đã thêm ${entries.length} mã vào đơn.`);
 }
 
@@ -243,7 +240,7 @@ function handleClick(event) {
   if (filter) {
     event.preventDefault();
     state.filter = filter.dataset.orderPickerFilter || 'all';
-    renderPicker();
+    renderPicker({ keepSearchFocus: true });
     return;
   }
   const toggle = event.target.closest('[data-picker-toggle]');
@@ -268,7 +265,7 @@ function handleInput(event) {
   const search = event.target.closest('[data-order-picker-search]');
   if (!search) return;
   state.q = search.value || '';
-  renderPicker();
+  renderPicker({ keepSearchFocus: true });
 }
 
 function handleChange(event) {
