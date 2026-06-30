@@ -1,15 +1,35 @@
+import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
+
+const money = new Intl.NumberFormat('vi-VN');
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
+function activeOrder(order = {}) {
+  return !['cancelled', 'deleted'].includes(String(order.status || '').trim()) && !order.deleted_at && !order.raw_payload?.deleted_at;
+}
+
+function formatMoney(value = 0) {
+  const amount = Number(value || 0);
+  return amount ? `${money.format(amount)}đ` : '0đ';
+}
+
 async function enhanceOrderDataHub() {
   const shell = document.querySelector('#dataShell.active');
-  const activeOrder = document.querySelector('#dataHub [data-data-view="order"].active');
-  if (!shell || !activeOrder) return;
-  const [orders] = await Promise.all([getAllLocal(LOCAL_STORES.orders)]);
+  const activeOrderTab = document.querySelector('#dataHub [data-data-view="order"].active');
+  if (!shell || !activeOrderTab) return;
+  const orders = await getAllLocal(LOCAL_STORES.orders);
   const sorted = orders.slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const today = todayIsoDate();
+  const todayActiveOrders = sorted.filter((order) => activeOrder(order) && order.order_date === today);
+  const todayRevenue = todayActiveOrders.reduce((sum, order) => sum + Number(order.grand_total || 0), 0);
+  const pending = sorted.filter((order) => activeOrder(order) && (order.status === 'draft' || order.status === 'pending_confirm')).length;
+  const kpis = shell.querySelectorAll('.data-shell-kpi b');
+  if (kpis[0]) kpis[0].textContent = String(todayActiveOrders.length);
+  if (kpis[1]) kpis[1].textContent = formatMoney(todayRevenue);
+  if (kpis[2]) kpis[2].textContent = String(pending);
 
   if (!shell.querySelector('[data-order-export-list]')) {
     const note = shell.querySelector('.data-shell-note');
