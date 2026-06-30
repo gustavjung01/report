@@ -15,7 +15,7 @@ import './page-router-fix.js?v=revenue-route-1';
 
 // Home ownership: visual-only home launcher, floating cloud chip, and background decoration.
 import './home-ui-owner.js?v=home-ui-owner-1';
-import './home-today-dashboard.js?v=home-actions-1';
+import './home-today-dashboard.js?v=home-compact-1';
 
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
 import './data-admin-ui-owner.js?v=data-admin-ui-owner-3';
