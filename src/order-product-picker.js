@@ -68,8 +68,12 @@ async function loadCatalogSafe() {
 
 function currentModal() {
   const modal = document.querySelector('#modal');
-  if (!modal || !modal.querySelector('#orderLines')) return null;
+  if (!modal || !linesContainer(modal)) return null;
   return modal;
+}
+
+function linesContainer(modal = currentModal()) {
+  return modal?.querySelector('#orderLines, #mcpOrderLines') || null;
 }
 
 function pickerPanel() {
@@ -78,9 +82,8 @@ function pickerPanel() {
 
 function injectTrigger() {
   const modal = currentModal();
-  if (!modal || modal.querySelector('[data-order-open-picker]')) return;
-  const lines = modal.querySelector('#orderLines');
-  if (!lines) return;
+  const lines = linesContainer(modal);
+  if (!modal || !lines || modal.querySelector('[data-order-open-picker]')) return;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'order-product-trigger';
@@ -205,7 +208,7 @@ function lineHtml(entry) {
   const choices = entry.choices || {};
   const choiceText = Object.values(choices).filter(Boolean).join(' · ');
   const name = choiceText ? `${product.name} - ${choiceText}` : product.name;
-  return `<div class="order-line" data-order-line><input data-order-product list="productCatalogOptions" placeholder="Tìm sản phẩm/SKU" value="${esc(name)}"><input data-order-product-id type="hidden" value="${esc(product.id || '')}"><input data-order-sku type="hidden" value="${esc(product.sku || '')}"><input data-order-unit type="hidden" value="${esc(product.unit || '')}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(entry.quantity || 1)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(product.price || '')}"><button type="button" class="secondary" data-order-remove-line>×</button><div class="order-choice" data-order-choice-wrap>${buildChoiceSelects(product, choices)}</div></div>`;
+  return `<div class="order-line mcp-order-line" data-order-line data-mcp-order-line><input data-order-product data-mcp-order-product list="productCatalogOptions" placeholder="Tìm sản phẩm/SKU" value="${esc(name)}"><input data-order-product-id data-mcp-order-product-id type="hidden" value="${esc(product.id || '')}"><input data-order-sku data-mcp-order-sku type="hidden" value="${esc(product.sku || '')}"><input data-order-unit data-mcp-order-unit type="hidden" value="${esc(product.unit || '')}"><input data-order-qty data-mcp-order-qty type="number" inputmode="numeric" min="1" value="${esc(entry.quantity || 1)}"><input data-order-price data-mcp-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(product.price || '')}"><button type="button" class="secondary" data-order-remove-line data-mcp-order-remove-line>×</button><div class="order-choice" data-order-choice-wrap>${buildChoiceSelects(product, choices)}</div></div>`;
 }
 
 function commitSelection() {
@@ -216,14 +219,14 @@ function commitSelection() {
     toast(`Chọn đủ phân loại cho ${missing.product.name}.`);
     return;
   }
-  const target = currentModal()?.querySelector('#orderLines');
+  const target = linesContainer();
   if (!target) return;
-  [...target.querySelectorAll('[data-order-line]')]
-    .filter((row) => !(row.querySelector('[data-order-product]')?.value || '').trim())
+  [...target.querySelectorAll('[data-order-line], [data-mcp-order-line]')]
+    .filter((row) => !(row.querySelector('[data-order-product], [data-mcp-order-product]')?.value || '').trim())
     .forEach((row) => row.remove());
   target.insertAdjacentHTML('beforeend', entries.map(lineHtml).join(''));
   closePicker();
-  target.querySelector('[data-order-qty]')?.dispatchEvent(new Event('input', { bubbles: true }));
+  target.querySelector('[data-order-qty], [data-mcp-order-qty]')?.dispatchEvent(new Event('input', { bubbles: true }));
   toast(`Đã thêm ${entries.length} mã vào đơn.`);
 }
 
@@ -279,6 +282,7 @@ function handleChange(event) {
 function observeOrderModal() {
   const observer = new MutationObserver(() => injectTrigger());
   observer.observe(document.body, { childList: true, subtree: true });
+  setInterval(injectTrigger, 700);
   injectTrigger();
 }
 
