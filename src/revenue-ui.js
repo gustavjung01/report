@@ -51,6 +51,15 @@ function ensurePage() {
   main.insertAdjacentHTML('beforeend', '<section class="page shell-page revenue-page" data-page="revenue-shell"></section>');
 }
 
+function showRevenuePage() {
+  ensurePage();
+  document.querySelectorAll('.page').forEach((element) => element.classList.toggle('active', element.dataset.page === 'revenue-shell'));
+  document.querySelectorAll('.nav button').forEach((button) => button.classList.toggle('active', button.dataset.page === 'create'));
+  const subtitle = document.querySelector('#subtitle');
+  if (subtitle) subtitle.textContent = 'Doanh thu';
+  renderRevenue();
+}
+
 function ensureHomeCard() {
   const grid = document.querySelector('section.page[data-page="create"] .grid-actions');
   if (!grid || grid.querySelector('[data-home-card="revenue"]')) return;
@@ -79,7 +88,7 @@ function ensureCss() {
     .revenue-hero b{font-size:18px}.revenue-hero small{opacity:.88;font-weight:850}
     .revenue-filters{display:flex;gap:7px;overflow:auto;margin:0 0 10px;padding-bottom:1px}.revenue-filter{border:1px solid #d7e6e2;border-radius:999px;background:#fff;min-height:34px;padding:0 12px;white-space:nowrap;color:#17343d;font-size:12px;font-weight:950}.revenue-filter.active{background:#00957f;border-color:#00957f;color:#fff}
     .revenue-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}.revenue-kpi{border:1px solid #dce8e5;border-radius:17px;background:#fff;padding:11px;display:grid;gap:3px;box-shadow:0 8px 18px rgba(12,55,50,.055)}.revenue-kpi b{font-size:20px;color:#082337;line-height:1.08}.revenue-kpi span{font-size:11px;color:#63727c;font-weight:850}
-    .revenue-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:10px}.revenue-tab{border:1px solid #d7e6e2;border-radius:14px;background:#fff;min-height:38px;font-size:12px;font-weight:950;color:#17343d}.revenue-tab.active{background:#eafff8;border-color:#9bdccd;color:#007866}
+    .revenue-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:10px}.revenue-tab{border:1px solid #d7e6e2;border-radius:14px;background:#fff;min-height:38px;font-size:12px;font-weight:950;color:#17343d}.revenue-tab.active{background:#eafff8;border-color:#9bdccd;color:#007866}
     .revenue-list{display:grid;gap:8px}.revenue-row{border:1px solid #dce8e5;border-radius:16px;background:#fff;padding:10px;display:grid;gap:5px}.revenue-row-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.revenue-row b{color:#082337}.revenue-row strong{white-space:nowrap;color:#007866}.revenue-row small{color:#63727c;font-weight:800}.revenue-empty{border:1px dashed #cfe2dc;border-radius:16px;background:#fff;padding:18px;text-align:center;color:#63727c;font-weight:850}
   `;
   document.head.appendChild(style);
@@ -130,7 +139,7 @@ function shellHtml(summary = {}) {
     </div>
     ${kpiHtml(kpis)}
     <div class="revenue-tabs">
-      <button type="button" class="revenue-tab ${currentTab === 'overview' ? 'active' : ''}" data-revenue-tab="overview">Tổng quan</button>
+      <button type="button" class="revenue-tab ${currentTab === 'overview' ? 'active' : ''}" data-revenue-tab="overview">Tổng</button>
       <button type="button" class="revenue-tab ${currentTab === 'customer' ? 'active' : ''}" data-revenue-tab="customer">Khách</button>
       <button type="button" class="revenue-tab ${currentTab === 'industry' ? 'active' : ''}" data-revenue-tab="industry">Ngành</button>
       <button type="button" class="revenue-tab ${currentTab === 'sku' ? 'active' : ''}" data-revenue-tab="sku">SKU</button>
@@ -164,6 +173,13 @@ function boot() {
 }
 
 document.addEventListener('click', (event) => {
+  const revenueTrigger = event.target.closest('[data-page="revenue-shell"], [data-home-card="revenue"]');
+  if (revenueTrigger) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showRevenuePage();
+    return;
+  }
   const range = event.target.closest('[data-revenue-range]');
   if (range) {
     event.preventDefault();
