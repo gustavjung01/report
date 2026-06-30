@@ -5,6 +5,7 @@ import './test-pull.js';
 import './compact-detail.js?v=test-detail-width-1';
 import './app-update.js';
 import './test-export.js';
+import './test-data-card-ui.js?v=test-data-card-ui-1';
 import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=ui-modal-zoom-1';
 import './test-file-modal-ui.js?v=test-file-modal-1';
