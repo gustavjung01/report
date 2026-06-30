@@ -17,6 +17,9 @@ import './page-router-fix.js?v=revenue-route-1';
 import './home-ui-owner.js?v=home-ui-owner-1';
 import './home-today-dashboard.js?v=home-compact-1';
 
+// App bottom navigation and compact sync status dot.
+import './bottom-nav-status-ui.js?v=bottom-nav-status-1';
+
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
 import './data-admin-ui-owner.js?v=data-admin-ui-owner-3';
 import './data-report-compact-ui.js?v=data-report-compact-1';
