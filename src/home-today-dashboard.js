@@ -1,8 +1,8 @@
 import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, getSyncQueue, localStats } from '../local-db.js';
 import { getOrderRevenueDataset, summarizeOrders } from './order-summary.js';
+import { isActiveBusinessRow, isActiveRouteCustomer, isActiveTestRow } from './soft-delete.js';
 
-const CANCELLED_STATUSES = new Set(['cancelled', 'deleted']);
 const VISIT_DONE_STATUSES = new Set(['done', 'checked_in', 'order', 'test', 'report', 'no', 'no_buy', 'follow_up']);
 const ORDER_ACTION_STATUSES = new Set(['draft', 'pending_confirm']);
 const TEST_ACTION_STATUSES = new Set(['draft', 'pending', 'follow', 'retry', 'sample']);
@@ -37,12 +37,12 @@ function inRange(row = {}, fields = [], from = '', to = '') {
   return Boolean(date && (!from || date >= from) && (!to || date <= to));
 }
 
-function isDeleted(row = {}) {
-  return Boolean(row.deleted_at || row.raw_payload?.deleted_at || row.raw_payload?.delete_reason);
+function activeBusinessRow(row = {}) {
+  return isActiveBusinessRow(row);
 }
 
-function activeBusinessRow(row = {}) {
-  return !CANCELLED_STATUSES.has(clean(row.status)) && !isDeleted(row);
+function activeTestRow(row = {}) {
+  return isActiveTestRow(row);
 }
 
 function formatCompactMoney(value = 0) {
@@ -137,7 +137,7 @@ function countMcpToday({ sessions = [], visits = [], customers = [] }, today) {
   });
 
   const plannedFromSessions = todaySessions.reduce((total, session) => total + number(session.planned_customers), 0);
-  const plannedFromRoutes = customers.filter((customer) => customer.active !== false && routeIds.has(customer.route_id)).length;
+  const plannedFromRoutes = customers.filter((customer) => isActiveRouteCustomer(customer) && routeIds.has(customer.route_id)).length;
   const planned = plannedFromSessions || plannedFromRoutes;
   const visitedIds = new Set(scopedVisits.filter((visit) => VISIT_DONE_STATUSES.has(clean(visit.status)) || visit.has_order || visit.has_test || visit.has_report).map((visit) => visit.route_customer_id || visit.customer_id || visit.id).filter(Boolean));
   const visitedFromSessions = todaySessions.reduce((total, session) => total + number(session.visited_customers), 0);
@@ -147,7 +147,7 @@ function countMcpToday({ sessions = [], visits = [], customers = [] }, today) {
 
 function buildActionItems({ orders = [], tests = [], reports = [], mcp }) {
   const pendingOrders = orders.filter((order) => activeBusinessRow(order) && ORDER_ACTION_STATUSES.has(clean(order.status))).length;
-  const pendingTests = tests.filter((test) => !isDeleted(test) && test.raw_payload?.kind !== 'test_file' && TEST_ACTION_STATUSES.has(clean(test.overall_status || test.status))).length;
+  const pendingTests = tests.filter((test) => activeTestRow(test) && test.raw_payload?.kind !== 'test_file' && TEST_ACTION_STATUSES.has(clean(test.overall_status || test.status))).length;
   const unsyncedReports = reports.filter((report) => activeBusinessRow(report) && UNSYNCED_STATUSES.has(clean(report.sync_status || 'pending'))).length;
   return [
     { icon: '🧾', title: 'Đơn nháp / chờ', note: pendingOrders ? 'Cần kiểm tra trước khi chốt.' : 'Không có đơn đang chờ.', count: pendingOrders, view: 'order' },
@@ -159,7 +159,7 @@ function buildActionItems({ orders = [], tests = [], reports = [], mcp }) {
 
 function buildSevenDay({ orders = [], tests = [], reports = [], revenueSummary, from, to }) {
   const activeOrders = orders.filter((order) => activeBusinessRow(order) && inRange(order, ['order_date', 'date', 'created_at'], from, to));
-  const activeTests = tests.filter((test) => !isDeleted(test) && test.raw_payload?.kind !== 'test_file' && inRange(test, ['test_date', 'date', 'created_at'], from, to));
+  const activeTests = tests.filter((test) => activeTestRow(test) && test.raw_payload?.kind !== 'test_file' && inRange(test, ['test_date', 'date', 'created_at'], from, to));
   const activeReports = reports.filter((report) => activeBusinessRow(report) && inRange(report, ['report_date', 'date', 'created_at'], from, to));
   return {
     order_count: revenueSummary.order_count || activeOrders.length,
@@ -188,7 +188,7 @@ async function buildHomeToday() {
   const todayRevenue = summarizeOrders(todayDataset);
   const sevenRevenue = summarizeOrders(sevenDataset);
   const todayOrders = orders.filter((order) => activeBusinessRow(order) && dateOf(order, ['order_date', 'date', 'created_at']) === today);
-  const todayTests = tests.filter((test) => !isDeleted(test) && test.raw_payload?.kind !== 'test_file' && dateOf(test, ['test_date', 'date', 'created_at']) === today);
+  const todayTests = tests.filter((test) => activeTestRow(test) && test.raw_payload?.kind !== 'test_file' && dateOf(test, ['test_date', 'date', 'created_at']) === today);
   const todayReports = reports.filter((report) => activeBusinessRow(report) && dateOf(report, ['report_date', 'date', 'created_at']) === today);
   const mcp = countMcpToday({ sessions, visits, customers }, today);
   const queuePending = queue.filter((job) => !['done', 'synced'].includes(clean(job.status))).length;
