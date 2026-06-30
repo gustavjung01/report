@@ -2,9 +2,11 @@ import { makeOrder, makeOrderItem, makeMcpVisit, todayIsoDate, uid } from '../da
 import { LOCAL_STORES, getAllLocal, putLocal, putManyLocal } from '../local-db.js';
 import { districtsForProvince, provinceOptions } from './vn-admin-units.js';
 import { getMcpRouteSessions, getMcpSessionDetail, upsertMcpVisitForSession } from './mcp-core.js';
+import { ensureProductCatalog, matchCatalogProduct } from './product-catalog.js?v=bepsi-catalog-1';
 
 const currency = new Intl.NumberFormat('vi-VN');
 const statusText = { draft: 'Nháp', pending_confirm: 'Chờ xác nhận', confirmed: 'Đã chốt' };
+let productCatalog = [];
 
 function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
@@ -47,6 +49,11 @@ async function loadOrders() {
   return { orders: sorted, items };
 }
 
+async function loadProductCatalog() {
+  productCatalog = await ensureProductCatalog();
+  return productCatalog;
+}
+
 function orderItemsOf(order, items) {
   return items.filter((item) => item.order_id === order.id);
 }
@@ -68,11 +75,20 @@ async function render() {
   const revenue = todayOrders.reduce((sum, order) => sum + Number(order.grand_total || 0), 0);
   const pending = orders.filter((order) => order.status === 'draft' || order.status === 'pending_confirm').length;
 
-  section.innerHTML = `<div class="shell-top"><div class="shell-title"><h1>Đơn hàng</h1><p>Tạo đơn nhanh, lưu local trước khi sync.</p></div><div class="shell-top-actions"><button type="button" class="shell-back" data-page="create">Home</button><button type="button" class="shell-back order-create-btn" data-order-create>+ Đơn</button></div></div><article class="shell-hero order"><b>Tạo đơn nhanh ngoài tuyến</b><small>Khách · sản phẩm · số lượng · đơn giá · ghi chú giao hàng</small></article><div class="shell-grid"><div class="shell-kpis"><div class="shell-kpi"><b>${todayOrders.length}</b><span>Đơn hôm nay</span></div><div class="shell-kpi"><b>${esc(formatMoney(revenue))}</b><span>Doanh số</span></div><div class="shell-kpi"><b>${pending}</b><span>Chờ xử lý</span></div></div><div class="shell-list">${orders.map((order) => card(order, items)).join('') || '<p class="data-shell-note">Chưa có đơn hàng. Bấm + Đơn để tạo đơn đầu tiên.</p>'}</div></div>`;
+  section.innerHTML = `<div class="shell-top"><div class="shell-title"><h1>Đơn hàng</h1><p>Tạo đơn nhanh, dùng catalog sản phẩm chuẩn trước khi sync.</p></div><div class="shell-top-actions"><button type="button" class="shell-back" data-page="create">Home</button><button type="button" class="shell-back order-create-btn" data-order-create>+ Đơn</button></div></div><article class="shell-hero order"><b>Tạo đơn nhanh ngoài tuyến</b><small>Khách · sản phẩm chuẩn · số lượng · giá · ghi chú giao hàng</small></article><div class="shell-grid"><div class="shell-kpis"><div class="shell-kpi"><b>${todayOrders.length}</b><span>Đơn hôm nay</span></div><div class="shell-kpi"><b>${esc(formatMoney(revenue))}</b><span>Doanh số</span></div><div class="shell-kpi"><b>${pending}</b><span>Chờ xử lý</span></div></div><div class="shell-list">${orders.map((order) => card(order, items)).join('') || '<p class="data-shell-note">Chưa có đơn hàng. Bấm + Đơn để tạo đơn đầu tiên.</p>'}</div></div>`;
 }
 
-function productRow(name = '', quantity = 1, price = '') {
-  return `<div class="order-line" data-order-line><input data-order-product placeholder="Sản phẩm" value="${esc(name)}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-order-remove-line>×</button></div>`;
+function productOptionHtml(product = {}) {
+  const disabled = product.orderable === false ? ' data-disabled="1"' : '';
+  return `<option value="${esc(product.search_label || product.name || '')}" label="${esc([product.sku, product.category, formatMoney(product.price)].filter(Boolean).join(' · '))}"${disabled}></option>`;
+}
+
+function productCatalogDatalistHtml() {
+  return `<datalist id="productCatalogOptions">${productCatalog.map(productOptionHtml).join('')}</datalist>`;
+}
+
+function productRow(name = '', quantity = 1, price = '', seed = {}) {
+  return `<div class="order-line" data-order-line><input data-order-product list="productCatalogOptions" placeholder="Tìm sản phẩm/SKU" value="${esc(name)}"><input data-order-product-id type="hidden" value="${esc(seed.product_id || '')}"><input data-order-sku type="hidden" value="${esc(seed.sku || '')}"><input data-order-unit type="hidden" value="${esc(seed.unit || '')}"><input data-order-qty type="number" inputmode="numeric" min="1" value="${esc(quantity)}"><input data-order-price type="number" inputmode="numeric" min="0" placeholder="Giá" value="${esc(price)}"><button type="button" class="secondary" data-order-remove-line>×</button><div class="order-choice" data-order-choice-wrap></div></div>`;
 }
 
 function optionHtml(value = '', label = value, selected = '') {
@@ -176,9 +192,50 @@ async function refreshMcpCustomerOptions({ clearCustomer = false } = {}) {
   }
 }
 
+function choiceSelectHtml(product = {}, selectedChoices = {}) {
+  const groups = product.choice_groups || [];
+  if (!groups.length) return '';
+  return groups.map((group) => `<label class="order-choice-label"><span>${esc(group.name || 'Phân loại')}</span><select data-order-choice data-order-choice-key="${esc(group.key)}" ${group.required ? 'data-required="1"' : ''}>${optionHtml('', `Chọn ${String(group.name || 'phân loại').toLowerCase()}`)}${(group.values || []).map((value) => optionHtml(value, value, selectedChoices[group.key])).join('')}</select></label>`).join('');
+}
+
+function selectedChoicesFromRow(row) {
+  return Object.fromEntries([...row.querySelectorAll('[data-order-choice]')].map((select) => [select.dataset.orderChoiceKey || 'choice', select.value || '']).filter(([, value]) => value));
+}
+
+function applyProductToRow(row, product, { keepName = false } = {}) {
+  if (!row || !product) return;
+  row.dataset.productId = product.id || '';
+  row.dataset.sku = product.sku || '';
+  row.querySelector('[data-order-product-id]').value = product.id || '';
+  row.querySelector('[data-order-sku]').value = product.sku || '';
+  row.querySelector('[data-order-unit]').value = product.unit || '';
+  if (!keepName) row.querySelector('[data-order-product]').value = product.search_label || product.name || '';
+  const price = row.querySelector('[data-order-price]');
+  if (price && product.price) price.value = String(product.price);
+  const wrap = row.querySelector('[data-order-choice-wrap]');
+  if (wrap) wrap.innerHTML = choiceSelectHtml(product, selectedChoicesFromRow(row));
+}
+
+function productForRow(row) {
+  const id = row.querySelector('[data-order-product-id]')?.value || row.dataset.productId || '';
+  const sku = row.querySelector('[data-order-sku]')?.value || row.dataset.sku || '';
+  const input = row.querySelector('[data-order-product]')?.value || '';
+  return productCatalog.find((item) => item.id === id)
+    || productCatalog.find((item) => item.sku === sku)
+    || matchCatalogProduct(input, productCatalog);
+}
+
+function autofillProductRow(row, { keepName = true } = {}) {
+  const input = row?.querySelector('[data-order-product]')?.value || '';
+  const product = matchCatalogProduct(input, productCatalog);
+  if (product) applyProductToRow(row, product, { keepName });
+  return product;
+}
+
 async function openOrderModal(seed = {}) {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
+  await loadProductCatalog();
   const selectedCustomerId = seed.route_customer_id || '';
   const selectedSessionId = seed.mcp_session_id || seed.raw_payload?.mcp_session_id || '';
   const sourceOptions = await mcpSourceOptions(selectedSessionId);
@@ -188,11 +245,12 @@ async function openOrderModal(seed = {}) {
   const district = seed.district || seed.raw_payload?.district || split.district;
   const geoText = seed.geo_text || seed.raw_payload?.geo_text || seed.raw_payload?.google_maps_url || '';
   dialog.dataset.type = 'order-create';
-  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form"><div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><div class="grid order-customer-source-row"><label><span>Nguồn / MCP</span><select id="orderMcpSource">${sourceOptions}</select></label><label><span>Khách trong MCP</span><select id="orderCustomerSelect" ${selectedSessionId ? '' : 'disabled'}>${customerOptions}</select></label></div><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><select id="orderProvince" autocomplete="address-level1">${provinceOptionsHtml(province)}</select></label><label><span>Quận/Huyện</span><select id="orderDistrict" autocomplete="address-level2">${districtOptionsHtml(province, district)}</select></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '')}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-order-form><header><h2>Tạo đơn hàng</h2><button type="button" data-close>Đóng</button></header><div class="form order-form"><div class="grid"><label><span>Ngày</span><input id="orderDate" type="date" value="${esc(seed.order_date || todayIsoDate())}"></label><label><span>Sales</span><input id="orderSales" value="${esc(seed.sales || 'A Tân')}"></label></div><div class="grid order-customer-source-row"><label><span>Nguồn / MCP</span><select id="orderMcpSource">${sourceOptions}</select></label><label><span>Khách trong MCP</span><select id="orderCustomerSelect" ${selectedSessionId ? '' : 'disabled'}>${customerOptions}</select></label></div><div class="grid"><label><span>Khách</span><input id="orderCustomerName" required value="${esc(seed.customer_name || '')}"></label><label><span>SĐT</span><input id="orderCustomerPhone" inputmode="tel" value="${esc(seed.customer_phone || '')}"></label></div><div class="grid"><label><span>Tỉnh/TP</span><select id="orderProvince" autocomplete="address-level1">${provinceOptionsHtml(province)}</select></label><label><span>Quận/Huyện</span><select id="orderDistrict" autocomplete="address-level2">${districtOptionsHtml(province, district)}</select></label></div><label><span>Địa chỉ giao</span><input id="orderAddress" autocomplete="street-address" value="${esc(seed.delivery_address || '')}"></label><label><span>Định vị / Google Maps</span><input id="orderGeoText" inputmode="url" value="${esc(geoText)}" placeholder="Dán link Google Maps hoặc tọa độ 10.7,106.6"></label><div class="line"><b>Sản phẩm</b><small class="data-shell-note">Đã nạp ${productCatalog.length} mã sản phẩm chuẩn từ Bếp Sỉ. Tìm bằng tên hoặc SKU.</small>${productCatalogDatalistHtml()}<div id="orderLines">${productRow(seed.product_name || '', seed.quantity || 1, seed.unit_price || '', seed)}</div><button type="button" class="secondary wide" data-order-add-line>+ Thêm sản phẩm</button></div><label><span>Ghi chú giao hàng</span><textarea id="orderNote" rows="2">${esc(seed.note || '')}</textarea></label><div class="total" id="orderTotal"><b>Tổng: 0đ</b></div><button class="primary" data-order-save>Lưu đơn</button></div></form>`;
   dialog.showModal();
   syncMcpSourceUi();
   updateDistrictOptions();
   if (selectedSessionId && selectedCustomerId) await fillCustomerFromSelect();
+  [...dialog.querySelectorAll('[data-order-line]')].forEach((row) => autofillProductRow(row, { keepName: true }));
   updateTotal();
   document.querySelector('#orderCustomerName')?.focus();
 }
@@ -200,32 +258,47 @@ async function openOrderModal(seed = {}) {
 async function fillCustomerFromSelect() {
   const sessionId = selectedMcpSessionId();
   const select = document.querySelector('#orderCustomerSelect');
-  if (!sessionId || !select?.value) return;
+  const customerId = select?.value || '';
+  if (!sessionId || !customerId) return;
   const detail = await getMcpSessionDetail(sessionId);
-  const customer = detail?.customers?.find((row) => row.id === select.value);
+  const customer = detail?.customers?.find((item) => item.id === customerId);
   if (!customer) return;
-  const split = splitArea(customer.area || detail?.route?.area || detail?.session?.area || '');
-  const province = customer.raw_payload?.province || split.province || '';
-  const district = customer.raw_payload?.district || split.district || customer.area || '';
   document.querySelector('#orderCustomerName').value = customer.customer_name || '';
   document.querySelector('#orderCustomerPhone').value = customer.phone || '';
-  document.querySelector('#orderProvince').value = province;
-  updateDistrictOptions();
-  document.querySelector('#orderDistrict').value = district;
   document.querySelector('#orderAddress').value = customer.address || '';
-  const geo = customer.google_maps_url || (customer.geo_lat && customer.geo_lng ? `${customer.geo_lat},${customer.geo_lng}` : '');
-  document.querySelector('#orderGeoText').value = geo;
+  const split = splitArea(customer.area || detail?.session?.area || '');
+  document.querySelector('#orderProvince').value = split.province;
+  updateDistrictOptions();
+  document.querySelector('#orderDistrict').value = split.district;
+  const maps = customer.google_maps_url || (customer.geo_lat && customer.geo_lng ? `${customer.geo_lat},${customer.geo_lng}` : '');
+  document.querySelector('#orderGeoText').value = maps;
 }
 
 function readLines() {
   return [...document.querySelectorAll('[data-order-line]')].map((row) => {
+    const product = productForRow(row);
     const quantity = Math.max(1, Number(row.querySelector('[data-order-qty]')?.value || 1));
-    const unitPrice = Math.max(0, Number(row.querySelector('[data-order-price]')?.value || 0));
+    const unitPrice = Math.max(0, Number(row.querySelector('[data-order-price]')?.value || product?.price || 0));
+    const choices = selectedChoicesFromRow(row);
+    const missingChoice = (product?.choice_groups || []).some((group) => group.required && !choices[group.key]);
+    const choiceText = Object.values(choices).filter(Boolean).join(' · ');
+    const inputName = row.querySelector('[data-order-product]')?.value.trim() || '';
+    const baseName = product?.name || inputName;
     return {
-      product_name: row.querySelector('[data-order-product]')?.value.trim() || '',
+      product_id: product?.id || row.querySelector('[data-order-product-id]')?.value || '',
+      product_name: choiceText ? `${baseName} - ${choiceText}` : baseName,
+      sku: product?.sku || row.querySelector('[data-order-sku]')?.value || '',
+      unit: product?.unit || row.querySelector('[data-order-unit]')?.value || '',
       quantity,
       unit_price: unitPrice,
-      line_total: quantity * unitPrice
+      line_total: quantity * unitPrice,
+      raw_payload: {
+        source: product ? 'product_catalog' : 'manual',
+        catalog_product: product || null,
+        choices,
+        choice_required: Boolean((product?.choice_groups || []).length),
+        missing_choice: missingChoice
+      }
     };
   }).filter((line) => line.product_name);
 }
@@ -284,6 +357,8 @@ async function saveOrder(event) {
   const customerName = document.querySelector('#orderCustomerName')?.value.trim();
   if (!customerName) return toast('Nhập tên khách trước đã.');
   if (!lines.length) return toast('Thêm ít nhất 1 sản phẩm.');
+  const missing = lines.find((line) => line.raw_payload?.missing_choice);
+  if (missing) return toast(`Chọn phân loại/vị cho ${missing.product_name}.`);
 
   const total = lines.reduce((sum, line) => sum + line.line_total, 0);
   const mcpSessionId = selectedMcpSessionId();
@@ -317,6 +392,7 @@ async function saveOrder(event) {
       mcp_session_id: mcpSessionId,
       mcp_route_id: mcpDetail?.session?.route_id || '',
       mcp_route_name: mcpDetail?.route?.route_name || mcpDetail?.session?.route_name || '',
+      product_catalog: 'bepsi_hung_phat_v2',
       province,
       district,
       ...geo
@@ -342,7 +418,7 @@ async function showDetail(orderId) {
   const geoLine = geo ? `<p class="data-shell-note">Định vị: ${esc(geo)}</p>` : '';
   const dialog = document.querySelector('#modal');
   dialog.dataset.type = 'order-detail';
-  dialog.innerHTML = `<div class="modal"><header><h2>${esc(order.customer_name || 'Đơn hàng')}</h2><button type="button" data-close>Đóng</button></header><div class="total"><b>${esc(formatMoney(order.grand_total))}</b><br><small>${esc(order.order_date || '')} · ${esc(order.area || '')}</small></div>${source}${lines.map((line) => `<article class="line"><b>${esc(line.product_name)}</b><small>SL ${esc(line.quantity)} · Giá ${esc(formatMoney(line.unit_price))} · Thành tiền ${esc(formatMoney(line.line_total))}</small></article>`).join('') || '<p class="empty">Chưa có sản phẩm.</p>'}${order.delivery_address ? `<p class="data-shell-note">Địa chỉ: ${esc(order.delivery_address)}</p>` : ''}${geoLine}${order.note ? `<p class="data-shell-note">${esc(order.note)}</p>` : ''}</div>`;
+  dialog.innerHTML = `<div class="modal"><header><h2>${esc(order.customer_name || 'Đơn hàng')}</h2><button type="button" data-close>Đóng</button></header><div class="total"><b>${esc(formatMoney(order.grand_total))}</b><br><small>${esc(order.order_date || '')} · ${esc(order.area || '')}</small></div>${source}${lines.map((line) => `<article class="line"><b>${esc(line.product_name)}</b><small>${line.sku ? `SKU ${esc(line.sku)} · ` : ''}SL ${esc(line.quantity)} · Giá ${esc(formatMoney(line.unit_price))} · Thành tiền ${esc(formatMoney(line.line_total))}</small></article>`).join('') || '<p class="empty">Chưa có sản phẩm.</p>'}${order.delivery_address ? `<p class="data-shell-note">Địa chỉ: ${esc(order.delivery_address)}</p>` : ''}${geoLine}${order.note ? `<p class="data-shell-note">${esc(order.note)}</p>` : ''}</div>`;
   dialog.showModal();
 }
 
@@ -363,6 +439,9 @@ async function repeatOrder(orderId) {
     route_customer_id: order.raw_payload?.route_customer_id || order.customer_id,
     mcp_session_id: order.raw_payload?.mcp_session_id,
     product_name: first?.product_name || '',
+    product_id: first?.product_id || '',
+    sku: first?.sku || '',
+    unit: first?.unit || '',
     quantity: first?.quantity || 1,
     unit_price: first?.unit_price || ''
   });
@@ -370,6 +449,7 @@ async function repeatOrder(orderId) {
 
 function boot() {
   page();
+  loadProductCatalog().catch((error) => console.warn('product catalog seed failed', error));
   render().catch((error) => {
     console.warn('order render failed', error);
     toast('Không mở được dữ liệu đơn hàng local.');
@@ -413,6 +493,8 @@ document.addEventListener('change', async (event) => {
   if (event.target.closest('#orderMcpSource')) await refreshMcpCustomerOptions({ clearCustomer: true });
   if (event.target.closest('#orderCustomerSelect')) await fillCustomerFromSelect();
   if (event.target.closest('#orderProvince')) updateDistrictOptions({ clearInvalid: true });
+  const productInput = event.target.closest('[data-order-product]');
+  if (productInput) autofillProductRow(productInput.closest('[data-order-line]'), { keepName: false });
   if (event.target.closest('[data-order-line]')) updateTotal();
 });
 
