@@ -44,6 +44,7 @@ async function enhanceOrderDataHub() {
     if (order.status === 'cancelled') card.classList.add('order-cancelled');
     if (!card.querySelector('.shell-actions')) card.insertAdjacentHTML('beforeend', '<div class="shell-actions"></div>');
     const actions = card.querySelector('.shell-actions');
+    if (!actions.querySelector('[data-order-detail]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="primary-lite" data-order-detail="${esc(order.id)}">Chi tiết</button>`);
     if (!actions.querySelector('[data-order-export-slip]')) actions.insertAdjacentHTML('beforeend', `<button type="button" data-order-export-slip="${esc(order.id)}">Xuất</button>`);
     if (order.status !== 'cancelled' && !actions.querySelector('[data-order-cancel]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="order-cancel-btn" data-order-cancel="${esc(order.id)}">Huỷ</button>`);
   });
