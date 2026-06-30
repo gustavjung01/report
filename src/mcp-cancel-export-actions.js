@@ -1,6 +1,7 @@
-import { nowIso, todayIsoDate } from '../data-model.js';
+import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, getLocal, putLocal, getMeta, setMeta } from '../local-db.js';
 import { ACTIVE_MCP_SESSION_META, getMcpSessionDetail, recalcMcpRouteSession } from './mcp-core.js';
+import { isActiveBusinessRow, isActiveRouteCustomer, isCancelled, makeCancelled, makeInactive } from './soft-delete.js';
 
 const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 const visitLabel = { todo: 'Chưa ghé', done: 'Đã ghé', checked_in: 'Đã ghé', order: 'Có đơn', test: 'Có test', report: 'Có báo cáo', no: 'Không mua', no_buy: 'Không mua', follow_up: 'Theo dõi', skipped: 'Bỏ qua' };
@@ -12,8 +13,8 @@ function number(value = 0) { const n = Number(value); return Number.isFinite(n) 
 function stamp() { const d = new Date(); return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`; }
 function csvCell(value = '') { return `"${clean(value).replace(/"/g, '""')}"`; }
 function csv(rows = []) { return `\ufeff${rows.map((row) => row.map(csvCell).join(';')).join('\n')}`; }
-function activeCustomer(row = {}) { return row.active !== false && !row.deleted_at && !row.raw_payload?.deleted_at; }
-function activeSession(row = {}) { return row.status !== 'cancelled' && row.status !== 'deleted' && !row.deleted_at && !row.raw_payload?.deleted_at; }
+function activeCustomer(row = {}) { return isActiveRouteCustomer(row); }
+function activeSession(row = {}) { return isActiveBusinessRow(row); }
 function downloadCsv(filename, rows) { const blob = new Blob([csv(rows)], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); }
 function toast(message) { const el = document.querySelector('#toast'); if (!el) return; el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2300); }
 function sessionName(session = {}, route = {}) { return [session.session_date, route.route_name || session.route_name || 'Tuyến', route.area || session.area].filter(Boolean).join(' · '); }
@@ -23,10 +24,9 @@ function visitStatus(customer, visits = []) { const visit = visitForCustomer(cus
 async function cancelMcpSession(sessionId = '') {
   const session = await getLocal(LOCAL_STORES.mcpRouteSessions, sessionId);
   if (!session) return toast('Không tìm thấy phiên MCP.');
-  if (session.status === 'cancelled') return toast('Phiên MCP này đã huỷ rồi.');
+  if (isCancelled(session)) return toast('Phiên MCP này đã huỷ rồi.');
   if (!window.confirm(`Huỷ phiên MCP ${session.session_date || ''} · ${session.route_name || 'tuyến này'}?\nPhiên chỉ chuyển status = cancelled, không xoá dữ liệu.`)) return;
-  const now = nowIso();
-  await putLocal(LOCAL_STORES.mcpRouteSessions, { ...session, status: 'cancelled', sync_status: 'local', updated_at: now, raw_payload: { ...(session.raw_payload || {}), cancelled_at: now, cancel_source: 'local_ui' } });
+  await putLocal(LOCAL_STORES.mcpRouteSessions, makeCancelled(session, 'local_ui'));
   const activeId = await getMeta(ACTIVE_MCP_SESSION_META, '');
   if (activeId === sessionId) await setMeta(ACTIVE_MCP_SESSION_META, '');
   window.dispatchEvent(new CustomEvent('mcp:session-changed'));
@@ -35,7 +35,7 @@ async function cancelMcpSession(sessionId = '') {
 
 async function exportRouteCustomers() {
   const [routes, customers] = await Promise.all([getAllLocal(LOCAL_STORES.mcpRoutes), getAllLocal(LOCAL_STORES.mcpRouteCustomers)]);
-  const routeMap = new Map(routes.filter((route) => route.active !== false).map((route) => [route.id, route]));
+  const routeMap = new Map(routes.filter((route) => isActiveBusinessRow(route)).map((route) => [route.id, route]));
   const rows = [['Mã tuyến', 'Tên tuyến', 'Thứ', 'Khu vực tuyến', 'STT', 'Khách hàng', 'SĐT', 'Khu vực khách', 'Địa chỉ', 'Google Maps', 'Ghi chú']];
   customers.filter((customer) => activeCustomer(customer) && routeMap.has(customer.route_id)).sort((a, b) => String(routeMap.get(a.route_id)?.route_name || '').localeCompare(String(routeMap.get(b.route_id)?.route_name || ''), 'vi') || number(a.sort_order) - number(b.sort_order)).forEach((customer) => {
     const route = routeMap.get(customer.route_id) || {};
@@ -82,7 +82,7 @@ async function hideCustomerFromButton(customerId = '') {
   const customer = rows.find((row) => row.id === customerId);
   if (!customer) return toast('Không tìm thấy khách trong tuyến.');
   if (!window.confirm(`Ẩn ${customer.customer_name || 'khách này'} khỏi tuyến?`)) return;
-  await putLocal(LOCAL_STORES.mcpRouteCustomers, { ...customer, active: false, sync_status: 'local', updated_at: nowIso() });
+  await putLocal(LOCAL_STORES.mcpRouteCustomers, makeInactive(customer, 'local_ui'));
   const sessionId = await getMeta(ACTIVE_MCP_SESSION_META, '');
   if (sessionId) await recalcMcpRouteSession(sessionId).catch(() => null);
   window.dispatchEvent(new CustomEvent('mcp:session-changed'));
@@ -121,7 +121,7 @@ async function enhanceDataMcp() {
     if (card.querySelector('[data-mcp-export-session]')) return;
     const actions = card.querySelector('.shell-actions') || card.appendChild(document.createElement('div'));
     actions.classList.add('shell-actions');
-    actions.insertAdjacentHTML('beforeend', `<button type="button" data-mcp-export-session="${esc(sessionId)}">Xuất</button>${session?.status === 'cancelled' ? '' : `<button type="button" class="mcp-danger" data-mcp-cancel-session="${esc(sessionId)}">Huỷ</button>`}`);
+    actions.insertAdjacentHTML('beforeend', `<button type="button" data-mcp-export-session="${esc(sessionId)}">Xuất</button>${session && !activeSession(session) ? '' : `<button type="button" class="mcp-danger" data-mcp-cancel-session="${esc(sessionId)}">Huỷ</button>`}`);
   });
 }
 
