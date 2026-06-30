@@ -1,8 +1,9 @@
 import { todayIsoDate } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal } from '../local-db.js';
 import { getMcpSessionDetail, getMcpRouteSessions, setActiveMcpRouteSessionId } from './mcp-core.js';
+import { renderRevenueInto } from './revenue-ui.js?v=revenue-ui-3';
 
-const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
+const dataTabs = [['mcp', '🧭', 'MCP'], ['order', '🛒', 'Đơn'], ['revenue', '💰', 'DT'], ['test', '🧪', 'Test'], ['report', '📊', 'Báo cáo']];
 const money = new Intl.NumberFormat('vi-VN');
 let active = 'test';
 
@@ -10,7 +11,19 @@ function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
-function css() { /* Shell styles are preloaded from polish.css to avoid first-load reflow. */ }
+function css() {
+  let style = document.querySelector('style[data-data-hub-revenue]');
+  if (!style) {
+    style = document.createElement('style');
+    style.dataset.dataHubRevenue = '1';
+    document.head.appendChild(style);
+  }
+  style.textContent = `
+    section.page[data-page="data"] .data-hub-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important}
+    section.page[data-page="data"] .data-hub-tab{min-width:0!important}
+    section.page[data-page="data"] .data-hub-tab span{font-size:10.5px!important}
+  `;
+}
 
 function dataPage() {
   return document.querySelector('section.page[data-page="data"]');
@@ -129,6 +142,11 @@ function ensure() {
     hub.className = 'data-hub';
     hub.innerHTML = '<div class="data-hub-tabs">' + dataTabs.map((item) => '<button type="button" class="data-hub-tab" data-data-view="' + item[0] + '"><i>' + item[1] + '</i><span>' + item[2] + '</span></button>').join('') + '</div><div id="dataShell" class="data-shell"></div>';
     list.parentNode.insertBefore(hub, list);
+  } else {
+    const tabs = hub.querySelector('.data-hub-tabs');
+    if (tabs && !tabs.querySelector('[data-data-view="revenue"]')) {
+      tabs.innerHTML = dataTabs.map((item) => '<button type="button" class="data-hub-tab" data-data-view="' + item[0] + '"><i>' + item[1] + '</i><span>' + item[2] + '</span></button>').join('');
+    }
   }
   let wrap = list.closest('.data-list-wrap');
   if (!wrap) {
@@ -161,6 +179,10 @@ async function apply(value) {
   }
   if (active === 'order') {
     await renderOrderShell(shell);
+    return;
+  }
+  if (active === 'revenue') {
+    await renderRevenueInto(shell);
     return;
   }
   if (active === 'report') {
@@ -201,6 +223,12 @@ document.addEventListener('keydown', async (event) => {
 
 window.addEventListener('report:changed', () => {
   if (active === 'report') apply('report');
+});
+window.addEventListener('order:changed', () => {
+  if (active === 'order' || active === 'revenue') apply(active);
+});
+window.addEventListener('mcp:session-changed', () => {
+  if (active === 'mcp' || active === 'revenue') apply(active);
 });
 
 ensure();
