@@ -10,3 +10,4 @@ import './mcp-card-compact-ui.js?v=mcp-card-compact-2';
 import './mcp-page-scroll-ui.js?v=mcp-page-scroll-1';
 import './mcp-import-ui.js?v=mcp-import-1';
 import './mcp-cancel-export-actions.js?v=mcp-cancel-export-1';
+import './mcp-detail-toolbar-ui.js?v=mcp-detail-toolbar-1';
