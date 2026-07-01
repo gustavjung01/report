@@ -5,3 +5,4 @@
 // Do not move this owner before supabase-sync.js without testing Admin sync and AI config.
 
 import './ai-agent-settings.js';
+import './ai-summary-ui.js?v=ai-summary-ui-1';
