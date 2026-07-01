@@ -85,7 +85,7 @@ function arr(...groups) { return groups.flat().filter(Boolean).map(itemText).fil
 function selectedLines(snapshot = {}) { return (snapshot.selected_items || []).map(x => `${x.title}${x.meta ? ' — ' + x.meta : ''}`); }
 function resultSections(reportType, r = {}, snapshot = {}) {
   const selected = selectedLines(snapshot);
-  const common = {
+  const byType = {
     executive_report: [
       { key: 'overview', label: 'Tổng quan', lead: r.summary || 'Chưa có tóm tắt.', items: arr(r.market_insights) },
       { key: 'customers', label: 'Khách', items: arr(r.customer_actions, r.follow_up_list) },
@@ -111,7 +111,7 @@ function resultSections(reportType, r = {}, snapshot = {}) {
       { key: 'route_next', label: 'Việc tiếp', items: arr(r.next_steps, r.customer_actions) }
     ]
   };
-  return common[reportType] || common.executive_report;
+  return byType[reportType] || byType.executive_report;
 }
 
 function style() {
@@ -161,10 +161,9 @@ function showGenerating(snapshot) {
   const modal = $('#modal'); if (!modal) return;
   modal.dataset.type = 'smart-generating';
   modal.innerHTML = `<div class="ss-modal"><header class="ss-head"><h2>${esc(state.config?.title || 'Báo cáo thông minh')}</h2><button class="ss-close" data-ss-close>Đóng</button></header><section class="ss-brief"><b>Đang tạo báo cáo</b><small>Chỉ phân tích ${snapshot.metrics.selected_files} file đã chọn.</small></section><div class="ss-body"><article class="ss-card"><h3>Đang phân tích dữ liệu...</h3><p>File: ${snapshot.metrics.selected_files} · Dòng dữ liệu: ${snapshot.metrics.selected_rows}</p></article><section class="ss-card"><h3>Dữ liệu đã chọn</h3><div class="ss-selected">${snapshot.selected_items.map(x => `<div>${esc(x.title)}<br><small>${esc(x.meta)}</small></div>`).join('')}</div></section></div><footer class="ss-foot"><button class="ss-secondary" data-ss-close>Đóng</button><button class="ss-primary" disabled>Đang tạo...</button></footer></div>`;
-}\nfunction list(items = []) { return Array.isArray(items) && items.length ? `<ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>Chưa có dữ liệu nổi bật.</p>'; }
-function panelHtml(section, i) {
-  return `<article class="ss-card ss-panel ${i === 0 ? 'active' : ''}" data-ss-panel="${section.key}"><h3>${esc(section.label)}</h3>${section.lead ? `<p>${esc(section.lead)}</p>` : ''}${list(section.items)}</article>`;
 }
+function list(items = []) { return Array.isArray(items) && items.length ? `<ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>Chưa có dữ liệu nổi bật.</p>'; }
+function panelHtml(section, i) { return `<article class="ss-card ss-panel ${i === 0 ? 'active' : ''}" data-ss-panel="${section.key}"><h3>${esc(section.label)}</h3>${section.lead ? `<p>${esc(section.lead)}</p>` : ''}${list(section.items)}</article>`; }
 function showGenerated(payload) {
   state.payload = payload;
   const r = payload.result || {};
