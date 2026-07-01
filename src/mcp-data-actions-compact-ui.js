@@ -17,7 +17,19 @@ function installStyle() {
     #dataShell.active.mcp-data-compact .data-shell-open-card .data-shell-open-btn{display:none!important}
     #dataShell.active.mcp-data-compact .data-shell-open-card h3{font-size:13px!important;margin-bottom:2px!important}
     #dataShell.active.mcp-data-compact .data-shell-open-card small{font-size:11px!important;line-height:1.25!important}
-    @media(max-width:360px){#dataShell.active.mcp-data-compact .mcp-route-export-row button{font-size:10px!important;padding-inline:3px!important}}
+    #dataShell.active.mcp-data-compact .data-shell-list{display:grid!important;gap:8px!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card{position:relative!important;min-width:0!important;padding:10px!important;border:1px solid rgba(15,118,110,.14)!important;border-radius:16px!important;background:linear-gradient(180deg,#ffffff 0%,#f8fffd 100%)!important;box-shadow:0 8px 18px rgba(15,57,50,.08)!important;transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease!important;cursor:pointer!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card:active{transform:scale(.992)!important;box-shadow:0 4px 12px rgba(15,57,50,.08)!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card:focus-visible{outline:2px solid rgba(20,184,166,.55)!important;outline-offset:2px!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-card-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important;align-items:start!important;min-width:0!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-card-head>div{min-width:0!important;display:grid!important;gap:3px!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card h3{font-size:13.5px!important;line-height:1.18!important;margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card small{font-size:11px!important;line-height:1.25!important;color:#5c6d76!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-badge{font-size:10px!important;line-height:1!important;padding:5px 7px!important;border-radius:999px!important;max-width:82px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin-top:8px!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions:empty{display:none!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions button{min-height:31px!important;border-radius:10px!important;font-size:10.5px!important;font-weight:900!important;padding:5px 6px!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    @media(max-width:360px){#dataShell.active.mcp-data-compact .mcp-route-export-row button{font-size:10px!important;padding-inline:3px!important}#dataShell.active.mcp-data-compact .mcp-session-card{padding:9px!important;border-radius:15px!important}#dataShell.active.mcp-data-compact .mcp-session-card h3{font-size:13px!important}#dataShell.active.mcp-data-compact .mcp-session-card small{font-size:10.5px!important}#dataShell.active.mcp-data-compact .mcp-session-card .shell-actions{grid-template-columns:1fr!important}}
   `;
 }
 
