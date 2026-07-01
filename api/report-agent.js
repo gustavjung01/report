@@ -72,8 +72,27 @@ function extractResult(payload = {}) {
   return payload;
 }
 
+function buildSelectedInput(body = {}) {
+  const snapshot = body.snapshot || body.data || body.input || {};
+  const reportType = body.report_type || snapshot.report_type || 'smart_report';
+  const selectedItems = Array.isArray(body.selected_items)
+    ? body.selected_items
+    : (Array.isArray(snapshot.selected_items) ? snapshot.selected_items : []);
+  return {
+    selected_only: true,
+    report_type: reportType,
+    selected_items: selectedItems,
+    snapshot: {
+      ...snapshot,
+      report_type: reportType,
+      selected_items: selectedItems,
+      selected_only: true
+    }
+  };
+}
+
 function buildPrompt(input) {
-  return `Bạn là Bépi Report Analyst. Phân tích dữ liệu thô sau và chỉ trả JSON hợp lệ với các key: summary, market_insights, product_insights, customer_actions, sample_requests, follow_up_list, order_opportunities, risks, next_steps. Không markdown. Không bịa dữ liệu.\n\nDATA:\n${JSON.stringify(input || {}, null, 2).slice(0, 36000)}`;
+  return `Bạn là Bépi Report Analyst. Chỉ phân tích dữ liệu người dùng đã chọn trong selected_items/snapshot. Không tự suy luận thêm dữ liệu ngoài phạm vi đã chọn. Chỉ trả JSON hợp lệ với các key: summary, market_insights, product_insights, customer_actions, sample_requests, follow_up_list, order_opportunities, risks, next_steps. Không markdown. Không bịa dữ liệu.\n\nDATA:\n${JSON.stringify(input || {}, null, 2).slice(0, 36000)}`;
 }
 
 async function callJson(url, body, apiKey) {
@@ -98,7 +117,7 @@ export default async function handler(req, res) {
   }
 
   const body = await readBody(req);
-  const input = body.snapshot || body.data || body.input || body;
+  const selectedInput = buildSelectedInput(body);
 
   const directUrl = process.env.AI_AGENT_URL || process.env.ADK_AGENT_URL || '';
   if (directUrl) {
@@ -109,7 +128,14 @@ export default async function handler(req, res) {
       const response = await fetchWithTimeout(directUrl, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ input, snapshot: input, task: 'report_analysis' })
+        body: JSON.stringify({
+          input: selectedInput,
+          snapshot: selectedInput.snapshot,
+          report_type: selectedInput.report_type,
+          selected_items: selectedInput.selected_items,
+          selected_only: true,
+          task: 'selected_report_analysis'
+        })
       }, 55000);
       const text = await response.text();
       const json = safeJsonParse(text) || { content: text };
@@ -120,7 +146,8 @@ export default async function handler(req, res) {
         status: response.status,
         result,
         raw: json,
-        directUrlConfigured: true
+        directUrlConfigured: true,
+        selectedOnly: true
       });
       return;
     } catch (error) {
@@ -132,6 +159,7 @@ export default async function handler(req, res) {
         source: 'ai_agent_url_exception',
         error: reason,
         directUrlConfigured: true,
+        selectedOnly: true,
         result: fallbackResult(reason)
       });
       return;
@@ -146,13 +174,14 @@ export default async function handler(req, res) {
       ok: false,
       source: 'missing_agent_platform_env',
       configState: { hasApiKey: Boolean(apiKey), hasProjectId: Boolean(projectId), hasAgentId: Boolean(agentId), hasAiAgentUrl: Boolean(directUrl) },
+      selectedOnly: true,
       result: fallbackResult('Thiếu AI_AGENT_URL trong Vercel Production env. Giá trị đúng: https://report-agent-375343885071.asia-southeast1.run.app/analyze')
     });
     return;
   }
 
   const location = process.env.AGENT_BUILDER_LOCATION || 'global';
-  const prompt = buildPrompt(input);
+  const prompt = buildPrompt(selectedInput);
 
   const candidates = [
     {
@@ -179,7 +208,7 @@ export default async function handler(req, res) {
       attempts.push({ source: candidate.source, status: attempt.status, ok: attempt.ok, raw: attempt.json });
       if (attempt.ok) {
         const result = normalizeResult(extractResult(attempt.json));
-        res.status(200).json({ ok: true, source: candidate.source, status: attempt.status, result, raw: attempt.json, attempts });
+        res.status(200).json({ ok: true, source: candidate.source, status: attempt.status, result, raw: attempt.json, attempts, selectedOnly: true });
         return;
       }
     } catch (error) {
@@ -192,6 +221,7 @@ export default async function handler(req, res) {
     source: 'agent_platform_candidates_failed',
     configState: { projectId, agentId, location, hasApiKey: true, hasAiAgentUrl: false },
     attempts,
+    selectedOnly: true,
     result: fallbackResult('Chưa có AI_AGENT_URL nên proxy rơi về endpoint Agent Platform cũ và fail. Set AI_AGENT_URL trong Vercel Production env.')
   });
 }
