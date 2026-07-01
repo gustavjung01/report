@@ -24,7 +24,48 @@ function style(){
 }
 
 function li(arr=[],map=x=>x){return Array.isArray(arr)&&arr.length?`<ul>${arr.map(x=>`<li>${esc(map(x))}</li>`).join('')}</ul>`:'<p class="sr-empty">Chưa có dữ liệu nổi bật.</p>'}
-function txt(r={}){return ['TÓM TẮT',r.summary||'', '', 'KHÁCH CẦN XỬ LÝ',...(r.customer_actions||[]).map(x=>`- ${x.customer||'Khách'}: ${x.action||''}`), '', 'SẢN PHẨM',...(r.product_insights||[]).map(x=>`- ${x.product||'Sản phẩm'}: ${x.insight||''}`), '', 'VIỆC CẦN LÀM',...(r.next_steps||[]).map(x=>`- ${x}`)].join('\n').trim()}
+function asList(arr=[],map=x=>x){return Array.isArray(arr)&&arr.length?arr.map(x=>`- ${map(x)}`).join('\n'):'- Chưa có dữ liệu nổi bật.'}
+function txt(r={}){
+  const s=current?.snapshot||{};const m=s.metrics||{};
+  const parts=[
+    'BÁO CÁO THÔNG MINH',
+    `Ngày tạo: ${s.today||todayIsoDate()}`,
+    '',
+    'DỮ LIỆU SỬ DỤNG',
+    `- MCP: ${m.mcp_sessions??0}`,
+    `- Đơn hàng: ${m.orders??0}`,
+    `- Test sản phẩm: ${m.tests??0}`,
+    `- Báo cáo thị trường: ${m.market_reports??0}`,
+    '',
+    '1. TÓM TẮT',
+    r.summary||'Chưa có tóm tắt.',
+    '',
+    '2. NHẬN ĐỊNH THỊ TRƯỜNG',
+    asList(r.market_insights),
+    '',
+    '3. KHÁCH CẦN XỬ LÝ',
+    asList(r.customer_actions,x=>`${x.customer||'Khách'}: ${x.action||''}${x.reason?' — '+x.reason:''}`),
+    '',
+    '4. SẢN PHẨM',
+    asList(r.product_insights,x=>`${x.product||'Sản phẩm'}: ${x.insight||''}`),
+    '',
+    '5. YÊU CẦU MẪU',
+    asList(r.sample_requests,x=>`${x.customer||'Khách'}: ${(x.products||[]).join(', ')}${x.note?' — '+x.note:''}`),
+    '',
+    '6. CƠ HỘI ĐƠN HÀNG',
+    asList(r.order_opportunities,x=>`${x.customer||'Khách'}: ${(x.products||[]).join(', ')}${x.reason?' — '+x.reason:''}`),
+    '',
+    '7. CẦN THEO DÕI',
+    asList(r.follow_up_list,x=>`${x.customer||'Khách'}${x.date?' ('+x.date+')':''}: ${x.note||''}`),
+    '',
+    '8. RỦI RO',
+    asList(r.risks),
+    '',
+    '9. VIỆC CẦN LÀM TIẾP THEO',
+    asList(r.next_steps)
+  ];
+  return parts.join('\n').replace(/\n{3,}/g,'\n\n').trim()+'\n';
+}
 
 function showLoading(data){
   style();const m=$('#modal');if(!m)return;m.dataset.type='smart-result';
@@ -47,8 +88,8 @@ async function run(){
   try{const res=await fetch('/api/report-agent',{method:'POST',headers:{'Content-Type':'application/json; charset=utf-8',Accept:'application/json'},body:JSON.stringify({snapshot:data}),cache:'no-store'});const json=parse(await res.text())||{};const payload={ok:res.ok&&!!json.ok,result:json.result||{},snapshot:data};if(!payload.ok)payload.result={summary:'Chưa tạo được báo cáo. Vui lòng thử lại sau.',next_steps:['Kiểm tra kết nối và thử lại.']};showResult(payload);toast(payload.ok?'Đã tạo xong báo cáo':'Chưa tạo được báo cáo')}catch{showResult({ok:false,result:{summary:'Chưa tạo được báo cáo. Vui lòng thử lại sau.',next_steps:['Kiểm tra kết nối và thử lại.']},snapshot:data});toast('Chưa tạo được báo cáo')}finally{if(btn){btn.disabled=false;btn.textContent='Tạo báo cáo'}}
 }
 
-async function save(){if(!current)return toast('Chưa có báo cáo để lưu');await openLocalDb();const row=makeAiSummary({title:`Báo cáo thông minh ${current.snapshot.today}`,summary_type:'company_report',date_from:current.snapshot.today,date_to:current.snapshot.today,source_filters:{source:'smart_report',metrics:current.snapshot.metrics},source_refs:[{type:'orders',count:current.snapshot.metrics.orders},{type:'tests',count:current.snapshot.metrics.tests},{type:'market_reports',count:current.snapshot.metrics.market_reports},{type:'mcp_sessions',count:current.snapshot.metrics.mcp_sessions}],result:{text:txt(current.result),json:current.result,generated_at:new Date().toISOString()},status:'saved',note:'Báo cáo đã lưu'});await putLocal(LOCAL_STORES.aiSummaries,row);toast('Đã lưu báo cáo')}
-function exp(){if(!current)return toast('Chưa có báo cáo để xuất');const blob=new Blob([txt(current.result)],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`bao-cao-thong-minh-${current.snapshot.today}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Đã xuất TXT')}
+async function save(){if(!current)return toast('Chưa có báo cáo để lưu');await openLocalDb();const content=txt(current.result);const row=makeAiSummary({title:`Báo cáo thông minh ${current.snapshot.today}`,summary_type:'company_report',date_from:current.snapshot.today,date_to:current.snapshot.today,source_filters:{source:'smart_report',metrics:current.snapshot.metrics},source_refs:[{type:'orders',count:current.snapshot.metrics.orders},{type:'tests',count:current.snapshot.metrics.tests},{type:'market_reports',count:current.snapshot.metrics.market_reports},{type:'mcp_sessions',count:current.snapshot.metrics.mcp_sessions}],result:{text:content,json:current.result,generated_at:new Date().toISOString()},status:'saved',note:'Báo cáo đã lưu'});await putLocal(LOCAL_STORES.aiSummaries,row);toast('Đã lưu báo cáo')}
+function exp(){if(!current)return toast('Chưa có báo cáo để xuất');const content='\ufeff'+txt(current.result);const blob=new Blob([content],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`bao-cao-thong-minh-${current.snapshot.today}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Đã xuất TXT')}
 
 document.addEventListener('click',async e=>{const runBtn=e.target.closest('#smartReportRun');if(runBtn){e.preventDefault();e.stopImmediatePropagation();await run();return}const tab=e.target.closest('[data-sr-tab]');if(tab){e.preventDefault();document.querySelectorAll('[data-sr-tab]').forEach(b=>b.classList.toggle('active',b===tab));document.querySelectorAll('[data-sr-section]').forEach(s=>s.classList.toggle('active',s.dataset.srSection===tab.dataset.srTab));return}if(e.target.closest('[data-sr-close]')){e.preventDefault();close();return}if(e.target.closest('[data-sr-save]')){e.preventDefault();await save();return}if(e.target.closest('[data-sr-export]')){e.preventDefault();exp()}},true);
 style();
