@@ -72,11 +72,53 @@ async function collect(config) {
   return data;
 }
 
+function itemText(x) {
+  if (x === null || x === undefined) return '';
+  if (typeof x === 'string') return x;
+  if (Array.isArray(x)) return x.filter(Boolean).join(', ');
+  const main = x.customer || x.product || x.route || x.sales || x.title || x.name || x.area || 'Mục';
+  const detail = x.action || x.insight || x.reason || x.note || x.status || x.result || x.summary || '';
+  const products = Array.isArray(x.products) && x.products.length ? ` (${x.products.join(', ')})` : '';
+  return `${main}${products}${detail ? ': ' + detail : ''}`;
+}
+function arr(...groups) { return groups.flat().filter(Boolean).map(itemText).filter(Boolean); }
+function selectedLines(snapshot = {}) { return (snapshot.selected_items || []).map(x => `${x.title}${x.meta ? ' — ' + x.meta : ''}`); }
+function resultSections(reportType, r = {}, snapshot = {}) {
+  const selected = selectedLines(snapshot);
+  const common = {
+    executive_report: [
+      { key: 'overview', label: 'Tổng quan', lead: r.summary || 'Chưa có tóm tắt.', items: arr(r.market_insights) },
+      { key: 'customers', label: 'Khách', items: arr(r.customer_actions, r.follow_up_list) },
+      { key: 'products', label: 'Sản phẩm', items: arr(r.product_insights, r.sample_requests, r.order_opportunities) },
+      { key: 'next', label: 'Việc cần làm', items: arr(r.next_steps, r.risks) }
+    ],
+    customer_action_report: [
+      { key: 'priority', label: 'Ưu tiên', lead: r.summary || '', items: arr(r.customer_actions, r.risks) },
+      { key: 'callback', label: 'Gọi lại', items: arr(r.follow_up_list) },
+      { key: 'sample', label: 'Gửi mẫu', items: arr(r.sample_requests) },
+      { key: 'opportunity', label: 'Cơ hội', items: arr(r.order_opportunities, r.next_steps) }
+    ],
+    product_market_report: [
+      { key: 'good', label: 'Sản phẩm tốt', lead: r.summary || '', items: arr(r.product_insights) },
+      { key: 'weak', label: 'Sản phẩm yếu', items: arr(r.risks) },
+      { key: 'feedback', label: 'Phản hồi', items: arr(r.market_insights, r.customer_actions, r.sample_requests) },
+      { key: 'proposal', label: 'Đề xuất', items: arr(r.order_opportunities, r.next_steps) }
+    ],
+    route_sales_report: [
+      { key: 'visited', label: 'Đã ghé', lead: r.summary || '', items: selected },
+      { key: 'missed', label: 'Bỏ sót', items: arr(r.risks) },
+      { key: 'route_opp', label: 'Cơ hội', items: arr(r.order_opportunities, r.market_insights) },
+      { key: 'route_next', label: 'Việc tiếp', items: arr(r.next_steps, r.customer_actions) }
+    ]
+  };
+  return common[reportType] || common.executive_report;
+}
+
 function style() {
   if ($('style[data-smart-select-flow]')) return;
   const s = document.createElement('style');
   s.dataset.smartSelectFlow = '1';
-  s.textContent = `#modal[data-type="smart-select"],#modal[data-type="smart-generating"],#modal[data-type="smart-generated"]{width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;padding:0!important;overflow:hidden!important}#modal[data-type="smart-select"]::backdrop,#modal[data-type="smart-generating"]::backdrop,#modal[data-type="smart-generated"]::backdrop{background:rgba(8,35,55,.42)!important}.ss-modal{height:100dvh;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;background:#f6fbf9;color:#082337}.ss-head{background:#fff;border-bottom:1px solid #dce8e5;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ss-head h2{margin:0;font-size:19px;line-height:1.15}.ss-close{border:1px solid #dce8e5;background:#fff;color:#007866;border-radius:999px;min-height:34px;padding:0 12px;font-weight:950}.ss-brief{background:#fff;border-bottom:1px solid #dce8e5;padding:10px 14px;display:grid;gap:5px}.ss-brief b{font-size:14px}.ss-brief small{font-size:12px;color:#63727c;line-height:1.35}.ss-body{min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px;display:grid;gap:10px;align-content:start}.ss-tools{position:sticky;top:0;z-index:2;background:#f6fbf9;padding-bottom:2px;display:grid;gap:7px}.ss-search{width:100%;min-height:42px;border:1px solid #dce8e5;border-radius:14px;background:#fff;padding:0 12px;font-size:14px}.ss-count{border:1px solid #bfe9dc;background:#eefbf6;color:#007866;border-radius:999px;width:max-content;padding:5px 9px;font-size:12px;font-weight:950}.ss-group{background:#fff;border:1px solid #dce8e5;border-radius:17px;overflow:hidden;box-shadow:0 9px 22px rgba(12,55,50,.045);display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}.ss-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;background:linear-gradient(180deg,#fff,#fbfffd);border-bottom:1px solid #edf2f0}.ss-group-head b{font-size:14px}.ss-group-head small{font-size:12px;color:#63727c}.ss-list{display:grid;max-height:min(42dvh,360px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.ss-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:start;padding:11px 12px;border-top:1px solid #f0f4f2;min-height:56px}.ss-row:first-child{border-top:0}.ss-row input{margin-top:3px;accent-color:#00957f;width:16px;height:16px}.ss-row span{display:grid;gap:3px;min-width:0}.ss-row strong{font-size:13px;line-height:1.2;color:#082337}.ss-row small{font-size:11.5px;line-height:1.3;color:#63727c}.ss-empty{padding:12px;color:#63727c;font-size:12px}.ss-foot{background:#fff;border-top:1px solid #dce8e5;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px}.ss-foot button{min-height:44px;border-radius:13px;font-weight:950}.ss-secondary{border:1px solid #00957f;background:#fff;color:#007866}.ss-primary{border:0;background:linear-gradient(135deg,#00957f,#007866);color:#fff}.ss-primary:disabled{opacity:.45}.ss-card{background:#fff;border:1px solid #dce8e5;border-radius:17px;padding:13px;display:grid;gap:8px;box-shadow:0 9px 22px rgba(12,55,50,.045)}.ss-card h3{font-size:15px;margin:0}.ss-card p,.ss-card li,.ss-card small{font-size:12.5px;line-height:1.45;color:#425863}.ss-card ul{margin:0;padding-left:18px;display:grid;gap:5px}.ss-selected{display:grid;gap:6px}.ss-selected div{border:1px dashed #dce8e5;border-radius:12px;padding:8px;background:#fbfffd;font-size:12px;color:#425863}`;
+  s.textContent = `#modal[data-type="smart-select"],#modal[data-type="smart-generating"],#modal[data-type="smart-generated"]{width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;padding:0!important;overflow:hidden!important}#modal[data-type="smart-select"]::backdrop,#modal[data-type="smart-generating"]::backdrop,#modal[data-type="smart-generated"]::backdrop{background:rgba(8,35,55,.42)!important}.ss-modal{height:100dvh;min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto;background:#f6fbf9;color:#082337}.ss-head{background:#fff;border-bottom:1px solid #dce8e5;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ss-head h2{margin:0;font-size:19px;line-height:1.15}.ss-close{border:1px solid #dce8e5;background:#fff;color:#007866;border-radius:999px;min-height:34px;padding:0 12px;font-weight:950}.ss-brief{background:#fff;border-bottom:1px solid #dce8e5;padding:10px 14px;display:grid;gap:5px}.ss-brief b{font-size:14px}.ss-brief small{font-size:12px;color:#63727c;line-height:1.35}.ss-body{min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px;display:grid;gap:10px;align-content:start}.ss-tools{position:sticky;top:0;z-index:2;background:#f6fbf9;padding-bottom:2px;display:grid;gap:7px}.ss-search{width:100%;min-height:42px;border:1px solid #dce8e5;border-radius:14px;background:#fff;padding:0 12px;font-size:14px}.ss-count{border:1px solid #bfe9dc;background:#eefbf6;color:#007866;border-radius:999px;width:max-content;padding:5px 9px;font-size:12px;font-weight:950}.ss-group{background:#fff;border:1px solid #dce8e5;border-radius:17px;overflow:hidden;box-shadow:0 9px 22px rgba(12,55,50,.045);display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}.ss-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;background:linear-gradient(180deg,#fff,#fbfffd);border-bottom:1px solid #edf2f0}.ss-group-head b{font-size:14px}.ss-group-head small{font-size:12px;color:#63727c}.ss-list{display:grid;max-height:min(42dvh,360px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}.ss-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:start;padding:11px 12px;border-top:1px solid #f0f4f2;min-height:56px}.ss-row:first-child{border-top:0}.ss-row input{margin-top:3px;accent-color:#00957f;width:16px;height:16px}.ss-row span{display:grid;gap:3px;min-width:0}.ss-row strong{font-size:13px;line-height:1.2;color:#082337}.ss-row small{font-size:11.5px;line-height:1.3;color:#63727c}.ss-empty{padding:12px;color:#63727c;font-size:12px}.ss-foot{background:#fff;border-top:1px solid #dce8e5;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:8px}.ss-foot button{min-height:44px;border-radius:13px;font-weight:950}.ss-secondary{border:1px solid #00957f;background:#fff;color:#007866}.ss-primary{border:0;background:linear-gradient(135deg,#00957f,#007866);color:#fff}.ss-primary:disabled{opacity:.45}.ss-card{background:#fff;border:1px solid #dce8e5;border-radius:17px;padding:13px;display:grid;gap:8px;box-shadow:0 9px 22px rgba(12,55,50,.045)}.ss-card h3{font-size:15px;margin:0}.ss-card p,.ss-card li,.ss-card small{font-size:12.5px;line-height:1.45;color:#425863}.ss-card ul{margin:0;padding-left:18px;display:grid;gap:5px}.ss-selected{display:grid;gap:6px}.ss-selected div{border:1px dashed #dce8e5;border-radius:12px;padding:8px;background:#fbfffd;font-size:12px;color:#425863}.ss-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:9px 10px;background:#fff;border-bottom:1px solid #dce8e5}.ss-tab{border:1px solid #dce8e5;background:#fbfffd;border-radius:999px;min-height:34px;font-size:11px;font-weight:950;color:#425863}.ss-tab.active{background:#e1f8f1;border-color:#9bdccd;color:#007866}.ss-panel{display:none}.ss-panel.active{display:grid;gap:8px}`;
   document.head.appendChild(s);
 }
 function toast(t) { const el = $('#toast'); if (!el) return; el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2200); }
@@ -119,18 +161,33 @@ function showGenerating(snapshot) {
   const modal = $('#modal'); if (!modal) return;
   modal.dataset.type = 'smart-generating';
   modal.innerHTML = `<div class="ss-modal"><header class="ss-head"><h2>${esc(state.config?.title || 'Báo cáo thông minh')}</h2><button class="ss-close" data-ss-close>Đóng</button></header><section class="ss-brief"><b>Đang tạo báo cáo</b><small>Chỉ phân tích ${snapshot.metrics.selected_files} file đã chọn.</small></section><div class="ss-body"><article class="ss-card"><h3>Đang phân tích dữ liệu...</h3><p>File: ${snapshot.metrics.selected_files} · Dòng dữ liệu: ${snapshot.metrics.selected_rows}</p></article><section class="ss-card"><h3>Dữ liệu đã chọn</h3><div class="ss-selected">${snapshot.selected_items.map(x => `<div>${esc(x.title)}<br><small>${esc(x.meta)}</small></div>`).join('')}</div></section></div><footer class="ss-foot"><button class="ss-secondary" data-ss-close>Đóng</button><button class="ss-primary" disabled>Đang tạo...</button></footer></div>`;
+}\nfunction list(items = []) { return Array.isArray(items) && items.length ? `<ul>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p>Chưa có dữ liệu nổi bật.</p>'; }
+function panelHtml(section, i) {
+  return `<article class="ss-card ss-panel ${i === 0 ? 'active' : ''}" data-ss-panel="${section.key}"><h3>${esc(section.label)}</h3>${section.lead ? `<p>${esc(section.lead)}</p>` : ''}${list(section.items)}</article>`;
 }
-function list(items = [], map = x => x) { return Array.isArray(items) && items.length ? `<ul>${items.map(x => `<li>${esc(map(x))}</li>`).join('')}</ul>` : '<p>Chưa có dữ liệu nổi bật.</p>'; }
 function showGenerated(payload) {
   state.payload = payload;
   const r = payload.result || {};
+  const snapshot = payload.snapshot || {};
+  const sections = resultSections(state.reportType, r, snapshot);
   const modal = $('#modal'); if (!modal) return;
   modal.dataset.type = 'smart-generated';
-  modal.innerHTML = `<div class="ss-modal"><header class="ss-head"><h2>${esc(state.config?.title || 'Báo cáo thông minh')}</h2><button class="ss-close" data-ss-close>Đóng</button></header><section class="ss-brief"><b>Kết quả phân tích</b><small>Đã phân tích ${payload.snapshot.metrics.selected_files} file đã chọn.</small></section><div class="ss-body"><article class="ss-card"><h3>Tổng quan</h3><p>${esc(r.summary || 'Chưa có tóm tắt.')}</p></article><article class="ss-card"><h3>Khách / thị trường</h3>${list([...(r.market_insights || []), ...(r.customer_actions || [])], x => typeof x === 'string' ? x : `${x.customer || 'Khách'}: ${x.action || x.reason || ''}`)}</article><article class="ss-card"><h3>Sản phẩm / cơ hội</h3>${list([...(r.product_insights || []), ...(r.order_opportunities || [])], x => typeof x === 'string' ? x : `${x.product || x.customer || 'Mục'}: ${x.insight || x.reason || ''}`)}</article><article class="ss-card"><h3>Việc cần làm</h3>${list([...(r.next_steps || []), ...(r.risks || [])])}</article></div><footer class="ss-foot"><button class="ss-secondary" data-ss-save>Lưu báo cáo</button><button class="ss-primary" data-ss-export>Xuất TXT</button></footer></div>`;
+  modal.innerHTML = `<div class="ss-modal"><header class="ss-head"><h2>${esc(state.config?.title || 'Báo cáo thông minh')}</h2><button class="ss-close" data-ss-close>Đóng</button></header><section class="ss-brief"><b>Kết quả phân tích</b><small>Đã phân tích ${snapshot.metrics.selected_files} file đã chọn.</small></section><nav class="ss-tabs">${sections.map((s, i) => `<button class="ss-tab ${i === 0 ? 'active' : ''}" data-ss-tab="${s.key}">${esc(s.label)}</button>`).join('')}</nav><div class="ss-body">${sections.map(panelHtml).join('')}</div><footer class="ss-foot"><button class="ss-secondary" data-ss-save>Lưu báo cáo</button><button class="ss-primary" data-ss-export>Xuất TXT</button></footer></div>`;
 }
 function resultText(payload = state.payload) {
-  const r = payload?.result || {}; const s = payload?.snapshot || {};
-  return [`${state.config?.title || 'Báo cáo thông minh'}`, `Ngày tạo: ${s.today || todayIsoDate()}`, `Dữ liệu đã chọn: ${s.metrics?.selected_files || 0} file / ${s.metrics?.selected_rows || 0} dòng`, '', 'TÓM TẮT', r.summary || 'Chưa có tóm tắt.', '', 'KHÁCH / THỊ TRƯỜNG', ...(r.market_insights || []).map(x => `- ${x}`), ...(r.customer_actions || []).map(x => `- ${x.customer || 'Khách'}: ${x.action || ''}${x.reason ? ' — ' + x.reason : ''}`), '', 'SẢN PHẨM / CƠ HỘI', ...(r.product_insights || []).map(x => `- ${x.product || 'Sản phẩm'}: ${x.insight || ''}`), ...(r.order_opportunities || []).map(x => `- ${x.customer || 'Khách'}: ${(x.products || []).join(', ')}${x.reason ? ' — ' + x.reason : ''}`), '', 'VIỆC CẦN LÀM', ...(r.next_steps || []).map(x => `- ${x}`), ...(r.risks || []).map(x => `- ${x}`)].join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  const r = payload?.result || {};
+  const s = payload?.snapshot || {};
+  const sections = resultSections(s.report_type || state.reportType, r, s);
+  const selected = selectedLines(s);
+  const lines = [state.config?.title || 'Báo cáo thông minh', `Ngày tạo: ${s.today || todayIsoDate()}`, `Dữ liệu đã chọn: ${s.metrics?.selected_files || 0} file / ${s.metrics?.selected_rows || 0} dòng`, ''];
+  lines.push('DỮ LIỆU ĐÃ CHỌN');
+  lines.push(...(selected.length ? selected.map(x => `- ${x}`) : ['- Chưa có dữ liệu.']));
+  for (const section of sections) {
+    lines.push('', section.label.toUpperCase());
+    if (section.lead) lines.push(section.lead);
+    lines.push(...(section.items?.length ? section.items.map(x => `- ${x}`) : ['- Chưa có dữ liệu nổi bật.']));
+  }
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 async function createReport() {
   const groups = selectedGroups();
@@ -169,6 +226,8 @@ function exportTxt() {
 document.addEventListener('click', async e => {
   const card = e.target.closest('[data-report-type]');
   if (card) { e.preventDefault(); e.stopImmediatePropagation(); await openSelect(card.dataset.reportType); return; }
+  const tab = e.target.closest('[data-ss-tab]');
+  if (tab) { e.preventDefault(); $$('.ss-tab').forEach(b => b.classList.toggle('active', b === tab)); $$('.ss-panel').forEach(p => p.classList.toggle('active', p.dataset.ssPanel === tab.dataset.ssTab)); return; }
   if (e.target.closest('[data-ss-close]')) { e.preventDefault(); close(); return; }
   if (e.target.closest('[data-ss-create]')) { e.preventDefault(); await createReport(); return; }
   if (e.target.closest('[data-ss-save]')) { e.preventDefault(); await saveReport(); return; }
