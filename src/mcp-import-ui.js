@@ -2,9 +2,9 @@ import { makeMcpRoute, makeMcpRouteCustomer, nowIso } from '../data-model.js';
 import { LOCAL_STORES, getAllLocal, putLocal } from '../local-db.js';
 import { getActiveMcpSessionDetail, recalcMcpRouteSession } from './mcp-core.js';
 
-const IMPORT_SAMPLE = `route_name\tweekday\tcustomer_name\tphone\tarea\taddress\tsort_order\tnote\tgeo_lat\tgeo_lng\tgoogle_maps_url
-Tuyến A\t1\tQuán Minh Anh\t0909000001\tChợ Lớn\t12 Nguyễn Trãi\t1\tGhé sáng\t10.762622\t106.660172\t
-Tuyến A\t1\tTạp hoá Cô Lan\t0909000002\tChợ Lớn\t34 Trần Hưng Đạo\t2\t`;
+const IMPORT_SAMPLE = `route_name	weekday	customer_name	phone	area	address	sort_order	note	geo_lat	geo_lng	google_maps_url
+Tuyến A	1	Quán Minh Anh	0909000001	Chợ Lớn	12 Nguyễn Trãi	1	Ghé sáng	10.762622	106.660172	
+Tuyến A	1	Tạp hoá Cô Lan	0909000002	Chợ Lớn	34 Trần Hưng Đạo	2	`;
 
 let lastPlan = null;
 
@@ -29,6 +29,20 @@ function activeMcpPage() {
   return document.querySelector('section.page[data-page="mcp"]');
 }
 
+function activeCustomer(row = {}) {
+  return row.active !== false && row.status !== 'deleted' && !row.deleted_at && !row.raw_payload?.deleted_at;
+}
+
+function duplicateKey(value = {}) {
+  const phone = norm(value.phone || value.customer_phone || '');
+  if (phone) return `phone:${phone}`;
+  const name = norm(value.customer_name || value.name || '');
+  const area = norm(value.area || '');
+  const address = norm(value.address || value.delivery_address || '');
+  if (!name) return '';
+  return `name:${name}|${area}|${address}`;
+}
+
 function mountStyle() {
   let style = document.querySelector('style[data-mcp-import-ui]');
   if (!style) {
@@ -45,6 +59,8 @@ function mountStyle() {
     #modal[data-type="mcp-import"] .mcp-import-preview{display:grid;gap:7px;border:1px solid #dce8e5;border-radius:14px;background:#fff;padding:10px;font-size:12px;color:#425863}
     #modal[data-type="mcp-import"] .mcp-import-preview b{font-size:14px;color:#17343d}
     #modal[data-type="mcp-import"] .mcp-import-preview ul{margin:4px 0 0;padding-left:18px;max-height:120px;overflow:auto}
+    #modal[data-type="mcp-import"] .mcp-import-file{display:grid;gap:4px}
+    #modal[data-type="mcp-import"] .mcp-import-file input{width:100%;border:1px solid #cad7d4;border-radius:12px;background:#fff;padding:8px;font-size:12px}
   `;
 }
 
@@ -111,13 +127,13 @@ function parseWeekday(value) {
   const raw = norm(value);
   if (!raw) return null;
   if (/^[0-6]$/.test(raw)) return Number(raw);
-  if (/^t?2|thu 2|thu hai|monday$/.test(raw)) return 1;
-  if (/^t?3|thu 3|thu ba|tuesday$/.test(raw)) return 2;
-  if (/^t?4|thu 4|thu tu|wednesday$/.test(raw)) return 3;
-  if (/^t?5|thu 5|thu nam|thursday$/.test(raw)) return 4;
-  if (/^t?6|thu 6|thu sau|friday$/.test(raw)) return 5;
-  if (/^t?7|thu 7|thu bay|saturday$/.test(raw)) return 6;
-  if (/^cn|chu nhat|sunday$/.test(raw)) return 0;
+  if (/^(t?2|thu 2|thu hai|monday)$/.test(raw)) return 1;
+  if (/^(t?3|thu 3|thu ba|tuesday)$/.test(raw)) return 2;
+  if (/^(t?4|thu 4|thu tu|wednesday)$/.test(raw)) return 3;
+  if (/^(t?5|thu 5|thu nam|thursday)$/.test(raw)) return 4;
+  if (/^(t?6|thu 6|thu sau|friday)$/.test(raw)) return 5;
+  if (/^(t?7|thu 7|thu bay|saturday)$/.test(raw)) return 6;
+  if (/^(cn|chu nhat|sunday)$/.test(raw)) return 0;
   return null;
 }
 
@@ -128,7 +144,7 @@ function parseNumber(value) {
 
 function parsePaste(text) {
   const lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter((line) => line.trim());
-  if (!lines.length) return { rows: [], errors: ['Chưa có dữ liệu paste.'] };
+  if (!lines.length) return { rows: [], errors: ['Chưa có dữ liệu paste hoặc file CSV/TSV.'] };
   const delimiter = lines.some((line) => line.includes('\t')) ? '\t' : ',';
   const headers = splitCsvLine(lines[0], delimiter).map(headerKey);
   const rows = [];
@@ -168,12 +184,16 @@ async function buildPlan(text) {
   });
   const routeDrafts = new Map();
   const currentCustomersByRoute = new Map();
-  customers.filter((customer) => customer.active !== false).forEach((customer) => {
+  const existingKeys = new Set();
+  customers.filter(activeCustomer).forEach((customer) => {
     const list = currentCustomersByRoute.get(customer.route_id) || [];
     list.push(customer);
     currentCustomersByRoute.set(customer.route_id, list);
+    const key = duplicateKey(customer);
+    if (key) existingKeys.add(key);
   });
   const newCustomers = [];
+  const newKeys = new Set();
   let duplicates = 0;
   let invalid = 0;
 
@@ -194,17 +214,22 @@ async function buildPlan(text) {
         errors.push(`Dòng ${row.__line}: thiếu route_name khi chưa có tuyến đang mở.`);
         return;
       }
-      route = makeMcpRoute({ route_name: routeName, weekday: inputWeekday ?? fallbackRoute?.weekday, area: row.area || fallbackRoute?.area, sync_status: 'local', raw_payload: { source: 'mcp_paste_import' } });
+      route = makeMcpRoute({ route_name: routeName, weekday: inputWeekday ?? fallbackRoute?.weekday, area: row.area || fallbackRoute?.area, sync_status: 'local', raw_payload: { source: 'mcp_file_import' } });
       routeDrafts.set(key, route);
       routeByKey.set(key, route);
     }
+    const importKey = duplicateKey({ customer_name: name, phone: row.phone, area: row.area || route.area, address: row.address });
+    if (importKey && (existingKeys.has(importKey) || newKeys.has(importKey))) {
+      duplicates += 1;
+      return;
+    }
     const existing = currentCustomersByRoute.get(route.id) || [];
-    const duplicate = existing.concat(newCustomers.filter((customer) => customer.route_id === route.id)).some((customer) => {
+    const duplicateInRoute = existing.concat(newCustomers.filter((customer) => customer.route_id === route.id)).some((customer) => {
       const sameName = norm(customer.customer_name) === norm(name);
       const phone = norm(row.phone);
       return sameName && (!phone || norm(customer.phone) === phone);
     });
-    if (duplicate) {
+    if (duplicateInRoute) {
       duplicates += 1;
       return;
     }
@@ -212,7 +237,7 @@ async function buildPlan(text) {
     const sortOrder = parseNumber(row.sort_order) || maxOrder + 1;
     const geoLat = parseNumber(row.geo_lat);
     const geoLng = parseNumber(row.geo_lng);
-    newCustomers.push(makeMcpRouteCustomer({
+    const customer = makeMcpRouteCustomer({
       route_id: route.id,
       customer_name: name,
       phone: row.phone,
@@ -225,8 +250,10 @@ async function buildPlan(text) {
       geo_source: geoLat !== null && geoLng !== null ? 'import' : '',
       google_maps_url: row.google_maps_url,
       sync_status: 'local',
-      raw_payload: { source: 'mcp_paste_import', line: row.__line, row }
-    }));
+      raw_payload: { source: 'mcp_file_import', line: row.__line, row }
+    });
+    newCustomers.push(customer);
+    if (importKey) newKeys.add(importKey);
   });
 
   return {
@@ -251,7 +278,7 @@ function openImportModal() {
   const dialog = document.querySelector('#modal');
   if (!dialog) return;
   dialog.dataset.type = 'mcp-import';
-  dialog.innerHTML = `<form class="modal" data-mcp-import-form><header><h2>Import tuyến + khách</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="mcp-import-help"><b>Dán bảng từ Excel/Google Sheet</b><span>Hỗ trợ TSV/CSV. Cột tối thiểu: customer_name. Nếu có tuyến đang mở, có thể bỏ route_name để import vào tuyến hiện tại.</span><span>Cột hỗ trợ: route_name, weekday, customer_name, phone, area, address, sort_order, note, geo_lat, geo_lng, google_maps_url.</span></div><label><span>Dữ liệu paste</span><textarea id="mcpImportText" spellcheck="false" placeholder="${esc(IMPORT_SAMPLE)}"></textarea></label><div id="mcpImportPreview" class="mcp-import-preview"><small>Paste dữ liệu rồi bấm Xem trước.</small></div><div class="mcp-import-actions"><button type="button" class="secondary" data-mcp-preview-import>Xem trước</button><button class="primary" data-mcp-run-import>Import</button></div></div></form>`;
+  dialog.innerHTML = `<form class="modal" data-mcp-import-form><header><h2>Import tuyến + khách</h2><button type="button" data-close>Đóng</button></header><div class="form"><div class="mcp-import-help"><b>Import từ Excel/CSV</b><span>Có thể dán bảng từ Excel/Google Sheet hoặc chọn file CSV/TSV export từ Excel.</span><span>Cột tối thiểu: customer_name. Cột hỗ trợ: route_name, weekday, customer_name, phone, area, address, sort_order, note, geo_lat, geo_lng, google_maps_url.</span><span>Chống trùng theo SĐT; nếu không có SĐT thì theo tên + khu vực + địa chỉ.</span></div><label class="mcp-import-file"><span>Chọn file CSV/TSV</span><input id="mcpImportFile" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values"></label><label><span>Dữ liệu paste</span><textarea id="mcpImportText" spellcheck="false" placeholder="${esc(IMPORT_SAMPLE)}"></textarea></label><div id="mcpImportPreview" class="mcp-import-preview"><small>Chọn file hoặc paste dữ liệu rồi bấm Xem trước.</small></div><div class="mcp-import-actions"><button type="button" class="secondary" data-mcp-preview-import>Xem trước</button><button class="primary" data-mcp-run-import>Import</button></div></div></form>`;
   lastPlan = null;
   if (!dialog.open) dialog.showModal();
   document.querySelector('#mcpImportText')?.focus();
@@ -262,6 +289,18 @@ async function previewImport() {
   lastPlan = await buildPlan(text);
   renderPreview(lastPlan);
   if (!lastPlan.customers.length && !lastPlan.routes.length) toast('Chưa có dòng hợp lệ để import.');
+}
+
+async function loadImportFile(file) {
+  if (!file) return;
+  const name = String(file.name || '').toLowerCase();
+  if (/\.xlsx?$/.test(name)) return toast('File .xlsx chưa đọc trực tiếp. Hãy Save as CSV hoặc copy từ Excel rồi paste.');
+  const text = await file.text();
+  const box = document.querySelector('#mcpImportText');
+  if (box) box.value = text;
+  lastPlan = null;
+  await previewImport();
+  toast('Đã load file import.');
 }
 
 async function runImport(event) {
@@ -282,7 +321,7 @@ async function runImport(event) {
 
 function handleClick(event) {
   const importButton = event.target.closest('[data-mcp-import-customers]');
-  if (importButton && importButton.closest('section.page[data-page="mcp"]')) {
+  if (importButton) {
     event.preventDefault();
     event.stopImmediatePropagation();
     openImportModal();
@@ -304,11 +343,19 @@ function boot() {
 }
 
 window.addEventListener('click', handleClick, true);
+document.addEventListener('change', (event) => {
+  if (event.target?.id === 'mcpImportFile') {
+    loadImportFile(event.target.files?.[0]).catch((error) => {
+      console.warn('mcp import file failed', error);
+      toast('Không đọc được file import.');
+    });
+  }
+}, true);
 document.addEventListener('submit', (event) => {
   if (!event.target.matches('[data-mcp-import-form]')) return;
   runImport(event).catch((error) => {
     console.warn('mcp import failed', error);
-    toast('Import chưa thành công. Kiểm tra dữ liệu paste.');
+    toast('Import chưa thành công. Kiểm tra dữ liệu paste/file.');
   });
 });
 window.addEventListener('mcp:session-changed', () => setTimeout(ensureImportButton, 0));
