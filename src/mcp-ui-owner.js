@@ -12,4 +12,4 @@ import './mcp-import-ui.js?v=mcp-import-2';
 import './mcp-route-admin-ui.js?v=mcp-route-admin-1';
 import './mcp-cancel-export-actions.js?v=mcp-cancel-export-1';
 import './mcp-detail-toolbar-ui.js?v=mcp-detail-toolbar-1';
-import './mcp-data-actions-compact-ui.js?v=mcp-data-actions-compact-1';
+import './mcp-data-actions-compact-ui.js?v=mcp-data-actions-compact-2';
