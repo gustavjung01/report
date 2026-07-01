@@ -87,15 +87,19 @@ function ensureButtons() {
   installStyle();
   const page = document.querySelector('section.page[data-page="mcp"].active');
   const filters = page?.querySelector('.mcp-filters');
-  if (filters && !filters.querySelector('[data-mcp-route-admin]')) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'mcp-filter';
-    button.dataset.mcpRouteAdmin = '1';
-    button.textContent = 'Quản trị tuyến';
-    const importButton = filters.querySelector('[data-mcp-import-customers]');
-    if (importButton?.nextSibling) filters.insertBefore(button, importButton.nextSibling);
-    else filters.appendChild(button);
+  if (page) {
+    const pageButtons = [...page.querySelectorAll('[data-mcp-route-admin]')];
+    pageButtons.slice(1).forEach((button) => button.remove());
+    if (filters && !pageButtons.length) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mcp-filter';
+      button.dataset.mcpRouteAdmin = '1';
+      button.textContent = 'Quản trị tuyến';
+      const importButton = filters.querySelector('[data-mcp-import-customers]');
+      if (importButton?.nextSibling) filters.insertBefore(button, importButton.nextSibling);
+      else filters.appendChild(button);
+    }
   }
 
   const shell = document.querySelector('#dataShell.active');
