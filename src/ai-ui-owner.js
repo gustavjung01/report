@@ -4,5 +4,5 @@
 // Keep it behind this owner boundary until the UI/settings adapter can be split safely.
 // Do not move this owner before supabase-sync.js without testing Admin sync and AI config.
 
-import './ai-agent-settings.js';
+import './ai-agent-settings.js?v=ai-agent-real-load-1';
 import './ai-summary-ui.js?v=ai-summary-ui-1';
