@@ -58,6 +58,7 @@ import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
 
 // Sync/Admin. Do not rename #syncBtn/#syncState/#dbInfo/#adminStats without sync audit.
 import './supabase-sync.js?v=supabase-sync-1';
+import './sync-delete-guard.js?v=sync-delete-guard-1';
 
 // Admin PWA install UI. Keeps #syncBtn/#syncState untouched and only adds an Admin action button/modal.
 import './pwa-install-ui.js?v=pwa-install-1';
