@@ -39,7 +39,7 @@ dialog{width:min(400px,calc(100vw - 18px))!important;max-height:calc(100dvh - 18
 [data-page="ai"] .ai-config-btn{display:none!important}
 [data-page="ai"] .ai-page-title h1,[data-page="ai"] .ai-page-title p,[data-page="ai"] .ai-hero b,[data-page="ai"] .ai-hero small,[data-page="ai"] .ai-panel h2,[data-page="ai"] .ai-panel p,[data-page="ai"] [class*="pill"] b,[data-page="ai"] [class*="pill"] small,[data-page="ai"] .ai-badge,#aiBtn{font-size:0!important;color:transparent!important;line-height:0!important}
 [data-page="ai"] .ai-page-title h1::after{content:"Báo cáo thông minh";font-size:21px!important;line-height:1.05!important;color:#082337!important}
-[data-page="ai"] .ai-page-title p::after{content:"Tạo báo cáo điều hành từ MCP, đơn hàng, test sản phẩm và báo cáo thị trường.";font-size:12px!important;line-height:1.25!important;color:#63727c!important}
+[data-page="ai"] .ai-page-title p::after{content:"Chọn loại báo cáo trước, sau đó chọn đúng dữ liệu cần phân tích.";font-size:12px!important;line-height:1.25!important;color:#63727c!important}
 [data-page="ai"] .ai-hero b::after{content:"Tổng hợp dữ liệu bán hàng";font-size:17px!important;line-height:1.08!important;color:#fff!important}
 [data-page="ai"] .ai-hero small::after{content:"Hệ thống đọc dữ liệu đã nhập, rút ra điểm chính và đề xuất việc cần làm tiếp theo.";font-size:12px!important;line-height:1.25!important;color:rgba(255,255,255,.84)!important}
 [data-page="ai"] .ai-panel h2::after{content:"Báo cáo điều hành";font-size:15px!important;line-height:1.15!important;color:#082337!important}
