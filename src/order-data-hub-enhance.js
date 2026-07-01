@@ -24,18 +24,32 @@ function installOrderFilterLayout() {
     document.head.appendChild(style);
   }
   style.textContent = `
-    section.page[data-page="data"] #dataShell.active{overflow:visible!important}
-    section.page[data-page="data"] .order-export-row{position:relative!important;z-index:1!important;margin:0 0 8px!important}
-    section.page[data-page="data"] .order-filter-card{position:relative!important;z-index:1!important;display:block!important;margin:8px 0 10px!important;padding:10px!important;overflow:visible!important;clear:both!important}
-    section.page[data-page="data"] .order-filter-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;align-items:start!important;position:relative!important;z-index:1!important}
-    section.page[data-page="data"] .order-filter-grid label{display:grid!important;gap:4px!important;min-width:0!important;margin:0!important;position:relative!important;z-index:1!important}
+    section.page[data-page="data"] #dataShell.active{
+      display:block!important;
+      min-height:0!important;
+      max-height:calc(100dvh - 178px)!important;
+      overflow-y:auto!important;
+      overflow-x:hidden!important;
+      -webkit-overflow-scrolling:touch!important;
+      overscroll-behavior:contain!important;
+      padding:0 2px calc(92px + env(safe-area-inset-bottom)) 0!important;
+      position:relative!important;
+    }
+    section.page[data-page="data"] #dataShell.active>*{position:relative!important;float:none!important;clear:both!important}
+    section.page[data-page="data"] .order-export-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;position:relative!important;z-index:1!important;margin:8px 0!important;float:none!important;clear:both!important}
+    section.page[data-page="data"] .order-export-row button{min-height:34px!important;border-radius:12px!important;font-size:11px!important;font-weight:900!important}
+    section.page[data-page="data"] .order-filter-card{position:relative!important;z-index:1!important;display:block!important;width:100%!important;margin:8px 0 10px!important;padding:10px!important;overflow:visible!important;float:none!important;clear:both!important;transform:none!important}
+    section.page[data-page="data"] .order-filter-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;align-items:start!important;position:relative!important;z-index:1!important;float:none!important;clear:both!important}
+    section.page[data-page="data"] .order-filter-grid label{display:grid!important;gap:4px!important;min-width:0!important;margin:0!important;position:relative!important;z-index:1!important;float:none!important;clear:none!important}
     section.page[data-page="data"] .order-filter-grid label:nth-child(2){grid-column:auto!important}
     section.page[data-page="data"] .order-filter-grid label:nth-child(3){grid-column:1/-1!important}
     section.page[data-page="data"] .order-filter-grid input,section.page[data-page="data"] .order-filter-grid select{display:block!important;width:100%!important;min-width:0!important;min-height:38px!important;box-sizing:border-box!important;position:relative!important;z-index:1!important}
-    section.page[data-page="data"] .order-filter-actions{position:relative!important;z-index:1!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:8px!important;clear:both!important}
-    section.page[data-page="data"] .order-filter-summary{display:block!important;position:relative!important;z-index:1!important;margin-top:8px!important;clear:both!important}
-    section.page[data-page="data"] .data-shell-list{position:relative!important;z-index:0!important;display:grid!important;gap:8px!important;clear:both!important}
+    section.page[data-page="data"] .order-filter-actions{position:relative!important;z-index:1!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:8px!important;clear:both!important;float:none!important}
+    section.page[data-page="data"] .order-filter-summary{display:block!important;position:relative!important;z-index:1!important;margin-top:8px!important;clear:both!important;float:none!important}
+    section.page[data-page="data"] .data-shell-list{position:relative!important;z-index:0!important;display:grid!important;grid-template-columns:1fr!important;gap:8px!important;clear:both!important;float:none!important;margin-top:0!important;padding-top:0!important;overflow:visible!important}
+    section.page[data-page="data"] .data-shell-list>.data-shell-card{position:relative!important;z-index:0!important;float:none!important;clear:both!important;margin:0!important;transform:none!important}
     @media(max-width:430px){
+      section.page[data-page="data"] #dataShell.active{max-height:calc(100dvh - 166px)!important}
       section.page[data-page="data"] .order-filter-card{padding:9px!important;margin:8px 0 10px!important}
       section.page[data-page="data"] .order-filter-grid{grid-template-columns:1fr!important;gap:7px!important}
       section.page[data-page="data"] .order-filter-grid label{grid-column:1/-1!important}
@@ -89,4 +103,4 @@ document.addEventListener('click', schedule, true);
 window.addEventListener('order:changed', schedule);
 window.addEventListener('DOMContentLoaded', schedule);
 schedule();
-setInterval(schedule, 1500);
+setInterval(schedule, 1800);
