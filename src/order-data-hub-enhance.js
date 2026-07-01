@@ -21,11 +21,11 @@ async function enhanceOrderDataHub() {
   const activeOrderTab = document.querySelector('#dataHub [data-data-view="order"].active');
   if (!shell || !activeOrderTab) return;
   const orders = await getAllLocal(LOCAL_STORES.orders);
-  const sorted = orders.slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const orderMap = new Map(orders.map((order) => [order.id, order]));
   const today = todayIsoDate();
-  const todayActiveOrders = sorted.filter((order) => activeOrder(order) && order.order_date === today);
+  const todayActiveOrders = orders.filter((order) => activeOrder(order) && order.order_date === today);
   const todayRevenue = todayActiveOrders.reduce((sum, order) => sum + Number(order.grand_total || 0), 0);
-  const pending = sorted.filter((order) => activeOrder(order) && (order.status === 'draft' || order.status === 'pending_confirm')).length;
+  const pending = orders.filter((order) => activeOrder(order) && (order.status === 'draft' || order.status === 'pending_confirm')).length;
   const kpis = shell.querySelectorAll('.data-shell-kpi b');
   if (kpis[0]) kpis[0].textContent = String(todayActiveOrders.length);
   if (kpis[1]) kpis[1].textContent = formatMoney(todayRevenue);
@@ -36,12 +36,11 @@ async function enhanceOrderDataHub() {
     note?.insertAdjacentHTML('afterend', '<div class="order-export-row"><button type="button" class="secondary" data-order-export-list>Xuất danh sách</button><button type="button" class="secondary" data-order-export-detail>Xuất chi tiết</button></div>');
   }
 
-  const cards = [...shell.querySelectorAll('.data-shell-list > .data-shell-card')];
-  cards.forEach((card, index) => {
-    const order = sorted[index];
-    if (!order || card.dataset.orderId) return;
-    card.dataset.orderId = order.id;
-    if (order.status === 'cancelled') card.classList.add('order-cancelled');
+  const cards = [...shell.querySelectorAll('.data-shell-list > .data-shell-card[data-order-id]')];
+  cards.forEach((card) => {
+    const order = orderMap.get(card.dataset.orderId);
+    if (!order) return;
+    card.classList.toggle('order-cancelled', order.status === 'cancelled');
     if (!card.querySelector('.shell-actions')) card.insertAdjacentHTML('beforeend', '<div class="shell-actions"></div>');
     const actions = card.querySelector('.shell-actions');
     if (!actions.querySelector('[data-order-detail]')) actions.insertAdjacentHTML('beforeend', `<button type="button" class="primary-lite" data-order-detail="${esc(order.id)}">Chi tiết</button>`);
