@@ -113,7 +113,7 @@ function summarizeAgent(obj) {
   const value = firstValue(obj, ['description', 'instruction', 'instructions', 'systemInstruction', 'system_instruction', 'prompt', 'defaultPrompt', 'goal', 'model', 'type']);
   if (typeof value === 'string') return value;
   if (value && typeof value === 'object') return value.name || value.model || JSON.stringify(value).slice(0, 180);
-  if (obj?.tools && Array.isArray(obj.tools)) return `${obj.tools.length} tool`; 
+  if (obj?.tools && Array.isArray(obj.tools)) return `${obj.tools.length} tool`;
   if (obj?.flow || obj?.playbook || obj?.orchestration) return 'Agent flow / playbook';
   return 'AI Agent config';
 }
@@ -124,12 +124,12 @@ function normalizeAgent(obj, index) {
   return { id, name, description: String(summarizeAgent(obj)), raw: obj };
 }
 
-function looksLikeAgent(obj = {}) {
+function looksLikeAgent(obj = {}, parentKey = '') {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const name = pickName(obj, '');
-  return Boolean(
-    name
-    || obj.agent
+  const keyLooksAgent = /agent|playbook|flow|app|deployment|resource/i.test(parentKey);
+  const explicitAgentFields = Boolean(
+    obj.agent
     || obj.agentConfig
     || obj.agent_config
     || obj.instruction
@@ -141,7 +141,9 @@ function looksLikeAgent(obj = {}) {
     || obj.flow
     || obj.model
     || obj.tools
+    || obj.orchestration
   );
+  return Boolean(explicitAgentFields || (name && keyLooksAgent));
 }
 
 function collectAgents(value) {
@@ -158,29 +160,29 @@ function collectAgents(value) {
     candidates.push(agent);
   }
 
-  function scan(node, depth = 0) {
+  function scan(node, depth = 0, parentKey = '') {
     if (!node || depth > 9) return;
     if (Array.isArray(node)) {
-      node.forEach((item) => scan(item, depth + 1));
+      node.forEach((item) => scan(item, depth + 1, parentKey));
       return;
     }
     if (typeof node !== 'object') return;
     if (visited.has(node)) return;
     visited.add(node);
 
-    if (looksLikeAgent(node)) add(node);
+    if (looksLikeAgent(node, parentKey)) add(node);
 
     for (const [key, child] of Object.entries(node)) {
       if (!child || typeof child !== 'object') continue;
       if (preferredArrayKeys.has(key) || Array.isArray(child) || key === 'data' || key === 'result' || key === 'agent' || key === 'agentConfig' || key === 'agent_config') {
-        scan(child, depth + 1);
+        scan(child, depth + 1, key);
       } else if (depth < 5) {
-        scan(child, depth + 1);
+        scan(child, depth + 1, key);
       }
     }
   }
 
-  scan(value, 0);
+  scan(value, 0, 'root');
   return candidates;
 }
 
