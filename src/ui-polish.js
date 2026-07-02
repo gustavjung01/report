@@ -26,8 +26,8 @@ import './route-visibility-guard.js?v=route-visibility-1';
 import './bottom-nav-status-ui.js?v=bottom-nav-status-1';
 
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
-import './data-admin-ui-owner.js?v=data-ui-owner-layout-law-1';
-import './data-report-compact-ui.js?v=data-report-compact-owner-1';
+import './data-admin-ui-owner.js?v=data-owner-stage-3';
+import './data-report-compact-ui.js?v=data-report-owner-state-1';
 import './data-mcp-scroll-ui.js?v=mcp-emergency-usable-1';
 
 // MCP actions/business adapters. Keep custom events and MCP action behavior unchanged.
@@ -36,7 +36,7 @@ import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-test-actions.js?v=mcp-test-1';
 
 // MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
-import './mcp-ui-owner.js?v=mcp-data-export-visible-1';
+import './mcp-ui-owner.js?v=mcp-owner-stage-3';
 
 // Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
