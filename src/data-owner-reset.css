@@ -1,45 +1,12 @@
-/* Data page owner reset. Loaded after polish.css to neutralize old Data preload rules. */
-section.page[data-page="data"].active{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important;gap:8px!important}
+section.page[data-page="data"].active{display:block!important;height:100%!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;padding-bottom:12px!important}
 section.page[data-page="data"]>h1{display:none!important}
-section.page[data-page="data"] #dataHub{flex:1 1 auto!important;min-height:0!important;max-height:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important;overflow:hidden!important}
-section.page[data-page="data"] #dataHub>.data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important}
-section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important}
-section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab span{font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-section.page[data-page="data"].data-mode-test #dataHub{flex:1 1 auto!important;overflow:hidden!important}
-section.page[data-page="data"].data-mode-shell #dataHub{flex:1 1 auto!important;overflow:hidden!important}
+section.page[data-page="data"] #dataHub{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important}
+section.page[data-page="data"] #dataHub>.data-hub-tabs{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0 0 8px!important;position:static!important}
+section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab{min-width:0!important;min-height:46px!important;padding:6px 3px!important;border-radius:14px!important}
 section.page[data-page="data"].data-mode-test #dataHub>#dataShell{display:none!important}
-section.page[data-page="data"].data-mode-test #dataHub>.data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;margin:0!important;padding:0 2px 18px 0!important}
+section.page[data-page="data"].data-mode-test #dataHub>.data-list-wrap{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0 0 12px!important}
 section.page[data-page="data"].data-mode-shell #dataHub>.data-list-wrap{display:none!important}
-html body .app main section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;gap:9px!important;margin:0!important;padding:0 2px 20px 0!important;position:relative!important}
-html body .app main section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active .data-shell-list{flex:0 0 auto!important;min-height:auto!important;max-height:none!important;height:auto!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:9px!important;margin:0!important;padding:2px 2px 0 2px!important}
-section.page[data-page="data"] #dataShell .data-shell-kpis{flex:0 0 auto!important;margin:0!important;display:grid!important;gap:6px!important}
-section.page[data-page="data"] #dataShell .data-shell-open-card,section.page[data-page="data"] #dataShell>.data-shell-note,section.page[data-page="data"] #dataShell .order-filter-card,section.page[data-page="data"] #dataShell .order-export-row{flex:0 0 auto!important;margin:0!important}
-section.page[data-page="data"] #dataShell .data-shell-card{min-height:68px!important;padding:12px!important;border-radius:16px!important}
-section.page[data-page="data"] #dataShell .data-shell-card h3{font-size:15px!important;line-height:1.2!important;margin:0 0 4px!important}
-section.page[data-page="data"] #dataShell .data-shell-card small{font-size:11.5px!important;line-height:1.28!important;color:#63727c!important}
-section.page[data-page="data"] #dataShell .data-shell-list>.data-shell-card{flex:0 0 auto!important;width:100%!important;box-sizing:border-box!important}
-section.page[data-page="data"] #dataShell .shell-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:9px!important}
-section.page[data-page="data"] #dataShell .shell-actions button{min-width:0!important;min-height:36px!important;border-radius:10px!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;padding:0 4px!important}
-section.page[data-page="data"] #dataShell.data-shell-order{gap:9px!important}
-section.page[data-page="data"] #dataShell.data-shell-order>.data-shell-note{display:none!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-kpi{min-height:58px!important;padding:8px 5px!important;border-radius:15px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-kpi b{font-size:16px!important;line-height:1.05!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-kpi span{font-size:10.5px!important;line-height:1.1!important}
-section.page[data-page="data"] #dataShell.data-shell-order .order-filter-card{padding:11px!important;border-radius:16px!important;box-shadow:0 8px 18px rgba(12,55,50,.045)!important}
-section.page[data-page="data"] #dataShell.data-shell-order .order-filter-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .order-filter-grid label:nth-child(3){grid-column:1/-1!important}
-section.page[data-page="data"] #dataShell.data-shell-order .order-filter-grid input,section.page[data-page="data"] #dataShell.data-shell-order .order-filter-grid select{min-height:42px!important;font-size:14px!important;border-radius:13px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .order-filter-actions button{min-height:42px!important;border-radius:13px!important;font-size:13px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-list{gap:10px!important;padding-bottom:0!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id]{min-height:118px!important;padding:13px!important;border-radius:18px!important;box-shadow:0 10px 22px rgba(12,55,50,.06)!important;display:block!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-card-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:9px!important;align-items:start!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] h3{font-size:15.5px!important;line-height:1.22!important;margin:0 0 6px!important;color:#082337!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] small{display:block!important;font-size:12px!important;line-height:1.35!important;margin-top:3px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-badge{min-height:28px!important;padding:6px 9px!important;border-radius:999px!important;font-size:10.5px!important;background:#eafff8!important;color:#007866!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:11px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions button{min-height:44px!important;border-radius:13px!important;font-size:13px!important;font-weight:950!important;padding:0 8px!important}
-section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions button.primary-lite{background:#eafff8!important;border-color:#9bdccd!important;color:#007866!important}
-#dataHub>.data-list-wrap>#dataList{min-height:0!important;max-height:none!important;overflow-x:hidden!important}
-#dataList .record{min-height:64px!important;padding:11px!important}
-#dataList .record small{font-size:11.5px!important;line-height:1.28!important}
+section.page[data-page="data"].data-mode-shell #dataHub>#dataShell,section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0 0 12px!important;position:static!important}
+section.page[data-page="data"] #dataShell .data-shell-kpis,section.page[data-page="data"] #dataShell .data-shell-open-card,section.page[data-page="data"] #dataShell>.data-shell-note,section.page[data-page="data"] #dataShell .order-filter-card,section.page[data-page="data"] #dataShell .order-export-row{margin:0 0 8px!important;position:static!important}
+section.page[data-page="data"] #dataShell .data-shell-list,section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active .data-shell-list{display:block!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0 0 10px!important}
+section.page[data-page="data"] #dataShell .data-shell-list>.data-shell-card,section.page[data-page="data"] #dataList .record{margin-bottom:8px!important}
