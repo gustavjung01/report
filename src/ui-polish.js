@@ -26,7 +26,7 @@ import './route-visibility-guard.js?v=route-visibility-1';
 import './bottom-nav-status-ui.js?v=bottom-nav-status-1';
 
 // Data/Admin ownership: Data hub UI loads here; Admin sync logic stays separate below.
-import './data-admin-ui-owner.js?v=data-ui-owner-order-mobile-1';
+import './data-admin-ui-owner.js?v=data-ui-owner-layout-law-1';
 import './data-report-compact-ui.js?v=data-report-compact-owner-1';
 import './data-mcp-scroll-ui.js?v=mcp-emergency-usable-1';
 
