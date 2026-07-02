@@ -10,17 +10,20 @@ function styleDataReportCompact(){
     section.page[data-page="data"] #dataShell.data-shell-report-compact .data-shell-list .data-shell-note{margin:0!important;padding:9px 10px!important;border-radius:13px!important;border:1px dashed rgba(157,186,178,.65)!important;background:rgba(255,255,255,.48)!important;color:#526873!important;font-size:11.5px!important;line-height:1.35!important}
   `;
 }
+function reportShell(){
+  const page=document.querySelector('section.page[data-page="data"]');
+  if(!page || page.dataset.dataView!=='report' || !page.classList.contains('data-mode-shell'))return null;
+  return page.querySelector('#dataShell.active.data-shell-report');
+}
 function tuneReportCompact(){
   const shell=document.querySelector('section.page[data-page="data"] #dataShell');
+  const okShell=reportShell();
   if(!shell)return;
-  const kpis=[...shell.querySelectorAll(':scope > .data-shell-kpis .data-shell-kpi')];
-  const text=kpis.map(card=>card.textContent||'').join(' ');
-  const ok=kpis.length===4&&text.includes('Báo cáo')&&text.includes('Rủi ro');
-  shell.classList.toggle('data-shell-report-compact',ok);
-  if(ok)shell.querySelectorAll('.data-shell-list .data-shell-note').forEach(note=>{if(note.textContent.includes('Chưa có báo cáo'))note.textContent='Chưa có báo cáo. Vào Home → Báo cáo để tạo mới.'});
+  shell.classList.toggle('data-shell-report-compact',Boolean(okShell));
+  if(okShell)okShell.querySelectorAll('.data-shell-list .data-shell-note').forEach(note=>{if(note.textContent.includes('Chưa có báo cáo'))note.textContent='Chưa có báo cáo. Vào Home → Báo cáo để tạo mới.'});
 }
 function boot(){styleDataReportCompact();tuneReportCompact();setTimeout(tuneReportCompact,80)}
 boot();
 window.addEventListener('DOMContentLoaded',boot);
-document.addEventListener('click',()=>setTimeout(tuneReportCompact,80),true);
+window.addEventListener('data-shell:rendered',()=>setTimeout(tuneReportCompact,40));
 window.addEventListener('report:changed',()=>setTimeout(tuneReportCompact,80));
