@@ -7,15 +7,12 @@ function installDataMcpScrollUi(){
   }
   style.textContent=`
     section.page[data-page="data"]{display:none!important;min-height:0!important;overflow:hidden!important}
-    section.page[data-page="data"].active{display:grid!important;grid-template-rows:minmax(0,1fr)!important;gap:0!important;overflow:hidden!important;padding-bottom:0!important}
-    section.page[data-page="data"]>h1{display:none!important}
+    section.page[data-page="data"].active{display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:8px!important;overflow:hidden!important}
     section.page[data-page="data"] #dataHub{min-height:0!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;gap:8px!important;margin:0!important;height:100%!important;max-height:100%!important}
-    section.page[data-page="data"] #dataHub .data-hub-tabs{flex:0 0 auto!important;margin:0!important}
+    section.page[data-page="data"] #dataHub .data-hub-tabs{flex:0 0 auto!important;margin:0!important;display:grid!important;visibility:visible!important}
     section.page[data-page="data"] #dataShell{min-height:0!important;max-height:100%!important;overflow:hidden!important}
     section.page[data-page="data"] #dataShell.active{display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;gap:8px!important;height:100%!important;max-height:100%!important;overflow:hidden!important}
     section.page[data-page="data"] #dataShell.data-shell-mcp-scroll.active{grid-template-rows:auto auto minmax(0,1fr)!important}
-    section.page[data-page="data"] #dataShell.active~.data-list-wrap,
-    section.page[data-page="data"] #dataHub:has(#dataShell.active)+.data-list-wrap{display:none!important}
     section.page[data-page="data"] #dataShell .data-shell-kpis{flex:0 0 auto!important;margin:0!important}
     section.page[data-page="data"] #dataShell .data-shell-open-card{flex:0 0 auto!important;margin:0!important}
     section.page[data-page="data"] #dataShell .data-shell-list{min-height:0!important;max-height:100%!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;padding:2px 4px 72px 2px!important;touch-action:pan-y!important}
@@ -36,8 +33,6 @@ function markMcpShell(){
   if(!shell)return;
   const isMcp=!!shell.querySelector('.mcp-session-card,[data-mcp-open-session],.data-shell-open-card [data-mcp-start]');
   shell.classList.toggle('data-shell-mcp-scroll',isMcp);
-  const wrap=document.querySelector('section.page[data-page="data"] .data-list-wrap');
-  if(wrap)wrap.style.display=shell.classList.contains('active')&&!document.querySelector('#dataHub [data-data-view="test"].active')?'none':'';
 }
 function boot(){
   installDataMcpScrollUi();
@@ -45,7 +40,7 @@ function boot(){
   const shell=document.querySelector('section.page[data-page="data"] #dataShell');
   if(shell&&!shell.dataset.mcpScrollWatch){
     shell.dataset.mcpScrollWatch='1';
-    new MutationObserver(markMcpShell).observe(shell,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+    new MutationObserver(markMcpShell).observe(shell,{childList:true,subtree:true});
   }
 }
 boot();
