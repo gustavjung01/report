@@ -36,7 +36,7 @@ import './mcp-report-actions.js?v=mcp-report-1';
 import './mcp-test-actions.js?v=mcp-test-1';
 
 // MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
-import './mcp-ui-owner.js?v=mcp-admin-dedupe-1';
+import './mcp-ui-owner.js?v=mcp-data-export-visible-1';
 
 // Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
@@ -57,7 +57,7 @@ import './report-ui-owner.js?v=report-ui-owner-1';
 // MCP management compact UI loaded after shared shell patches to keep existing override behavior.
 import './mcp-manage-actions-compact-ui.js?v=mcp-manage-row-1';
 
-// Sync/Admin. Do not rename #syncBtn/#syncState/#dbInfo/#adminStats without sync audit.
+// Sync/Admin. Do not rename #syncBtn/#syncState/#dbInfo without sync audit.
 import './supabase-sync.js?v=supabase-sync-1';
 import './sync-delete-guard.js?v=sync-delete-guard-1';
 
