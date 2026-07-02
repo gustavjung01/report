@@ -109,6 +109,12 @@ function upsertButton(parent, selector, html, label) {
   return button;
 }
 
+function dataMcpShell() {
+  const page = document.querySelector('section.page[data-page="data"]');
+  if (!page || page.dataset.dataView !== 'mcp' || !page.classList.contains('data-mode-shell')) return null;
+  return page.querySelector('#dataShell.active.data-shell-mcp');
+}
+
 async function enhanceMcpPage() {
   const page = document.querySelector('section.page[data-page="mcp"].active');
   if (!page) return;
@@ -120,9 +126,8 @@ async function enhanceMcpPage() {
 }
 
 async function enhanceDataMcp() {
-  const shell = document.querySelector('#dataShell.active');
-  const mcpTab = document.querySelector('#dataHub [data-data-view="mcp"].active');
-  if (!shell || !mcpTab) return;
+  const shell = dataMcpShell();
+  if (!shell) return;
   const sessions = await getAllLocal(LOCAL_STORES.mcpRouteSessions);
   if (!shell.querySelector('[data-mcp-export-routes]')) {
     const openCard = shell.querySelector('.data-shell-open-card');
@@ -171,5 +176,4 @@ installStyle();
 window.addEventListener('DOMContentLoaded', scheduleEnhance);
 window.addEventListener('mcp:session-changed', () => scheduleEnhance(120));
 window.addEventListener('data-shell:rendered', () => scheduleEnhance(60));
-setInterval(scheduleEnhance, 1400);
 scheduleEnhance(0);
