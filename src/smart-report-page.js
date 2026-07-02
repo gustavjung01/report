@@ -15,7 +15,7 @@ function render() {
   const page = document.querySelector('[data-page="ai"]');
   if (!page) return;
   const cards = reportTypes.map(item => `
-    <button class="smart-report-card" type="button" data-report-type="${item.type}">
+    <button class="smart-report-card" type="button" data-ai-mobile-report-type="${item.type}">
       <i>${item.icon}</i><span><b>${item.title}</b><small>${item.desc}</small></span><em>${item.tag}</em>
     </button>
   `).join('');
