@@ -21,6 +21,10 @@ function esc(value = '') {
   return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 }
 
+function tabMarkup() {
+  return dataTabs.map((item) => '<button type="button" class="data-hub-tab" data-data-view="' + item[0] + '"><i>' + item[1] + '</i><span>' + item[2] + '</span></button>').join('');
+}
+
 function css() {
   let style = document.querySelector('style[data-data-hub-revenue]');
   if (!style) {
@@ -29,24 +33,21 @@ function css() {
     document.head.appendChild(style);
   }
   style.textContent = `
-    section.page[data-page="data"].active{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;gap:8px!important}
+    section.page[data-page="data"].active{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;overflow:hidden!important;gap:8px!important}
     section.page[data-page="data"]>h1{display:none!important}
     section.page[data-page="data"] #dataShell[hidden],section.page[data-page="data"] .data-list-wrap[hidden]{display:none!important}
-    section.page[data-page="data"] .data-hub{min-height:0!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important}
-    section.page[data-page="data"] .data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important;visibility:visible!important}
-    section.page[data-page="data"] .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important;gap:2px!important;line-height:1.05!important}
-    section.page[data-page="data"] .data-hub-tab i{font-size:17px!important;line-height:1!important}
-    section.page[data-page="data"] .data-hub-tab span{font-size:10px!important;font-weight:850!important;line-height:1.05!important;letter-spacing:-.15px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%!important}
-    section.page[data-page="data"].data-mode-test #dataHub{flex:0 0 auto!important;overflow:visible!important}
-    section.page[data-page="data"].data-mode-shell #dataHub{flex:1 1 auto!important;overflow:hidden!important}
-    section.page[data-page="data"].data-mode-test #dataShell{display:none!important}
-    section.page[data-page="data"].data-mode-test .data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding-bottom:18px!important;margin:0!important}
-    section.page[data-page="data"].data-mode-shell .data-list-wrap{display:none!important}
-    section.page[data-page="data"].data-mode-shell #dataShell{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;gap:8px!important;margin:0!important;padding:0!important;position:relative!important}
-    section.page[data-page="data"] #dataShell.data-shell-revenue{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding:0 2px 18px 0!important}
+    section.page[data-page="data"] #dataHub{flex:1 1 auto!important;min-height:0!important;max-height:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important;overflow:hidden!important}
+    section.page[data-page="data"] #dataHub>.data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important;visibility:visible!important}
+    section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important;gap:2px!important;line-height:1.05!important}
+    section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab i{font-size:17px!important;line-height:1!important}
+    section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab span{font-size:10px!important;font-weight:850!important;line-height:1.05!important;letter-spacing:-.15px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%!important}
+    section.page[data-page="data"].data-mode-test #dataHub>.data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding:0 2px 18px 0!important;margin:0!important}
+    section.page[data-page="data"].data-mode-test #dataHub>#dataShell{display:none!important}
+    section.page[data-page="data"].data-mode-shell #dataHub>.data-list-wrap{display:none!important}
+    section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;gap:9px!important;margin:0!important;padding:0 2px 20px 0!important;position:relative!important}
     section.page[data-page="data"] #dataShell .data-shell-kpis{flex:0 0 auto!important;margin:0!important;display:grid!important;gap:6px!important}
     section.page[data-page="data"] #dataShell .data-shell-open-card,section.page[data-page="data"] #dataShell>.data-shell-note,section.page[data-page="data"] #dataShell .order-filter-card,section.page[data-page="data"] #dataShell .order-export-row{flex:0 0 auto!important;margin:0!important}
-    section.page[data-page="data"] #dataShell .data-shell-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important;padding:2px 4px 18px 2px!important}
+    section.page[data-page="data"] #dataShell .data-shell-list{flex:0 0 auto!important;min-height:auto!important;max-height:none!important;height:auto!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:9px!important;margin:0!important;padding:2px 2px 0 2px!important}
     section.page[data-page="data"] #dataShell .data-shell-list>.data-shell-card{flex:0 0 auto!important;width:100%!important;box-sizing:border-box!important}
     section.page[data-page="data"] .order-filter-card{padding:10px!important}
     section.page[data-page="data"] .order-filter-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
@@ -76,6 +77,10 @@ function dataShell() {
   return dataPage()?.querySelector('#dataShell') || null;
 }
 
+function fireRendered(mode) {
+  window.dispatchEvent(new CustomEvent('data-shell:rendered', { detail: { mode, view: active } }));
+}
+
 function setDataMode(mode) {
   const page = dataPage();
   const list = dataList();
@@ -95,6 +100,66 @@ function setDataMode(mode) {
     shell.hidden = isTest;
     shell.style.display = isTest ? 'none' : '';
   }
+}
+
+function ensureDataStructure() {
+  const page = dataPage();
+  if (!page) return null;
+  const h = page.querySelector('h1');
+  if (h) h.hidden = true;
+
+  let hub = dataHub();
+  if (!hub) {
+    hub = document.createElement('div');
+    hub.id = 'dataHub';
+    page.insertBefore(hub, h?.nextSibling || page.firstChild);
+  }
+  hub.classList.add('data-hub');
+
+  let tabs = hub.querySelector(':scope > .data-hub-tabs') || page.querySelector('.data-hub-tabs');
+  if (!tabs) {
+    tabs = document.createElement('div');
+    tabs.className = 'data-hub-tabs';
+  }
+  tabs.className = 'data-hub-tabs';
+  tabs.innerHTML = tabMarkup();
+  if (tabs.parentElement !== hub || hub.firstElementChild !== tabs) hub.insertBefore(tabs, hub.firstChild);
+
+  let shell = hub.querySelector(':scope > #dataShell') || page.querySelector('#dataShell');
+  if (!shell) {
+    shell = document.createElement('div');
+    shell.id = 'dataShell';
+  }
+  shell.id = 'dataShell';
+  shell.classList.add('data-shell');
+  if (shell.parentElement !== hub || tabs.nextElementSibling !== shell) hub.insertBefore(shell, tabs.nextSibling);
+
+  let list = dataList();
+  if (!list) {
+    list = document.createElement('div');
+    list.id = 'dataList';
+  }
+
+  let wrap = hub.querySelector(':scope > .data-list-wrap') || list.closest('.data-list-wrap') || page.querySelector('.data-list-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.className = 'data-list-wrap';
+  }
+  wrap.className = 'data-list-wrap';
+  if (list.parentElement !== wrap) wrap.appendChild(list);
+  if (wrap.parentElement !== hub || shell.nextElementSibling !== wrap) hub.insertBefore(wrap, shell.nextSibling);
+
+  [...page.querySelectorAll('.data-list-wrap')].forEach((item) => {
+    if (item === wrap) return;
+    const nestedList = item.querySelector('#dataList');
+    if (nestedList && nestedList !== list) wrap.appendChild(nestedList);
+    if (!item.contains(list)) item.remove();
+  });
+  [...page.querySelectorAll('#dataShell')].forEach((item) => {
+    if (item !== shell) item.remove();
+  });
+
+  return { page, hub, tabs, shell, wrap, list };
 }
 
 function formatMoney(value) {
@@ -232,36 +297,14 @@ async function renderReportShell(shell) {
 
 function ensure() {
   css();
-  const page = dataPage();
-  const list = dataList();
-  if (!page || !list) return;
-  const h = page.querySelector('h1');
-  if (h) h.hidden = true;
-  let hub = dataHub();
-  if (!hub) {
-    hub = document.createElement('div');
-    hub.id = 'dataHub';
-    hub.className = 'data-hub';
-    hub.innerHTML = '<div class="data-hub-tabs">' + dataTabs.map((item) => '<button type="button" class="data-hub-tab" data-data-view="' + item[0] + '"><i>' + item[1] + '</i><span>' + item[2] + '</span></button>').join('') + '</div><div id="dataShell" class="data-shell"></div>';
-    list.parentNode.insertBefore(hub, list);
-  } else {
-    const tabs = hub.querySelector('.data-hub-tabs');
-    if (tabs && !tabs.querySelector('[data-data-view="revenue"]')) {
-      tabs.innerHTML = dataTabs.map((item) => '<button type="button" class="data-hub-tab" data-data-view="' + item[0] + '"><i>' + item[1] + '</i><span>' + item[2] + '</span></button>').join('');
-    }
-  }
-  let wrap = list.closest('.data-list-wrap');
-  if (!wrap) {
-    wrap = document.createElement('div');
-    wrap.className = 'data-list-wrap';
-    list.parentNode.insertBefore(wrap, list);
-    wrap.appendChild(list);
-  }
-  apply(active);
+  const structure = ensureDataStructure();
+  if (!structure) return;
+  apply(active).catch(console.warn);
 }
 
 async function apply(value) {
   active = value || 'test';
+  ensureDataStructure();
   dataHub()?.querySelectorAll('[data-data-view]').forEach((button) => button.classList.toggle('active', button.dataset.dataView === active));
   const list = dataList();
   const shell = dataShell();
@@ -270,27 +313,17 @@ async function apply(value) {
     setDataMode('test');
     shell.className = 'data-shell';
     shell.innerHTML = '';
+    fireRendered('test');
     return;
   }
   setDataMode('shell');
   shell.className = `data-shell active data-shell-${active}`;
-  if (active === 'mcp') {
-    await renderMcpShell(shell);
-    return;
-  }
-  if (active === 'order') {
-    await renderOrderShell(shell);
-    return;
-  }
-  if (active === 'revenue') {
-    await renderRevenueInto(shell);
-    return;
-  }
-  if (active === 'report') {
-    await renderReportShell(shell);
-    return;
-  }
-  shell.innerHTML = '<p class="data-shell-note">Chưa hỗ trợ dữ liệu này.</p>';
+  if (active === 'mcp') await renderMcpShell(shell);
+  else if (active === 'order') await renderOrderShell(shell);
+  else if (active === 'revenue') await renderRevenueInto(shell);
+  else if (active === 'report') await renderReportShell(shell);
+  else shell.innerHTML = '<p class="data-shell-note">Chưa hỗ trợ dữ liệu này.</p>';
+  fireRendered('shell');
 }
 
 document.addEventListener('submit', async (event) => {
@@ -327,7 +360,7 @@ document.addEventListener('click', async (event) => {
   const button = event.target.closest('#dataHub [data-data-view]');
   if (!button || !dataPage()?.contains(button)) return;
   event.preventDefault();
-  apply(button.dataset.dataView);
+  await apply(button.dataset.dataView);
 }, true);
 
 document.addEventListener('keydown', async (event) => {
@@ -339,13 +372,13 @@ document.addEventListener('keydown', async (event) => {
 });
 
 window.addEventListener('report:changed', () => {
-  if (active === 'report') apply('report');
+  if (active === 'report') apply('report').catch(console.warn);
 });
 window.addEventListener('order:changed', () => {
-  if (active === 'order' || active === 'revenue') apply(active);
+  if (active === 'order' || active === 'revenue') apply(active).catch(console.warn);
 });
 window.addEventListener('mcp:session-changed', () => {
-  if (active === 'mcp' || active === 'revenue') apply(active);
+  if (active === 'mcp' || active === 'revenue') apply(active).catch(console.warn);
 });
 
 ensure();
