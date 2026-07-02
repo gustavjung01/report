@@ -11,7 +11,7 @@ function installStyle() {
     #dataShell.active.mcp-data-compact .data-shell-kpi b{font-size:18px!important;line-height:1!important}
     #dataShell.active.mcp-data-compact .data-shell-kpi span{font-size:10px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #dataShell.active.mcp-data-compact .mcp-route-export-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:0 0 8px!important;position:relative!important;z-index:1!important}
-    #dataShell.active.mcp-data-compact .mcp-route-export-row button{min-height:32px!important;border-radius:10px!important;font-size:10.5px!important;font-weight:900!important;padding:6px 5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    #dataShell.active.mcp-data-compact .mcp-route-export-row button{min-height:34px!important;border-radius:10px!important;font-size:10.5px!important;font-weight:900!important;padding:6px 5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #dataShell.active.mcp-data-compact .mcp-route-admin-row{display:none!important}
     #dataShell.active.mcp-data-compact .data-shell-open-card{margin-top:0!important;padding:9px 10px!important}
     #dataShell.active.mcp-data-compact .data-shell-open-card .data-shell-open-btn{display:none!important}
@@ -26,10 +26,10 @@ function installStyle() {
     #dataShell.active.mcp-data-compact .mcp-session-card h3{font-size:13.5px!important;line-height:1.18!important;margin:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #dataShell.active.mcp-data-compact .mcp-session-card small{font-size:11px!important;line-height:1.25!important;color:#5c6d76!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
     #dataShell.active.mcp-data-compact .mcp-session-card .shell-badge{font-size:10px!important;line-height:1!important;padding:5px 7px!important;border-radius:999px!important;max-width:82px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
-    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin-top:8px!important}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}
     #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions:empty{display:none!important}
-    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions button{min-height:31px!important;border-radius:10px!important;font-size:10.5px!important;font-weight:900!important;padding:5px 6px!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-    @media(max-width:360px){#dataShell.active.mcp-data-compact .mcp-route-export-row button{font-size:10px!important;padding-inline:3px!important}#dataShell.active.mcp-data-compact .mcp-session-card{padding:9px!important;border-radius:15px!important}#dataShell.active.mcp-data-compact .mcp-session-card h3{font-size:13px!important}#dataShell.active.mcp-data-compact .mcp-session-card small{font-size:10.5px!important}#dataShell.active.mcp-data-compact .mcp-session-card .shell-actions{grid-template-columns:1fr!important}}
+    #dataShell.active.mcp-data-compact .mcp-session-card .shell-actions button{min-height:34px!important;border-radius:10px!important;font-size:10.5px!important;font-weight:900!important;padding:5px 5px!important;min-width:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+    @media(max-width:360px){#dataShell.active.mcp-data-compact .mcp-route-export-row button{font-size:10px!important;padding-inline:3px!important}#dataShell.active.mcp-data-compact .mcp-session-card{padding:9px!important;border-radius:15px!important}#dataShell.active.mcp-data-compact .mcp-session-card h3{font-size:13px!important}#dataShell.active.mcp-data-compact .mcp-session-card small{font-size:10.5px!important}#dataShell.active.mcp-data-compact .mcp-session-card .shell-actions button{font-size:10px!important;padding-inline:3px!important}}
   `;
 }
 
@@ -45,6 +45,12 @@ function ensureActionRow(shell) {
     if (item !== row) item.remove();
   });
   return row;
+}
+
+function setButtonText(button, text) {
+  if (!button) return;
+  button.type = 'button';
+  button.textContent = text;
 }
 
 function compactMcpDataActions() {
@@ -64,7 +70,7 @@ function compactMcpDataActions() {
   [...row.querySelectorAll('[data-mcp-start]')].forEach((button) => button.remove());
 
   if (!row.querySelector('[data-mcp-export-routes]')) {
-    row.insertAdjacentHTML('beforeend', '<button type="button" class="secondary" data-mcp-export-routes>Xuất tuyến</button>');
+    row.insertAdjacentHTML('beforeend', '<button type="button" class="secondary" data-mcp-export-routes>Xuất file</button>');
   }
   if (!row.querySelector('[data-mcp-route-admin]')) {
     row.insertAdjacentHTML('beforeend', '<button type="button" class="secondary" data-mcp-route-admin>Quản trị tuyến</button>');
@@ -73,12 +79,18 @@ function compactMcpDataActions() {
     row.insertAdjacentHTML('beforeend', '<button type="button" class="secondary" data-mcp-start>Bắt đầu phiên</button>');
   }
 
+  setButtonText(row.querySelector('[data-mcp-export-routes]'), 'Xuất file');
+  setButtonText(row.querySelector('[data-mcp-route-admin]'), 'Quản trị tuyến');
+  setButtonText(row.querySelector('[data-mcp-start]'), 'Bắt đầu phiên');
+
   const seen = new Set();
   [...row.querySelectorAll('button')].forEach((button) => {
     const key = button.dataset.mcpExportRoutes ? 'export' : button.dataset.mcpRouteAdmin ? 'admin' : button.dataset.mcpStart !== undefined ? 'start' : button.textContent.trim();
     if (seen.has(key)) button.remove();
     else seen.add(key);
   });
+
+  shell.querySelectorAll('[data-mcp-export-session]').forEach((button) => setButtonText(button, 'Xuất file'));
 
   const startButtons = [...shell.querySelectorAll('[data-mcp-start]')];
   startButtons.forEach((button) => {
@@ -88,12 +100,15 @@ function compactMcpDataActions() {
 
 function schedule() {
   clearTimeout(schedule.timer);
+  clearTimeout(schedule.lateTimer);
   schedule.timer = setTimeout(compactMcpDataActions, 120);
+  schedule.lateTimer = setTimeout(compactMcpDataActions, 620);
 }
 
 installStyle();
 window.addEventListener('DOMContentLoaded', schedule);
 window.addEventListener('mcp:session-changed', schedule);
+window.addEventListener('data-shell:rendered', schedule);
 document.addEventListener('click', schedule, true);
 setInterval(schedule, 1200);
 schedule();
