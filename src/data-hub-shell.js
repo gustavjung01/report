@@ -83,23 +83,15 @@ function fireRendered(mode) {
 
 function setDataMode(mode) {
   const page = dataPage();
-  const list = dataList();
   const shell = dataShell();
-  const wrap = list?.closest('.data-list-wrap') || null;
-  const isTest = mode === 'test';
-  if (page) {
-    page.dataset.dataView = active;
-    page.classList.toggle('data-mode-test', isTest);
-    page.classList.toggle('data-mode-shell', !isTest);
-  }
-  if (wrap) {
-    wrap.hidden = !isTest;
-    wrap.style.display = isTest ? '' : 'none';
-  }
-  if (shell) {
-    shell.hidden = isTest;
-    shell.style.display = isTest ? 'none' : '';
-  }
+  const wrap = dataList()?.closest('.data-list-wrap');
+
+  page?.classList.toggle('data-mode-test', mode === 'test');
+  page?.classList.toggle('data-mode-shell', mode === 'shell');
+  if (page) page.dataset.dataView = active;
+
+  if (wrap) wrap.hidden = mode !== 'test';
+  if (shell) shell.hidden = mode === 'test';
 }
 
 function ensureDataStructure() {
