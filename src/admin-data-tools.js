@@ -1,3 +1,4 @@
+import './record-remove-guard.js?v=record-remove-guard-1';
 import { LOCAL_STORES, getAllLocal, putManyLocal, clearLocalStore, openLocalDb, localStats } from '../local-db.js';
 
 const ALL_STORES = Object.values(LOCAL_STORES);
