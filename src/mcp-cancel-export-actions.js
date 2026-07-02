@@ -6,6 +6,7 @@ import { isActiveBusinessRow, isActiveRouteCustomer, isCancelled, makeCancelled,
 const weekdayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 const visitLabel = { todo: 'Chưa ghé', done: 'Đã ghé', checked_in: 'Đã ghé', order: 'Có đơn', test: 'Có test', report: 'Có báo cáo', no: 'Không mua', no_buy: 'Không mua', follow_up: 'Theo dõi', skipped: 'Bỏ qua' };
 let scheduled = null;
+let scheduledLate = null;
 
 function clean(value = '') { return String(value ?? '').replace(/\s+/g, ' ').trim(); }
 function esc(value = '') { return String(value ?? '').replace(/[&<>'"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c])); }
@@ -95,6 +96,19 @@ function installStyle() {
   style.textContent = `.mcp-export-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin:6px 0!important}.mcp-export-row button{min-height:34px!important;border-radius:11px!important;font-size:11px!important;font-weight:900!important}.mcp-danger{border-color:#fecaca!important;background:#fff7f7!important;color:#b91c1c!important}.mcp-session-cancelled{display:none!important}.mcp-data-actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}.mcp-data-actions button{min-height:32px!important;font-size:11px!important}.mcp-route-export-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important;margin:0 0 8px!important}.mcp-route-export-row button{min-height:34px!important}@media(max-width:380px){.mcp-export-row,.mcp-data-actions{grid-template-columns:1fr!important}}`;
 }
 
+function upsertButton(parent, selector, html, label) {
+  let button = parent.querySelector(selector);
+  if (!button) {
+    parent.insertAdjacentHTML('beforeend', html);
+    button = parent.querySelector(selector);
+  }
+  if (button) {
+    button.type = 'button';
+    if (label) button.textContent = label;
+  }
+  return button;
+}
+
 async function enhanceMcpPage() {
   const page = document.querySelector('section.page[data-page="mcp"].active');
   if (!page) return;
@@ -112,20 +126,32 @@ async function enhanceDataMcp() {
   const sessions = await getAllLocal(LOCAL_STORES.mcpRouteSessions);
   if (!shell.querySelector('[data-mcp-export-routes]')) {
     const openCard = shell.querySelector('.data-shell-open-card');
-    openCard?.insertAdjacentHTML('beforebegin', '<div class="mcp-route-export-row"><button type="button" class="secondary" data-mcp-export-routes>Xuất danh sách tuyến</button><button type="button" class="secondary" data-mcp-start>Bắt đầu phiên mới</button></div>');
+    openCard?.insertAdjacentHTML('beforebegin', '<div class="mcp-route-export-row"><button type="button" class="secondary" data-mcp-export-routes>Xuất file tuyến</button><button type="button" class="secondary" data-mcp-start>Bắt đầu phiên mới</button></div>');
   }
   shell.querySelectorAll('[data-mcp-session-id]').forEach((card) => {
     const sessionId = card.dataset.mcpSessionId;
     const session = sessions.find((row) => row.id === sessionId);
-    card.classList.toggle('mcp-session-cancelled', Boolean(session && !activeSession(session)));
-    if (card.querySelector('[data-mcp-export-session]')) return;
+    const isActive = Boolean(!session || activeSession(session));
+    card.classList.toggle('mcp-session-cancelled', Boolean(session && !isActive));
     const actions = card.querySelector('.shell-actions') || card.appendChild(document.createElement('div'));
     actions.classList.add('shell-actions');
-    actions.insertAdjacentHTML('beforeend', `<button type="button" data-mcp-export-session="${esc(sessionId)}">Xuất</button>${session && !activeSession(session) ? '' : `<button type="button" class="mcp-danger" data-mcp-cancel-session="${esc(sessionId)}">Huỷ</button>`}`);
+    upsertButton(actions, '[data-mcp-export-session]', `<button type="button" class="secondary" data-mcp-export-session="${esc(sessionId)}">Xuất file</button>`, 'Xuất file');
+    if (isActive) upsertButton(actions, '[data-mcp-cancel-session]', `<button type="button" class="mcp-danger" data-mcp-cancel-session="${esc(sessionId)}">Huỷ</button>`, 'Huỷ');
+    else actions.querySelector('[data-mcp-cancel-session]')?.remove();
   });
 }
 
-function scheduleEnhance(delay = 180) { clearTimeout(scheduled); scheduled = setTimeout(() => { enhanceMcpPage().catch(console.warn); enhanceDataMcp().catch(console.warn); }, delay); }
+function runEnhance() {
+  enhanceMcpPage().catch(console.warn);
+  enhanceDataMcp().catch(console.warn);
+}
+
+function scheduleEnhance(delay = 180) {
+  clearTimeout(scheduled);
+  clearTimeout(scheduledLate);
+  scheduled = setTimeout(runEnhance, delay);
+  scheduledLate = setTimeout(runEnhance, delay + 520);
+}
 
 window.addEventListener('click', (event) => {
   const cancel = event.target.closest('[data-mcp-cancel-session]');
@@ -144,5 +170,6 @@ window.addEventListener('click', (event) => {
 installStyle();
 window.addEventListener('DOMContentLoaded', scheduleEnhance);
 window.addEventListener('mcp:session-changed', () => scheduleEnhance(120));
+window.addEventListener('data-shell:rendered', () => scheduleEnhance(60));
 setInterval(scheduleEnhance, 1400);
 scheduleEnhance(0);
