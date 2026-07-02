@@ -37,6 +37,7 @@ import './mcp-test-actions.js?v=mcp-test-1';
 
 // MCP ownership: scoped page/card/modal/import UI patches load via mcp-ui-owner.js.
 import './mcp-ui-owner.js?v=mcp-owner-stage-3';
+import './mcp-data-owner-actions.js?v=mcp-data-owner-actions-1';
 
 // Order ownership: order logic stays in order-ui.js; product picker only adds rows into the existing order form.
 import './order-ui.js?v=bepsi-catalog-1';
