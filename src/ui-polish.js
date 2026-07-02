@@ -9,6 +9,7 @@ import './test-data-card-ui.js?v=test-data-card-ui-1';
 import './modal-scroll-fix.js';
 import './modal-form-ui.js?v=ui-modal-zoom-1';
 import './test-file-modal-ui.js?v=test-file-modal-1';
+import './test-customer-picker-ui.js?v=test-customer-picker-1';
 
 // Core routing shell. Import order is intentionally preserved from the pre-audit baseline.
 import './mcp-start.js?v=ui-boundary-1';
