@@ -29,17 +29,34 @@ function css() {
     document.head.appendChild(style);
   }
   style.textContent = `
-    section.page[data-page="data"] .data-hub-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important}
-    section.page[data-page="data"] .data-hub-tab{min-width:0!important}
-    section.page[data-page="data"] .data-hub-tab span{font-size:10.5px!important}
-    section.page[data-page="data"] .order-filter-card{padding:10px!important;margin:8px 0!important}
+    section.page[data-page="data"].active{display:flex!important;flex-direction:column!important;min-height:0!important;overflow:hidden!important;gap:8px!important}
+    section.page[data-page="data"]>h1{display:none!important}
+    section.page[data-page="data"] #dataShell[hidden],section.page[data-page="data"] .data-list-wrap[hidden]{display:none!important}
+    section.page[data-page="data"] .data-hub{min-height:0!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important}
+    section.page[data-page="data"] .data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important;visibility:visible!important}
+    section.page[data-page="data"] .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important;gap:2px!important;line-height:1.05!important}
+    section.page[data-page="data"] .data-hub-tab i{font-size:17px!important;line-height:1!important}
+    section.page[data-page="data"] .data-hub-tab span{font-size:10px!important;font-weight:850!important;line-height:1.05!important;letter-spacing:-.15px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%!important}
+    section.page[data-page="data"].data-mode-test #dataHub{flex:0 0 auto!important;overflow:visible!important}
+    section.page[data-page="data"].data-mode-shell #dataHub{flex:1 1 auto!important;overflow:hidden!important}
+    section.page[data-page="data"].data-mode-test #dataShell{display:none!important}
+    section.page[data-page="data"].data-mode-test .data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding-bottom:18px!important;margin:0!important}
+    section.page[data-page="data"].data-mode-shell .data-list-wrap{display:none!important}
+    section.page[data-page="data"].data-mode-shell #dataShell{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;overflow:hidden!important;gap:8px!important;margin:0!important;padding:0!important;position:relative!important}
+    section.page[data-page="data"] #dataShell.data-shell-revenue{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding:0 2px 18px 0!important}
+    section.page[data-page="data"] #dataShell .data-shell-kpis{flex:0 0 auto!important;margin:0!important;display:grid!important;gap:6px!important}
+    section.page[data-page="data"] #dataShell .data-shell-open-card,section.page[data-page="data"] #dataShell>.data-shell-note,section.page[data-page="data"] #dataShell .order-filter-card,section.page[data-page="data"] #dataShell .order-export-row{flex:0 0 auto!important;margin:0!important}
+    section.page[data-page="data"] #dataShell .data-shell-list{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important;padding:2px 4px 18px 2px!important}
+    section.page[data-page="data"] #dataShell .data-shell-list>.data-shell-card{flex:0 0 auto!important;width:100%!important;box-sizing:border-box!important}
+    section.page[data-page="data"] .order-filter-card{padding:10px!important}
     section.page[data-page="data"] .order-filter-grid{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
-    section.page[data-page="data"] .order-filter-grid label{display:grid!important;gap:4px!important;margin:0!important}
-    section.page[data-page="data"] .order-filter-grid label:nth-child(2){grid-column:1/-1!important}
+    section.page[data-page="data"] .order-filter-grid label{display:grid!important;gap:4px!important;margin:0!important;min-width:0!important}
+    section.page[data-page="data"] .order-filter-grid label:nth-child(3){grid-column:1/-1!important}
     section.page[data-page="data"] .order-filter-grid span{font-size:11px!important;font-weight:900!important;color:#52616b!important}
     section.page[data-page="data"] .order-filter-grid input,section.page[data-page="data"] .order-filter-grid select{width:100%!important;min-height:38px!important;border-radius:12px!important;border:1px solid rgba(15,37,48,.13)!important;background:#fff!important;padding:8px 10px!important;font:inherit!important;font-size:13px!important;box-sizing:border-box!important}
     section.page[data-page="data"] .order-filter-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:8px!important}
     section.page[data-page="data"] .order-filter-summary{display:block!important;margin-top:8px!important;font-size:11px!important;color:#64748b!important}
+    @media(max-width:430px){section.page[data-page="data"] .order-filter-grid{grid-template-columns:1fr!important}section.page[data-page="data"] .order-filter-grid label{grid-column:1/-1!important}}
   `;
 }
 
@@ -57,6 +74,27 @@ function dataHub() {
 
 function dataShell() {
   return dataPage()?.querySelector('#dataShell') || null;
+}
+
+function setDataMode(mode) {
+  const page = dataPage();
+  const list = dataList();
+  const shell = dataShell();
+  const wrap = list?.closest('.data-list-wrap') || null;
+  const isTest = mode === 'test';
+  if (page) {
+    page.dataset.dataView = active;
+    page.classList.toggle('data-mode-test', isTest);
+    page.classList.toggle('data-mode-shell', !isTest);
+  }
+  if (wrap) {
+    wrap.hidden = !isTest;
+    wrap.style.display = isTest ? '' : 'none';
+  }
+  if (shell) {
+    shell.hidden = isTest;
+    shell.style.display = isTest ? 'none' : '';
+  }
 }
 
 function formatMoney(value) {
@@ -227,16 +265,15 @@ async function apply(value) {
   dataHub()?.querySelectorAll('[data-data-view]').forEach((button) => button.classList.toggle('active', button.dataset.dataView === active));
   const list = dataList();
   const shell = dataShell();
-  const wrap = list && list.closest('.data-list-wrap');
   if (!list || !shell) return;
   if (active === 'test') {
-    if (wrap) wrap.style.display = '';
+    setDataMode('test');
     shell.className = 'data-shell';
     shell.innerHTML = '';
     return;
   }
-  if (wrap) wrap.style.display = 'none';
-  shell.className = 'data-shell active';
+  setDataMode('shell');
+  shell.className = `data-shell active data-shell-${active}`;
   if (active === 'mcp') {
     await renderMcpShell(shell);
     return;
