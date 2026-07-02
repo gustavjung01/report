@@ -1,18 +1,17 @@
 /* Data page owner reset. Loaded after polish.css to neutralize old Data preload rules. */
 section.page[data-page="data"].active{display:flex!important;flex-direction:column!important;height:100%!important;min-height:0!important;max-height:none!important;overflow:hidden!important;gap:8px!important}
 section.page[data-page="data"]>h1{display:none!important}
-section.page[data-page="data"] #dataHub{min-height:0!important;max-height:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important}
-section.page[data-page="data"] .data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important}
-section.page[data-page="data"] .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important}
-section.page[data-page="data"] .data-hub-tab span{font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-section.page[data-page="data"].data-mode-test #dataHub{flex:0 0 auto!important;overflow:visible!important}
+section.page[data-page="data"] #dataHub{flex:1 1 auto!important;min-height:0!important;max-height:none!important;display:flex!important;flex-direction:column!important;gap:8px!important;margin:0!important;overflow:hidden!important}
+section.page[data-page="data"] #dataHub>.data-hub-tabs{flex:0 0 auto!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;margin:0!important}
+section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab{min-width:0!important;min-height:48px!important;padding:6px 3px!important;border-radius:14px!important}
+section.page[data-page="data"] #dataHub>.data-hub-tabs .data-hub-tab span{font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+section.page[data-page="data"].data-mode-test #dataHub{flex:1 1 auto!important;overflow:hidden!important}
 section.page[data-page="data"].data-mode-shell #dataHub{flex:1 1 auto!important;overflow:hidden!important}
-section.page[data-page="data"].data-mode-test #dataShell{display:none!important}
-section.page[data-page="data"].data-mode-test .data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;margin:0!important;padding:0 2px 18px 0!important}
-section.page[data-page="data"].data-mode-shell .data-list-wrap{display:none!important}
-html body .app main section.page[data-page="data"].data-mode-shell #dataHub #dataShell.active{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;gap:9px!important;margin:0!important;padding:0 2px 20px 0!important;position:relative!important}
-html body .app main section.page[data-page="data"].data-mode-shell #dataHub #dataShell.active .data-shell-list{flex:0 0 auto!important;min-height:auto!important;max-height:none!important;height:auto!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:9px!important;margin:0!important;padding:2px 2px 0 2px!important}
-section.page[data-page="data"] #dataShell.data-shell-revenue{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;padding:0 2px 20px 0!important}
+section.page[data-page="data"].data-mode-test #dataHub>#dataShell{display:none!important}
+section.page[data-page="data"].data-mode-test #dataHub>.data-list-wrap{display:block!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;margin:0!important;padding:0 2px 18px 0!important}
+section.page[data-page="data"].data-mode-shell #dataHub>.data-list-wrap{display:none!important}
+html body .app main section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;max-height:none!important;height:auto!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;gap:9px!important;margin:0!important;padding:0 2px 20px 0!important;position:relative!important}
+html body .app main section.page[data-page="data"].data-mode-shell #dataHub>#dataShell.active .data-shell-list{flex:0 0 auto!important;min-height:auto!important;max-height:none!important;height:auto!important;overflow:visible!important;display:flex!important;flex-direction:column!important;gap:9px!important;margin:0!important;padding:2px 2px 0 2px!important}
 section.page[data-page="data"] #dataShell .data-shell-kpis{flex:0 0 auto!important;margin:0!important;display:grid!important;gap:6px!important}
 section.page[data-page="data"] #dataShell .data-shell-open-card,section.page[data-page="data"] #dataShell>.data-shell-note,section.page[data-page="data"] #dataShell .order-filter-card,section.page[data-page="data"] #dataShell .order-export-row{flex:0 0 auto!important;margin:0!important}
 section.page[data-page="data"] #dataShell .data-shell-card{min-height:68px!important;padding:12px!important;border-radius:16px!important}
@@ -41,6 +40,6 @@ section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data
 section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;margin-top:11px!important}
 section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions button{min-height:44px!important;border-radius:13px!important;font-size:13px!important;font-weight:950!important;padding:0 8px!important}
 section.page[data-page="data"] #dataShell.data-shell-order .data-shell-card[data-order-id] .shell-actions button.primary-lite{background:#eafff8!important;border-color:#9bdccd!important;color:#007866!important}
-#dataList{min-height:0!important;max-height:none!important;overflow-x:hidden!important}
+#dataHub>.data-list-wrap>#dataList{min-height:0!important;max-height:none!important;overflow-x:hidden!important}
 #dataList .record{min-height:64px!important;padding:11px!important}
 #dataList .record small{font-size:11.5px!important;line-height:1.28!important}
