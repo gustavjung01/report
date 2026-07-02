@@ -33,6 +33,12 @@ function installStyle() {
   `;
 }
 
+function dataMcpShell() {
+  const page = document.querySelector('section.page[data-page="data"]');
+  if (!page || page.dataset.dataView !== 'mcp' || !page.classList.contains('data-mode-shell')) return null;
+  return page.querySelector('#dataShell.active.data-shell-mcp');
+}
+
 function ensureActionRow(shell) {
   const openCard = shell.querySelector('.data-shell-open-card');
   let row = shell.querySelector('.mcp-route-export-row');
@@ -55,9 +61,8 @@ function setButtonText(button, text) {
 
 function compactMcpDataActions() {
   installStyle();
-  const shell = document.querySelector('#dataShell.active');
-  const mcpTab = document.querySelector('#dataHub [data-data-view="mcp"].active');
-  if (!shell || !mcpTab) {
+  const shell = dataMcpShell();
+  if (!shell) {
     document.querySelector('#dataShell.mcp-data-compact')?.classList.remove('mcp-data-compact');
     return;
   }
@@ -110,5 +115,4 @@ window.addEventListener('DOMContentLoaded', schedule);
 window.addEventListener('mcp:session-changed', schedule);
 window.addEventListener('data-shell:rendered', schedule);
 document.addEventListener('click', schedule, true);
-setInterval(schedule, 1200);
 schedule();
